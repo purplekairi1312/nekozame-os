@@ -1,0 +1,12 @@
+{
+    "KPackageStructure": "Plasma/LookAndFeel",
+    "KPlugin": {
+        "Authors": [{ "Name": "purplekairi1312" }],
+        "Category": "",
+        "Description": "nekozame os: soft violet-gray with pastel pink, the panel on top",
+        "Id": "org.nekozame.desktop",
+        "License": "GPL-3.0-or-later",
+        "Name": "nekozame",
+        "Website": "https://git.sr.ht/~purplekairi1312/nekozame-os"
+    }
+}

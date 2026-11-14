@@ -21,6 +21,8 @@ check "plugin folders for every daw" 'test -L /usr/lib/vst3/lib64 && test -L /us
 check "wine" 'command -v wine'
 check "realtime audio for everyone" 'test -f /etc/security/limits.d/95-nekozame-audio.conf'
 check "game mode's videos are nekozame's" 'cmp -s /usr/share/nekozame-os/steam/startup.webm /usr/share/ublue-os/bazzite/bazzite.webm && grep -q nekozame-steam-videos /usr/bin/steam-tweaks && test -x /usr/libexec/nekozame-steam-videos'
+check "nekozame in gtk and qt apps" 'test -s /usr/share/Kvantum/nekozame/nekozame.svg && test -s /usr/share/Kvantum/nekozame/nekozame.kvconfig && test -s /usr/share/nekozame-os/gtk/gtk-4.0.css && test -s /usr/share/qt6ct/colors/nekozame.conf && test -s /usr/share/nekozame-os/yazi/theme.toml && test -d /usr/share/themes/adw-gtk3-dark'
+check "kde's nekozame look" 'test -s /usr/share/plasma/look-and-feel/org.nekozame.desktop/contents/defaults && test -s /usr/share/icons/hicolor/256x256/apps/nekozame.png'
 check "first-login setup" 'test -x /usr/bin/nekozame-setup && test -f /etc/xdg/autostart/nekozame-setup.desktop && command -v gum'
 check "emacs and cava themes" 'test -s /usr/share/nekozame-os/emacs/nekozame-theme.el && test -s /usr/share/nekozame-os/cava/config'
 check "browser policies" 'jq -e ".policies.ExtensionSettings[\"uBlock0@raymondhill.net\"]" /usr/share/nekozame-os/zen/policies/policies.json && jq -e .WebRtcIPHandling /etc/chromium/policies/managed/nekozame.json'

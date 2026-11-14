@@ -1,9 +1,14 @@
 #!/bin/bash
-# on a first kde plasma login: the nekozame color scheme and wallpaper, once
-# (kde picks the wallpaper size that fits the screen). --force runs it again.
+# on kde plasma (the deck's desktop mode): the nekozame look (its colors, kvantum,
+# the panel on top with the nekozame menu, the loading screen), the wallpaper and
+# nekozame in gtk and qt apps. once per version of the look, which resets the
+# panel to nekozame's; --force runs it again.
 set -euo pipefail
+VERSION=2
 DONE="${XDG_STATE_HOME:-$HOME/.local/state}/nekozame/kde-defaults"
-[ "${1:-}" = --force ] || [ ! -e "$DONE" ] || exit 0
+[ "${1:-}" = --force ] || [ "$(cat "$DONE" 2>/dev/null)" != "$VERSION" ] || exit 0
+plasma-apply-lookandfeel --apply org.nekozame.desktop --resetLayout || true
 plasma-apply-colorscheme nekozame || true
 plasma-apply-wallpaperimage /usr/share/wallpapers/nekozame-small || true
-mkdir -p "$(dirname "$DONE")" && touch "$DONE"
+nekozame-look || true
+mkdir -p "$(dirname "$DONE")" && echo "$VERSION" > "$DONE"

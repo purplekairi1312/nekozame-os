@@ -1,0 +1,49 @@
+#!/bin/bash
+# nekozame in gtk and qt apps, yazi and thunar. your own files stay: only what
+# isn't there yet is put in place. --force puts nekozame's back over yours.
+set -uo pipefail
+C="${XDG_CONFIG_HOME:-$HOME/.config}"
+S=/usr/share/nekozame-os
+force=; [ "${1:-}" = --force ] && force=1
+ok() { echo "  ✓ $*"; }
+put() {  # put SOURCE TARGET
+    if [ -z "$force" ] && [ -e "$2" ]; then echo "  · ${2/#$HOME/~} is yours, kept"; return; fi
+    mkdir -p "$(dirname "$2")" && cp "$1" "$2" && ok "${2/#$HOME/~}"
+}
+write() {  # write TARGET (text on stdin)
+    if [ -z "$force" ] && [ -e "$1" ]; then echo "  · ${1/#$HOME/~} is yours, kept"; cat >/dev/null; return; fi
+    mkdir -p "$(dirname "$1")" && cat > "$1" && ok "${1/#$HOME/~}"
+}
+
+# gtk: dark, adw-gtk3 for gtk 3 apps, and nekozame's colors in gtk 3 and 4 (libadwaita)
+gsettings set org.gnome.desktop.interface color-scheme prefer-dark 2>/dev/null
+[ -d /usr/share/themes/adw-gtk3-dark ] && gsettings set org.gnome.desktop.interface gtk-theme adw-gtk3-dark 2>/dev/null
+put "$S/gtk/gtk-3.0.css" "$C/gtk-3.0/gtk.css"
+put "$S/gtk/gtk-4.0.css" "$C/gtk-4.0/gtk.css"
+
+# qt: kvantum with the nekozame theme. kde uses it as its widget style; elsewhere
+# (niri) qt apps get it through qt6ct and qt5ct
+printf '[General]\ntheme=nekozame\n' | write "$C/Kvantum/kvantum.kvconfig"
+for q in qt6ct qt5ct; do
+    printf '[Appearance]\nstyle=kvantum\ncustom_palette=false\ncolor_scheme_path=/usr/share/%s/colors/nekozame.conf\nicon_theme=breeze-dark\n' "$q" \
+        | write "$C/$q/$q.conf"
+done
+if command -v kwriteconfig6 >/dev/null && [ "${XDG_CURRENT_DESKTOP:-}" = KDE ]; then
+    kwriteconfig6 --file kdeglobals --group KDE --key widgetStyle kvantum && ok "kvantum in kde"
+fi
+
+# yazi
+put "$S/yazi/theme.toml" "$C/yazi/theme.toml"
+
+# thunar, like the mac's finder: folders first, hidden files shown, a path you
+# can type, the full path in the title, the details view and the status bar
+if command -v xfconf-query >/dev/null && command -v thunar >/dev/null; then
+    t() { xfconf-query -c thunar -p "$1" -n -t "$2" -s "$3" 2>/dev/null; }
+    t /misc-folders-first bool true
+    t /last-show-hidden bool true
+    t /last-location-bar string ThunarLocationEntry
+    t /last-view string ThunarDetailsView
+    t /last-statusbar-visible bool true
+    t /misc-full-path-in-title bool true
+    ok "thunar"
+fi

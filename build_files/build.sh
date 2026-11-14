@@ -57,9 +57,14 @@ if [ "${VARIANT:-amd}" != deck ]; then
 
     # the kde look-setup only belongs on the deck
     rm -f /etc/xdg/autostart/nekozame-kde-defaults.desktop
+    # qt apps under niri: kvantum's look through qt6ct
+    echo 'QT_QPA_PLATFORMTHEME=qt6ct' > /usr/lib/environment.d/60-nekozame-qt.conf
 else
     # the deck keeps kde; niri is one ujust away
     cat /usr/share/nekozame-os/just/deck.just >> /usr/share/ublue-os/just/60-custom.just
+    # kde's look: nekozame's (the panel on top, the nekozame menu), not valve's vapor
+    sed -i 's/^LookAndFeelPackage=.*/LookAndFeelPackage=org.nekozame.desktop/' /etc/xdg/kdeglobals
+    grep -q '^LookAndFeelPackage=org.nekozame.desktop' /etc/xdg/kdeglobals
 fi
 
 # dms starts with every niri session, and a first niri login gets dms's config.
@@ -93,6 +98,10 @@ rm -rf /tmp/yazi /tmp/yazi.zip
 retry dnf5 -y copr enable scottames/ghostty
 retry dnf5 -y install emacs fuzzel ghostty
 
+### gtk and qt apps in nekozame: kvantum (the qt style), qt6ct/qt5ct (qt outside kde)
+### and adw-gtk3 (gtk 3 apps that take libadwaita's colors)
+retry dnf5 -y install kvantum qt6ct qt5ct adw-gtk3-theme
+
 ### the nekozame theme, from its own repo (github.com/purplekairi1312/nekozame-theme)
 retry curl -fsSL -o /tmp/dl.tar https://github.com/purplekairi1312/nekozame-theme/archive/refs/heads/main.tar.gz
 tar -xzf /tmp/dl.tar -C /tmp && rm -f /tmp/dl.tar
@@ -112,6 +121,13 @@ install -Dm0644 "$T/improvedtube/nekozame.json" /usr/share/nekozame-os/improvedt
 install -Dm0644 "$T/discord/nekozame.theme.css" /usr/share/nekozame-os/discord/nekozame.theme.css
 install -Dm0644 "$T/bitwig/nekozame.bte" /usr/share/nekozame-os/bitwig/nekozame.bte
 install -Dm0644 "$T/emacs/nekozame-theme.el" /usr/share/nekozame-os/emacs/nekozame-theme.el
+# gtk and qt apps (nekozame-look puts them in place per user), and yazi
+install -Dm0644 "$T/gtk/gtk-3.0/gtk.css" /usr/share/nekozame-os/gtk/gtk-3.0.css
+install -Dm0644 "$T/gtk/gtk-4.0/gtk.css" /usr/share/nekozame-os/gtk/gtk-4.0.css
+install -Dm0644 -t /usr/share/Kvantum/nekozame "$T"/kvantum/nekozame/*
+install -Dm0644 "$T/qt/nekozame.conf" /usr/share/qt6ct/colors/nekozame.conf
+install -Dm0644 "$T/qt/nekozame.conf" /usr/share/qt5ct/colors/nekozame.conf
+install -Dm0644 "$T/yazi/theme.toml" /usr/share/nekozame-os/yazi/theme.toml
 rm -rf /tmp/nekozame-theme-main
 
 ### Branding: the name and logo people see. ID, VARIANT_ID and image-info.json

@@ -102,8 +102,9 @@ elif ask "Set up music production? (DAWs, plugins, Windows plugins)" false; then
     nekozame-music
 fi
 
-step "nekozame in your apps: Zen, Discord, Bitwig"
+step "nekozame in your apps: Zen, Discord, Bitwig, gtk and qt apps, yazi"
 nekozame-apps-theme
+nekozame-look
 
 step "Helium (a second browser, optional)"
 if [ -x "$HOME/.local/bin/helium" ]; then
