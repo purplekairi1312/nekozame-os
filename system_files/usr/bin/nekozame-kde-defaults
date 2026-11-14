@@ -11,4 +11,7 @@ plasma-apply-lookandfeel --apply org.nekozame.desktop --resetLayout || true
 plasma-apply-colorscheme nekozame || true
 plasma-apply-wallpaperimage /usr/share/wallpapers/nekozame-small || true
 nekozame-look || true
+kwriteconfig6 --file kdeglobals --group KDE --key SingleClick true || true  # one click opens
 mkdir -p "$(dirname "$DONE")" && echo "$VERSION" > "$DONE"
+# plasma keeps the colors it started with: restart the panel and desktop to show them
+systemctl --user restart plasma-plasmashell.service || true

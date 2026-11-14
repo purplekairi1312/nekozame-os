@@ -65,6 +65,8 @@ else
     # kde's look: nekozame's (the panel on top, the nekozame menu), not valve's vapor
     sed -i 's/^LookAndFeelPackage=.*/LookAndFeelPackage=org.nekozame.desktop/' /etc/xdg/kdeglobals
     grep -q '^LookAndFeelPackage=org.nekozame.desktop' /etc/xdg/kdeglobals
+    # one click opens files and folders (bazzite has one click select)
+    sed -i 's/^SingleClick=.*/SingleClick=true/' /etc/xdg/kdeglobals
 fi
 
 # dms starts with every niri session, and a first niri login gets dms's config.

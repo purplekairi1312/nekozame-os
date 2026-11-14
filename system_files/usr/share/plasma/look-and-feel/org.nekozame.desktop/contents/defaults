@@ -1,5 +1,6 @@
 [kdeglobals][KDE]
 widgetStyle=kvantum
+SingleClick=true
 
 [kdeglobals][General]
 ColorScheme=nekozame
