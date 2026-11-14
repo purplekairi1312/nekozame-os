@@ -21,6 +21,7 @@ gsettings set org.gnome.desktop.interface color-scheme prefer-dark 2>/dev/null
 case "$(gsettings get org.gnome.desktop.interface icon-theme 2>/dev/null)" in  # unless you picked your own
     "'Adwaita'"|"'breeze'"|"'breeze-dark'"|"") gsettings set org.gnome.desktop.interface icon-theme Tela-pink-dark 2>/dev/null ;;
 esac
+gsettings set org.gnome.desktop.interface cursor-theme nekozame-cursors 2>/dev/null
 put "$S/gtk/gtk-3.0.css" "$C/gtk-3.0/gtk.css"
 put "$S/gtk/gtk-4.0.css" "$C/gtk-4.0/gtk.css"
 

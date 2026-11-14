@@ -1,0 +1,18 @@
+#!/bin/bash
+# adds apps (by their .desktop file name) to steam's library, once steam is running
+# with someone signed in. nekozame-firstboot starts it before steam is up; it waits
+# (up to two hours), then exits.
+set -uo pipefail
+for _ in $(seq 1 720); do
+    if pgrep -x steam >/dev/null && ls -d "$HOME"/.local/share/Steam/userdata/[1-9]*/config >/dev/null 2>&1; then
+        sleep 20  # let steam finish starting
+        for app in "$@"; do
+            for d in "$HOME/.local/share/flatpak/exports/share/applications" /var/lib/flatpak/exports/share/applications \
+                     /usr/share/applications; do
+                [ -f "$d/$app" ] && { steamos-add-to-steam "$d/$app"; break; }
+            done
+        done
+        exit 0
+    fi
+    sleep 10
+done

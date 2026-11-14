@@ -4,7 +4,7 @@
 # nekozame in gtk and qt apps. once per version of the look, which resets the
 # panel to nekozame's; --force runs it again.
 set -euo pipefail
-VERSION=3
+VERSION=4
 DONE="${XDG_STATE_HOME:-$HOME/.local/state}/nekozame/kde-defaults"
 [ "${1:-}" = --force ] || [ "$(cat "$DONE" 2>/dev/null)" != "$VERSION" ] || exit 0
 plasma-apply-lookandfeel --apply org.nekozame.desktop --resetLayout || true

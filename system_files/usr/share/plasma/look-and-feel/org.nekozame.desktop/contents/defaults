@@ -12,7 +12,7 @@ Theme=Tela-pink-dark
 name=nekozame
 
 [kcminputrc][Mouse]
-cursorTheme=breeze_cursors
+cursorTheme=nekozame-cursors
 
 [kwinrc][WindowSwitcher]
 LayoutName=org.kde.breeze.desktop

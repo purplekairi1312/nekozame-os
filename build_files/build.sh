@@ -59,9 +59,17 @@ if [ "${VARIANT:-amd}" != deck ]; then
     rm -f /etc/xdg/autostart/nekozame-kde-defaults.desktop
     # qt apps under niri: kvantum's look through qt6ct
     echo 'QT_QPA_PLATFORMTHEME=qt6ct' > /usr/lib/environment.d/60-nekozame-qt.conf
+    echo 'XCURSOR_THEME=nekozame-cursors' > /usr/lib/environment.d/60-nekozame-cursor.conf
 else
     # the deck keeps kde; niri is one ujust away
     echo deck > /usr/share/nekozame-os/variant  # for nekozame-setup
+    # the first-boot setup (nekozame-firstboot): a controller-friendly app that game
+    # mode runs once, right before steam starts
+    retry dnf5 -y install python3-pygame python3-qrcode
+    S=/usr/share/gamescope-session-plus/sessions.d/steam
+    grep -q '^function post_gamescope_start {' "$S"
+    sed -i 's|^function post_gamescope_start {|&\n\t/usr/libexec/nekozame-firstboot \|\| true  # nekozame os: the first-boot setup, once|' "$S"
+    grep -q nekozame-firstboot "$S"
     cat /usr/share/nekozame-os/just/deck.just >> /usr/share/ublue-os/just/60-custom.just
     # kde's look: nekozame's (the panel on top, the nekozame menu), not valve's vapor
     sed -i 's/^LookAndFeelPackage=.*/LookAndFeelPackage=org.nekozame.desktop/' /etc/xdg/kdeglobals
@@ -145,6 +153,10 @@ install -Dm0644 "$T/yazi/theme.toml" /usr/share/nekozame-os/yazi/theme.toml
 mkdir -p /usr/share/plasma/desktoptheme /usr/share/aurorae/themes
 cp -r "$T/plasma/nekozame" /usr/share/plasma/desktoptheme/nekozame
 cp -r "$T/aurorae/nekozame" /usr/share/aurorae/themes/nekozame
+# the pointer (the trans flag, glossy like the bubble), and the default everywhere
+cp -a "$T/cursors/nekozame" /usr/share/icons/nekozame-cursors
+mkdir -p /usr/share/icons/default
+printf '[Icon Theme]\nInherits=nekozame-cursors\n' > /usr/share/icons/default/index.theme
 rm -rf /tmp/nekozame-theme-main
 
 ### Branding: the name and logo people see. ID, VARIANT_ID and image-info.json

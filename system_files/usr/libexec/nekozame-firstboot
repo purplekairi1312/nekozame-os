@@ -1,0 +1,662 @@
+#!/usr/bin/python3
+"""nekozame os, the first thing a new deck shows: a setup you can do with the
+controller (touch, mouse and keyboard work too), before game mode starts.
+
+game mode runs it once, just before steam (see the steam session's
+post_gamescope_start). the terminal one is still there: ujust nekozame-setup.
+  nekozame-firstboot           once; does nothing after it's been through
+  nekozame-firstboot --again   run it again
+"""
+import os
+import re
+import shutil
+import subprocess
+import sys
+import threading
+import time
+
+HOME = os.path.expanduser("~")
+STATE = os.path.join(os.environ.get("XDG_STATE_HOME", os.path.join(HOME, ".local/state")), "nekozame")
+DONE = os.path.join(STATE, "firstboot-done")
+if os.path.exists(DONE) and "--again" not in sys.argv:
+    sys.exit(0)
+
+os.environ.setdefault("PYGAME_HIDE_SUPPORT_PROMPT", "1")
+import pygame  # noqa: E402
+
+try:
+    import qrcode
+except ImportError:
+    qrcode = None
+
+ROOT = os.environ.get("NEKOZAME_ROOT", "")  # for trying it out of the image
+FRAMES = ROOT + "/usr/share/plymouth/themes/nekozame/frames-16x10/frame-{}.png"
+LOGO = ROOT + "/usr/share/icons/hicolor/256x256/apps/nekozame.png"
+
+# the nekozame palette
+PLUM, PANEL, DEEP, RAISED = (90, 79, 110), (79, 69, 98), (67, 58, 85), (104, 92, 127)
+PINK, SOFT, WHITE, DIM = (255, 192, 229), (255, 212, 238), (255, 255, 255), (179, 167, 203)
+MINT, BUTTER, ROSE, BLUE = (200, 247, 220), (255, 241, 176), (255, 179, 200), (184, 228, 255)
+
+
+def sh(*cmd, timeout=None):
+    """run a command, return (ok, output)."""
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        return r.returncode == 0, (r.stdout + r.stderr).strip()
+    except (OSError, subprocess.TimeoutExpired) as e:
+        return False, str(e)
+
+
+def online():
+    ok, out = sh("nmcli", "-t", "networking", "connectivity", "check", timeout=10)
+    return ok and out.strip() == "full"
+
+
+def installed(app):
+    return sh("flatpak", "info", app)[0]
+
+
+# --- input: one set of actions from a controller, keyboard, mouse or touch ----------
+
+UP, DOWN, LEFT, RIGHT, OK, BACK, DEL, START = "up", "down", "left", "right", "ok", "back", "del", "start"
+
+
+class Input:
+    def __init__(self):
+        self.pads = []
+        try:
+            from pygame._sdl2 import controller
+            controller.init()
+            for i in range(controller.get_count()):
+                if controller.is_controller(i):
+                    self.pads.append(controller.Controller(i))
+        except Exception:
+            pygame.joystick.init()
+            for i in range(pygame.joystick.get_count()):
+                self.pads.append(pygame.joystick.Joystick(i))
+        self.stick = 0.0
+        self.stick_y = 0.0
+        self.next_repeat = 0.0
+
+    def actions(self, events):
+        """turn pygame events into actions (and typed text, and clicks)."""
+        acts, text, clicks = [], "", []
+        for e in events:
+            if e.type == pygame.KEYDOWN:
+                k = {pygame.K_UP: UP, pygame.K_DOWN: DOWN, pygame.K_LEFT: LEFT, pygame.K_RIGHT: RIGHT,
+                     pygame.K_RETURN: OK, pygame.K_KP_ENTER: OK, pygame.K_ESCAPE: BACK,
+                     pygame.K_BACKSPACE: DEL, pygame.K_TAB: DOWN}.get(e.key)
+                if k:
+                    acts.append(k)
+                elif e.unicode and e.unicode.isprintable():
+                    text += e.unicode
+            elif e.type == getattr(pygame, "CONTROLLERBUTTONDOWN", -1):
+                k = {pygame.CONTROLLER_BUTTON_DPAD_UP: UP, pygame.CONTROLLER_BUTTON_DPAD_DOWN: DOWN,
+                     pygame.CONTROLLER_BUTTON_DPAD_LEFT: LEFT, pygame.CONTROLLER_BUTTON_DPAD_RIGHT: RIGHT,
+                     pygame.CONTROLLER_BUTTON_A: OK, pygame.CONTROLLER_BUTTON_B: BACK,
+                     pygame.CONTROLLER_BUTTON_X: DEL, pygame.CONTROLLER_BUTTON_START: START}.get(e.button)
+                if k:
+                    acts.append(k)
+            elif e.type == getattr(pygame, "CONTROLLERAXISMOTION", -1):
+                v = e.value / 32767
+                if e.axis == pygame.CONTROLLER_AXIS_LEFTX:
+                    self.stick = v
+                elif e.axis == pygame.CONTROLLER_AXIS_LEFTY:
+                    self.stick_y = v
+            elif e.type == pygame.JOYHATMOTION:
+                x, y = e.value
+                acts += [LEFT] if x < 0 else [RIGHT] if x > 0 else []
+                acts += [UP] if y > 0 else [DOWN] if y < 0 else []
+            elif e.type == pygame.JOYBUTTONDOWN and not hasattr(pygame, "CONTROLLERBUTTONDOWN"):
+                acts += {0: [OK], 1: [BACK], 2: [DEL], 7: [START]}.get(e.button, [])
+            elif e.type == pygame.MOUSEBUTTONDOWN and e.button == 1:
+                clicks.append(e.pos)
+            elif e.type == pygame.FINGERDOWN:
+                w, h = pygame.display.get_surface().get_size()
+                clicks.append((int(e.x * w), int(e.y * h)))
+        # the stick, with a repeat while it's held
+        now = time.time()
+        held = UP if self.stick_y < -0.6 else DOWN if self.stick_y > 0.6 else LEFT if self.stick < -0.6 \
+            else RIGHT if self.stick > 0.6 else None
+        if held and now >= self.next_repeat:
+            acts.append(held)
+            self.next_repeat = now + 0.18
+        elif not held:
+            self.next_repeat = 0.0
+        return acts, text, clicks
+
+
+# --- drawing --------------------------------------------------------------------------
+
+class Look:
+    def __init__(self, screen):
+        self.screen = screen
+        self.w, self.h = screen.get_size()
+        self.s = self.h / 800  # everything is laid out for the deck's 1280x800
+        font = sh("fc-match", "-f", "%{file}", "Noto Sans:bold")[1] or None
+        regular = sh("fc-match", "-f", "%{file}", "Noto Sans")[1] or None
+        self.big = pygame.font.Font(font, int(44 * self.s))
+        self.mid = pygame.font.Font(font, int(26 * self.s))
+        self.text = pygame.font.Font(regular, int(21 * self.s))
+        self.small = pygame.font.Font(regular, int(17 * self.s))
+        self.frames = []
+        for i in range(48):
+            try:
+                self.frames.append(pygame.image.load(FRAMES.format(i)).convert())
+            except (pygame.error, FileNotFoundError):
+                break
+        try:
+            logo = pygame.image.load(LOGO).convert_alpha()
+            n = int(150 * self.s)
+            self.logo = pygame.transform.smoothscale(logo, (n, n))
+        except (pygame.error, FileNotFoundError):
+            self.logo = None
+        self.veil = pygame.Surface((self.w, self.h), pygame.SRCALPHA)
+        self.veil.fill((40, 32, 54, 195))
+
+    def background(self, t):
+        if self.frames:
+            f = self.frames[int(t * 16) % len(self.frames)]
+            self.screen.blit(pygame.transform.scale(f, (self.w, self.h)), (0, 0))
+        else:
+            self.screen.fill(PLUM)
+        self.screen.blit(self.veil, (0, 0))
+
+    def panel(self, rect, fill=PANEL, border=None, radius=18, alpha=235):
+        surf = pygame.Surface(rect.size, pygame.SRCALPHA)
+        pygame.draw.rect(surf, fill + (alpha,), surf.get_rect(), border_radius=int(radius * self.s))
+        if border:
+            pygame.draw.rect(surf, border, surf.get_rect(), width=max(2, int(2 * self.s)), border_radius=int(radius * self.s))
+        self.screen.blit(surf, rect.topleft)
+
+    def label(self, text, font, color, pos, center=False):
+        img = font.render(text, True, color)
+        r = img.get_rect()
+        if center:
+            r.midtop = pos
+        else:
+            r.topleft = pos
+        self.screen.blit(img, r)
+        return r
+
+    def hint(self, text):
+        self.label(text, self.small, DIM, (self.w // 2, self.h - int(40 * self.s)), center=True)
+
+    def title(self, text, sub=None):
+        y = int(50 * self.s)
+        self.label(text, self.big, PINK, (self.w // 2, y), center=True)
+        if sub:
+            self.label(sub, self.text, WHITE, (self.w // 2, y + int(64 * self.s)), center=True)
+
+
+# --- the screens ----------------------------------------------------------------------
+
+class Welcome:
+    def draw(self, look, t):
+        if look.logo:
+            r = look.logo.get_rect(center=(look.w // 2, int(look.h * 0.36)))
+            look.screen.blit(look.logo, r)
+        look.label("welcome to nekozame os", look.big, PINK, (look.w // 2, int(look.h * 0.56)), center=True)
+        look.label("a few choices, then your games.", look.text, WHITE, (look.w // 2, int(look.h * 0.56) + int(64 * look.s)), center=True)
+        if int(t * 2) % 2 == 0:
+            look.label("press A to start", look.mid, SOFT, (look.w // 2, int(look.h * 0.78)), center=True)
+        look.hint("A or Enter: next")
+
+    def handle(self, acts, text, clicks, look):
+        return "next" if (OK in acts or START in acts or clicks) else None
+
+
+class Rows:
+    """a list of rows to move through; subclasses say what each row is."""
+    focus = 0
+
+    def rows(self):
+        return []
+
+    def layout(self, look, top):
+        rects, y = [], top
+        for _ in self.rows():
+            rects.append(pygame.Rect(int(look.w * 0.18), y, int(look.w * 0.64), int(62 * look.s)))
+            y += int(72 * look.s)
+        return rects
+
+    def move(self, acts, n):
+        if UP in acts:
+            self.focus = (self.focus - 1) % n
+        if DOWN in acts:
+            self.focus = (self.focus + 1) % n
+
+    def clicked(self, clicks, rects):
+        for pos in clicks:
+            for i, r in enumerate(rects):
+                if r.collidepoint(pos):
+                    self.focus = i
+                    return True
+        return False
+
+
+class Wifi(Rows):
+    def __init__(self):
+        self.nets, self.status, self.scanning = [], "looking for networks…", True
+        threading.Thread(target=self.scan, daemon=True).start()
+
+    def scan(self):
+        self.scanning = True
+        ok, out = sh("nmcli", "-t", "-f", "SSID,SIGNAL,SECURITY", "device", "wifi", "list", "--rescan", "yes", timeout=30)
+        nets, seen = [], set()
+        for line in out.splitlines() if ok else []:
+            parts = re.split(r"(?<!\\):", line)
+            if len(parts) >= 3 and parts[0] and parts[0] not in seen:
+                seen.add(parts[0])
+                nets.append((parts[0].replace("\\:", ":"), int(parts[1] or 0), parts[2]))
+        self.nets = sorted(nets, key=lambda n: -n[1])[:7]
+        self.status = "" if self.nets else "no networks found: B to look again, or skip"
+        self.scanning = False
+
+    def rows(self):
+        return [n[0] for n in self.nets] + ["skip: set up without internet"]
+
+    def draw(self, look, t):
+        look.title("connect to wi-fi", "zen, tailscale and the rest need the internet")
+        rects = self.layout(look, int(200 * look.s))
+        for i, (r, name) in enumerate(zip(rects, self.rows())):
+            look.panel(r, RAISED if i == self.focus else PANEL, PINK if i == self.focus else None)
+            look.label(name, look.mid, WHITE if i < len(self.nets) else DIM, (r.x + int(24 * look.s), r.y + int(14 * look.s)))
+            if i < len(self.nets):
+                info = f"{self.nets[i][1]}%" + ("  locked" if self.nets[i][2] else "")
+                img = look.text.render(info, True, SOFT)
+                look.screen.blit(img, (r.right - img.get_width() - int(24 * look.s), r.y + int(18 * look.s)))
+        if self.status:
+            look.label(self.status, look.text, BUTTER, (look.w // 2, int(150 * look.s) + int(30 * look.s)), center=True)
+        look.hint("A: connect   B: look again")
+
+    def handle(self, acts, text, clicks, look):
+        rows = self.rows()
+        self.move(acts, len(rows))
+        if BACK in acts and not self.scanning:
+            self.status = "looking for networks…"
+            threading.Thread(target=self.scan, daemon=True).start()
+        if OK in acts or self.clicked(clicks, self.layout(look, int(200 * look.s))):
+            if self.focus == len(self.nets):
+                return "next"
+            ssid, _, sec = self.nets[self.focus]
+            return ("password", ssid) if sec else ("connect", ssid, "")
+        return None
+
+
+class Keyboard:
+    """an on-screen keyboard you can use with the d-pad."""
+    LOWER = ["1234567890", "qwertyuiop", "asdfghjkl-", "zxcvbnm_.@"]
+    UPPER = ["!\"#$%&/()=", "QWERTYUIOP", "ASDFGHJKL+", "ZXCVBNM;:?"]
+    SPECIAL = ["shift", "space", "delete", "connect"]
+
+    def __init__(self, ssid):
+        self.ssid, self.value, self.shift, self.show = ssid, "", False, False
+        self.row, self.col = 1, 0
+
+    def keys(self):
+        rows = [list(r) for r in (self.UPPER if self.shift else self.LOWER)]
+        return rows + [self.SPECIAL]
+
+    def draw(self, look, t):
+        look.title(f"password for {self.ssid}")
+        box = pygame.Rect(int(look.w * 0.2), int(150 * look.s), int(look.w * 0.6), int(60 * look.s))
+        look.panel(box, DEEP, PINK)
+        shown = self.value if self.show else "•" * len(self.value)
+        look.label(shown + ("|" if int(t * 2) % 2 == 0 else ""), look.mid, WHITE, (box.x + int(20 * look.s), box.y + int(12 * look.s)))
+        kw, kh, gap = int(80 * look.s), int(64 * look.s), int(10 * look.s)
+        top = int(250 * look.s)
+        self.rects = []
+        for r, row in enumerate(self.keys()):
+            wide = r == 4
+            width = (kw * 10 + gap * 9 - gap * 3) // 4 if wide else kw
+            x0 = look.w // 2 - (len(row) * (width + gap) - gap) // 2
+            for c, k in enumerate(row):
+                rect = pygame.Rect(x0 + c * (width + gap), top + r * (kh + gap), width, kh)
+                self.rects.append((r, c, rect))
+                on = (r, c) == (self.row, self.col)
+                special_on = (k == "shift" and self.shift)
+                look.panel(rect, PINK if on else RAISED if not special_on else SOFT, None, radius=12)
+                look.label(k, look.mid if len(k) == 1 else look.text, DEEP if on or special_on else WHITE,
+                           (rect.centerx, rect.y + int(16 * look.s)), center=True)
+        look.hint("A: type   X: delete   B: back   Start: connect   (a keyboard works too)")
+
+    def press(self, k):
+        if k == "shift":
+            self.shift = not self.shift
+        elif k == "space":
+            self.value += " "
+        elif k == "delete":
+            self.value = self.value[:-1]
+        elif k == "connect":
+            return ("connect", self.ssid, self.value)
+        else:
+            self.value += k
+        return None
+
+    def handle(self, acts, text, clicks, look):
+        rows = self.keys()
+        if UP in acts:
+            self.row = (self.row - 1) % len(rows)
+        if DOWN in acts:
+            self.row = (self.row + 1) % len(rows)
+        self.col = min(self.col, len(rows[self.row]) - 1)
+        if LEFT in acts:
+            self.col = (self.col - 1) % len(rows[self.row])
+        if RIGHT in acts:
+            self.col = (self.col + 1) % len(rows[self.row])
+        self.value += text
+        if DEL in acts:
+            self.value = self.value[:-1]
+        if START in acts:
+            return ("connect", self.ssid, self.value)
+        if BACK in acts:
+            return "wifi"
+        for pos in clicks:
+            for r, c, rect in getattr(self, "rects", []):
+                if rect.collidepoint(pos):
+                    self.row, self.col = r, c
+                    return self.press(rows[r][c])
+        if OK in acts:
+            # enter on a real keyboard connects; A on the pad types the key
+            if pygame.key.get_pressed()[pygame.K_RETURN]:
+                return ("connect", self.ssid, self.value)
+            return self.press(rows[self.row][self.col])
+        return None
+
+
+class Connecting:
+    def __init__(self, ssid, password):
+        self.ssid, self.result = ssid, None
+        threading.Thread(target=self.go, args=(password,), daemon=True).start()
+
+    def go(self, password):
+        cmd = ["nmcli", "device", "wifi", "connect", self.ssid] + (["password", password] if password else [])
+        ok, out = sh(*cmd, timeout=60)
+        for _ in range(20):
+            if ok and online():
+                self.result = "ok"
+                return
+            time.sleep(1)
+        self.result = out.splitlines()[-1] if out else "couldn't connect"
+
+    def draw(self, look, t):
+        look.title(f"connecting to {self.ssid}…" if not self.result or self.result == "ok" else "that didn't work")
+        if self.result and self.result != "ok":
+            look.label(self.result[:90], look.text, BUTTER, (look.w // 2, int(look.h * 0.45)), center=True)
+            look.hint("A: try again")
+
+    def handle(self, acts, text, clicks, look):
+        if self.result == "ok":
+            return "next"
+        if self.result and (OK in acts or BACK in acts or clicks):
+            return "wifi"
+        return None
+
+
+EDITORS = ["Doom Emacs", "Doom Emacs, evil mode (vim keys)", "no editor for now"]
+
+
+class Choices(Rows):
+    def __init__(self, deck=True):
+        self.items = [
+            ["tailscale", "Tailscale", "your machines and this deck, reachable from anywhere", True],
+            ["moonlight", "Moonlight", "play games from your other machines here", True],
+            ["sunshine", "Sunshine", "stream this deck to your other machines", True],
+            ["zen", "Zen browser", "with the privacy extensions", True],
+            ["editor", "Editor", EDITORS[0], 0],
+            ["helium", "Helium", "a second browser, with the same extensions", False],
+        ]
+        if sh("tailscale", "status")[0]:
+            self.items[0][2], self.items[0][3] = "already signed in", None
+
+    def rows(self):
+        return self.items + [["go", "start setting up", "", None]]
+
+    def layout(self, look, top):
+        rects, y = [], top
+        for i, _ in enumerate(self.rows()):
+            rects.append(pygame.Rect(int(look.w * 0.14), y, int(look.w * 0.72), int(60 * look.s)))
+            y += int(66 * look.s)
+        return rects
+
+    def draw(self, look, t):
+        look.title("what should be on your deck?")
+        for i, (r, item) in enumerate(zip(self.layout(look, int(140 * look.s)), self.rows())):
+            key, name, desc, val = item
+            on = i == self.focus
+            go = key == "go"
+            look.panel(r, PINK if (on and go) else RAISED if on else PANEL, PINK if on else None)
+            col = DEEP if (on and go) else WHITE
+            if go:
+                look.label(name, look.mid, col, (r.centerx, r.y + int(12 * look.s)), center=True)
+                continue
+            look.label(name, look.mid, col, (r.x + int(22 * look.s), r.y + int(5 * look.s)))
+            look.label(EDITORS[val] if key == "editor" else desc, look.small, DIM, (r.x + int(22 * look.s), r.y + int(34 * look.s)))
+            if key == "editor":
+                for k, x in ((-1, r.right - int(84 * look.s)), (1, r.right - int(40 * look.s))):  # little arrows
+                    cy, d = r.centery, int(9 * look.s)
+                    pts = [(x - d, cy), (x + d // 2, cy - d), (x + d // 2, cy + d)] if k < 0 else [(x + d, cy), (x - d // 2, cy - d), (x - d // 2, cy + d)]
+                    pygame.draw.polygon(look.screen, SOFT, pts)
+            elif val is not None:
+                pill = pygame.Rect(r.right - int(96 * look.s), r.y + int(14 * look.s), int(72 * look.s), int(32 * look.s))
+                look.panel(pill, MINT if val else DEEP, None, radius=16)
+                knob = int(13 * look.s)
+                cx = pill.right - knob - int(4 * look.s) if val else pill.x + knob + int(4 * look.s)
+                pygame.draw.circle(look.screen, WHITE if val else DIM, (cx, pill.centery), knob)
+        look.label("music production: later in desktop mode (ujust nekozame-music)", look.small, DIM,
+                   (look.w // 2, look.h - int(78 * look.s)), center=True)
+        look.hint("A: switch   left/right: change   B: back")
+
+    def handle(self, acts, text, clicks, look):
+        rows = self.rows()
+        self.move(acts, len(rows))
+        hit = self.clicked(clicks, self.layout(look, int(140 * look.s)))
+        item = rows[self.focus]
+        if item[0] == "go" and (OK in acts or hit or START in acts):
+            return "next"
+        if START in acts:
+            return "next"
+        if item[0] == "editor" and (LEFT in acts or RIGHT in acts or OK in acts or hit):
+            step = -1 if LEFT in acts else 1
+            item[3] = (item[3] + step) % len(EDITORS)
+        elif item[3] is not None and item[0] != "go" and (OK in acts or hit or LEFT in acts or RIGHT in acts):
+            item[3] = not item[3]
+        if BACK in acts:
+            return "back"
+        return None
+
+    def picked(self):
+        return {k: v for k, _, _, v in self.items}
+
+
+class Tailscale:
+    """sign in with a qr code (or the link), like on a tv."""
+    def __init__(self):
+        self.url, self.state, self.proc = None, "starting…", None
+        threading.Thread(target=self.go, daemon=True).start()
+
+    def go(self):
+        # once: let you run tailscale without a password (a polkit rule allows this
+        # for whoever is at the deck)
+        sh("pkexec", "/usr/libexec/nekozame-tailscale-operator", timeout=60)
+        self.proc = subprocess.Popen(["tailscale", "login"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        for line in self.proc.stdout:
+            m = re.search(r"https://login\.tailscale\.com/\S+", line)
+            if m:
+                self.url = m.group(0)
+                self.state = "scan it with your phone, or open the link"
+        self.state = "done" if self.proc.wait() == 0 else "didn't sign in"
+
+    def draw(self, look, t):
+        look.title("sign in to tailscale")
+        if self.url and qrcode:
+            qr = qrcode.QRCode(border=2)
+            qr.add_data(self.url)
+            qr.make()
+            m = qr.get_matrix()
+            cell = max(2, int(300 * look.s) // len(m))
+            size = cell * len(m)
+            x0, y0 = look.w // 2 - size // 2, int(150 * look.s)
+            pygame.draw.rect(look.screen, WHITE, (x0, y0, size, size), border_radius=int(10 * look.s))
+            for j, row in enumerate(m):
+                for i, v in enumerate(row):
+                    if v:
+                        pygame.draw.rect(look.screen, DEEP, (x0 + i * cell, y0 + j * cell, cell, cell))
+            look.label(self.url, look.text, SOFT, (look.w // 2, y0 + size + int(20 * look.s)), center=True)
+        look.label(self.state, look.text, WHITE, (look.w // 2, look.h - int(110 * look.s)), center=True)
+        look.hint("B: skip (later: tailscale up)")
+
+    def handle(self, acts, text, clicks, look):
+        if self.state == "done":
+            return "next"
+        if BACK in acts or (self.state == "didn't sign in" and (OK in acts or clicks)):
+            if self.proc and self.proc.poll() is None:
+                self.proc.terminate()
+            return "next"
+        return None
+
+
+class Working:
+    def __init__(self, picked):
+        self.tasks = []  # [label, command, status, last line]
+        add = lambda label, *cmd: self.tasks.append([label, cmd, "waiting", ""])
+        if picked.get("zen") and not installed("app.zen_browser.zen"):
+            add("Zen browser", "flatpak", "install", "--user", "-y", "--noninteractive", "flathub", "app.zen_browser.zen")
+        if picked.get("moonlight") and not installed("com.moonlight_stream.Moonlight"):
+            add("Moonlight", "flatpak", "install", "--user", "-y", "--noninteractive", "flathub", "com.moonlight_stream.Moonlight")
+        if picked.get("sunshine"):
+            add("Sunshine", "env", "NEKOZAME_SETUP=1", "nekozame-sunshine")
+        editor = picked.get("editor")
+        if editor in (0, 1) and not os.path.exists(os.path.join(HOME, ".config/emacs/bin/doom")):
+            add("Doom Emacs (takes a while)", "nekozame-doom", *(["--evil"] if editor == 1 else []))
+        if picked.get("helium"):
+            add("Helium", "nekozame-helium")
+        add("nekozame in your apps", "nekozame-apps-theme")
+        add("nekozame in gtk and qt apps", "nekozame-look")
+        self.moonlight = picked.get("moonlight")
+        self.finished = False
+        threading.Thread(target=self.go, daemon=True).start()
+
+    def go(self):
+        for task in self.tasks:
+            task[2] = "running"
+            try:
+                p = subprocess.Popen(task[1], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+                                     stdin=subprocess.DEVNULL)
+                for line in p.stdout:
+                    line = re.sub(r"\x1b\[[0-9;]*[A-Za-z]", "", line).strip()
+                    if line:
+                        task[3] = line[:80]
+                task[2] = "ok" if p.wait() == 0 else "failed"
+            except OSError as e:
+                task[2], task[3] = "failed", str(e)
+        if self.moonlight:
+            # steam isn't running yet: add moonlight to its library once it is
+            os.makedirs(STATE, exist_ok=True)
+            subprocess.Popen(["setsid", "-f", "/usr/libexec/nekozame-add-to-steam",
+                              "com.moonlight_stream.Moonlight.desktop"], stdin=subprocess.DEVNULL,
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        self.finished = True
+
+    def draw(self, look, t):
+        look.title("setting up" if not self.finished else "all set <3")
+        y = int(150 * look.s)
+        for label, _, status, last in self.tasks:
+            cx, cy, rad = int(look.w * 0.18) + int(14 * look.s), y + int(17 * look.s), int(11 * look.s)
+            if status == "waiting":
+                pygame.draw.circle(look.screen, DIM, (cx, cy), int(4 * look.s))
+            elif status == "running":  # a pink arc going round
+                a = t * 6
+                pygame.draw.arc(look.screen, PINK, (cx - rad, cy - rad, 2 * rad, 2 * rad), a, a + 4.2, max(3, int(4 * look.s)))
+            elif status == "ok":
+                pygame.draw.lines(look.screen, MINT, False, [(cx - rad * 0.7, cy), (cx - rad * 0.15, cy + rad * 0.6),
+                                                             (cx + rad * 0.8, cy - rad * 0.6)], max(3, int(4 * look.s)))
+            else:
+                w = max(3, int(4 * look.s))
+                pygame.draw.line(look.screen, ROSE, (cx - rad * 0.6, cy - rad * 0.6), (cx + rad * 0.6, cy + rad * 0.6), w)
+                pygame.draw.line(look.screen, ROSE, (cx + rad * 0.6, cy - rad * 0.6), (cx - rad * 0.6, cy + rad * 0.6), w)
+            look.label(label, look.mid, WHITE, (int(look.w * 0.18) + int(44 * look.s), y))
+            if status == "running" and last:
+                look.label(last, look.small, DIM, (int(look.w * 0.18) + int(44 * look.s), y + int(34 * look.s)))
+                y += int(30 * look.s)
+            y += int(52 * look.s)
+        if self.finished:
+            look.hint("A: start game mode")
+
+    def handle(self, acts, text, clicks, look):
+        if self.finished and (OK in acts or START in acts or clicks):
+            return "next"
+        return None
+
+
+# --- the app --------------------------------------------------------------------------
+
+def main():
+    pygame.init()
+    screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+    pygame.display.set_caption("nekozame setup")
+    pygame.mouse.set_visible(True)
+    look, inp, clock = Look(screen), Input(), pygame.time.Clock()
+    order = ["welcome", "wifi", "choices", "tailscale", "working"]
+    screens = {"welcome": Welcome()}
+    current = "welcome"
+    choices = None
+    t0 = time.time()
+
+    def go_to(name):
+        nonlocal current, choices
+        if name == "wifi":
+            if online():
+                return go_to("choices")
+            screens["wifi"] = Wifi()
+        elif name == "choices":
+            choices = choices or Choices()
+            screens["choices"] = choices
+        elif name == "tailscale":
+            if not choices.picked().get("tailscale") or not online():
+                return go_to("working")
+            screens["tailscale"] = Tailscale()
+        elif name == "working":
+            screens["working"] = Working(choices.picked() if online() else {"editor": 2})
+        current = name
+
+    while True:
+        events = pygame.event.get()
+        if any(e.type == pygame.QUIT for e in events):
+            break
+        acts, text, clicks = inp.actions(events)
+        t = time.time() - t0
+        look.background(t)
+        screen_obj = screens[current]
+        screen_obj.draw(look, t)
+        pygame.display.flip()
+        r = screen_obj.handle(acts, text, clicks, look)
+        if r == "next":
+            i = order.index(current) if current in order else 1
+            if i + 1 >= len(order):
+                break
+            go_to(order[i + 1])
+        elif r == "back":
+            go_to(order[max(0, order.index(current) - 1)] if current != "choices" else "welcome")
+        elif r == "wifi":
+            go_to("wifi")
+        elif isinstance(r, tuple) and r[0] == "password":
+            screens["password"] = Keyboard(r[1])
+            current = "password"
+        elif isinstance(r, tuple) and r[0] == "connect":
+            screens["connecting"] = Connecting(r[1], r[2])
+            current = "connecting"
+        if current == "connecting" and screens["connecting"].result == "ok":
+            go_to("choices")
+        clock.tick(30)
+
+    os.makedirs(STATE, exist_ok=True)
+    for f in (DONE, os.path.join(STATE, "setup-done")):  # the terminal setup won't ask again either
+        open(f, "a").close()
+    pygame.quit()
+
+
+if __name__ == "__main__":
+    main()

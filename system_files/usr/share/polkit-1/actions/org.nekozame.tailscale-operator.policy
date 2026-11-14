@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+<policyconfig>
+  <vendor>nekozame os</vendor>
+  <action id="org.nekozame.tailscale-operator">
+    <description>Turn on Tailscale and let you run it</description>
+    <message>nekozame's setup wants to turn on Tailscale for you</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>yes</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/libexec/nekozame-tailscale-operator</annotate>
+  </action>
+</policyconfig>

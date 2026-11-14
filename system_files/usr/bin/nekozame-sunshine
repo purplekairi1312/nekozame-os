@@ -56,7 +56,9 @@ if [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then
 fi
 
 # run from boot, not only while logged in
-sudo loginctl enable-linger "$USER"
+# (polkit lets you do it yourself in most sessions; sudo only when there's a terminal)
+loginctl enable-linger "$USER" 2>/dev/null || { [ -t 0 ] && sudo loginctl enable-linger "$USER"; } \
+    || echo "  sunshine runs while you're logged in (not from boot)"
 systemctl --user enable --now "$unit"
 
 # nekozame-setup asks this itself

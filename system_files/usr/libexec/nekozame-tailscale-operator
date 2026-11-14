@@ -1,0 +1,7 @@
+#!/bin/bash
+# run by pkexec from nekozame-firstboot (its polkit rule allows whoever is at the
+# machine): turns tailscale on and lets that user run it without a password
+set -euo pipefail
+user="$(id -nu "${PKEXEC_UID:?}")"
+systemctl enable --now tailscaled
+tailscale set --operator="$user"
