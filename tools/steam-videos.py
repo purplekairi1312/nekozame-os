@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """game mode's startup and suspend videos, from the boot screen's 16:10 frames.
 
-the underwater loop comes in and goes out like water: a whirlpool that unwinds
-(or winds up), rings spreading out, a blur and a fade. the warp happens at the
+the underwater loop comes in and goes out like a puddle after a drop: slow rings
+spreading out from the middle that bend the picture and shimmer on their
+crests, with a blur, a fade and only a hint of a swirl. the warp happens at the
 frames' own pixel size, then the picture is scaled up with sharp pixels.
 
 needs numpy, pillow and ffmpeg (with libvpx-vp9). run by hand, not in the build:
@@ -38,19 +39,20 @@ def smooth(x):
 
 
 def water(img, p, t):
-    """p = 0: the picture as it is; p = 1: deep in the whirlpool, blurred and dark."""
+    """p = 0: the picture as it is; p = 1: the water at its roughest, blurred and dark."""
     if p <= 0:
         return img
-    twist = p * 7.0 * falloff ** 2                                   # radians, the whirlpool
-    rings = p * 7.0 * np.sin(r / 13.0 - t * 9.0) * falloff           # pixels, the rings
-    rr = r + rings
+    phase = r / 22.0 - t * 3.2                                       # rings moving outward
+    rr = r + p * 12.0 * np.sin(phase) * (0.35 + 0.65 * falloff)      # pixels, how far a ring bends
+    twist = p * 0.5 * falloff ** 2                                   # radians, a hint of a swirl
     sx = np.clip(cx + rr * np.cos(theta + twist), 0, W - 1).astype(np.intp)
     sy = np.clip(cy + rr * np.sin(theta + twist), 0, H - 1).astype(np.intp)
     out = Image.fromarray(img[sy, sx])
     if p > 0.02:
-        out = out.filter(ImageFilter.GaussianBlur(radius=7.0 * p))
-    dark = 1 - p ** 1.3
-    return (np.asarray(out).astype(np.float32) * dark).astype(np.uint8)
+        out = out.filter(ImageFilter.GaussianBlur(radius=5.0 * p))
+    shimmer = 1 + p * 0.22 * np.cos(phase)[..., None]                # light on the crests
+    dark = 1 - p ** 1.6
+    return np.clip(np.asarray(out).astype(np.float32) * shimmer * dark, 0, 255).astype(np.uint8)
 
 
 def render(name, seconds, amount, crf):
@@ -71,9 +73,10 @@ def render(name, seconds, amount, crf):
 
 
 os.makedirs(OUT, exist_ok=True)
-# startup: out of the whirlpool, one loop, back into it as steam appears
-render("startup.webm", 3.0,
-       lambda t: max(1 - smooth(t / 0.8), smooth((t - 2.2) / 0.8)), crf=28)
-# suspend: one second, into the whirlpool
-render("suspend.webm", 1.0, lambda t: smooth(t / 0.9), crf=30)
+# startup: two loops. the rings settle into the picture, it rests, and it ripples
+# away again as steam appears
+render("startup.webm", 6.0,
+       lambda t: max(1 - smooth(t / 1.8), smooth((t - 4.4) / 1.6)), crf=28)
+# suspend: a second and a half of rippling away
+render("suspend.webm", 1.5, lambda t: smooth(t / 1.4), crf=30)
 print("wrote", ", ".join(sorted(os.listdir(OUT))))
