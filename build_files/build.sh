@@ -212,6 +212,14 @@ setcap cap_sys_admin+p "$(readlink -f /usr/bin/sunshine)"
 ### bazzite branding) and the ones nekozame os wraps under its own names
 python3 /ctx/hide-recipes.py /usr/share/ublue-os/just "${VARIANT:-amd}"
 
+### bazzite's own apps that nekozame replaces: the portal (nekozame-setup does its
+### job), bazzite's announcements and its documentation shortcut
+dnf5 -y remove bazzite-portal || true
+rm -f /etc/xdg/autostart/bazzite-announcement.desktop
+if [ -f /usr/share/applications/bazzite-documentation.desktop ]; then
+    sed -i 's/^NoDisplay=.*/NoDisplay=true/' /usr/share/applications/bazzite-documentation.desktop
+fi
+
 ### Game mode's startup and suspend videos: the same underwater loop, in place of
 ### bazzite's. steam-tweaks copies them into steam where there's none yet; just
 ### before it, nekozame-steam-videos clears out copies of bazzite's own
