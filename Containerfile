@@ -21,12 +21,26 @@ FROM registry.fedoraproject.org/fedora:45 AS audinux
 COPY build_files/audinux-catalog.sh build_files/audinux-formats.awk /ctx/
 RUN /ctx/audinux-catalog.sh
 
+# nekozame updater: a fork of bazzite updater with nekozame's name, built as an rpm in
+# plain Fedora like mpvpaper. it takes bazzite updater's place in the image.
+FROM registry.fedoraproject.org/fedora:45 AS updater
+# renovate: datasource=git-refs depName=https://github.com/purplekairi1312/nekozame-updater
+ARG UPDATER=b7055473d7a686004924147f79955a0629cf45b1
+RUN dnf -y install rpm-build git && \
+    git clone -q https://github.com/purplekairi1312/nekozame-updater /src && cd /src && \
+    git checkout -q "${UPDATER}" && git submodule update -q --init && \
+    dnf -y builddep bazzite-updater.spec && \
+    V="$(cat version.txt)" && mkdir -p /root/rpmbuild/SOURCES && \
+    tar --exclude=.git --transform "s|^\.|bazzite-updater-$V|" -czf "/root/rpmbuild/SOURCES/$V.tar.gz" . && \
+    rpmbuild -bb bazzite-updater.spec && mkdir -p /out && cp /root/rpmbuild/RPMS/*/bazzite-updater-[0-9]*.rpm /out/
+
 # Allow build scripts to be referenced without being copied into the final image
 FROM scratch AS ctx
 COPY build_files /
 COPY system_files /system_files
 COPY --from=mpvpaper /out /mpvpaper
 COPY --from=audinux /out /audinux
+COPY --from=updater /out /updater
 
 # Base image: one per variant (the workflow builds all three)
 #   nekozame-os         bazzite-dx          amd / intel pcs and laptops

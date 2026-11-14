@@ -9,7 +9,7 @@ ColorScheme=nekozame
 Theme=Tela-pink-dark
 
 [plasmarc][Theme]
-name=default
+name=nekozame
 
 [kcminputrc][Mouse]
 cursorTheme=breeze_cursors
@@ -21,8 +21,10 @@ LayoutName=org.kde.breeze.desktop
 LayoutName=org.kde.breeze.desktop
 
 [kwinrc][org.kde.kdecoration2]
-library=org.kde.breeze
-theme=Breeze
+library=org.kde.kwin.aurorae
+theme=__aurorae__svg__nekozame
+ButtonsOnLeft=XIA
+ButtonsOnRight=
 
 [ksplashrc][KSplash]
 Theme=org.nekozame.desktop

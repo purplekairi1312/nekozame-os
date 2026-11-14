@@ -141,6 +141,10 @@ install -Dm0644 -t /usr/share/Kvantum/nekozame "$T"/kvantum/nekozame/*
 install -Dm0644 "$T/qt/nekozame.conf" /usr/share/qt6ct/colors/nekozame.conf
 install -Dm0644 "$T/qt/nekozame.conf" /usr/share/qt5ct/colors/nekozame.conf
 install -Dm0644 "$T/yazi/theme.toml" /usr/share/nekozame-os/yazi/theme.toml
+# kde: the plasma style (panel, popups) and the window decorations (round buttons)
+mkdir -p /usr/share/plasma/desktoptheme /usr/share/aurorae/themes
+cp -r "$T/plasma/nekozame" /usr/share/plasma/desktoptheme/nekozame
+cp -r "$T/aurorae/nekozame" /usr/share/aurorae/themes/nekozame
 rm -rf /tmp/nekozame-theme-main
 
 ### Branding: the name and logo people see. ID, VARIANT_ID and image-info.json
@@ -224,7 +228,8 @@ fi
 ### is booted (nekozame), offers only nekozame's images to switch to, and shows
 ### nekozame-os's own changes as its news
 U=/etc/bazzite-updater
-if [ -d "$U" ]; then
+if [ "${VARIANT:-amd}" = deck ]; then  # a kde app: only the deck keeps kde
+    dnf5 -y install /ctx/updater/*.rpm  # nekozame updater, in bazzite updater's place
     install -m0644 /usr/share/nekozame-os/updater/rebase-targets.json "$U/rebase-targets.json"
     install -m0644 /usr/share/nekozame-os/updater/KAboutData_OS.json "$U/KAboutData_OS.json"
     sed -i -e 's|^rssFeedType=.*|rssFeedType=atom|' \
