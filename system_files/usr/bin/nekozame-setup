@@ -69,6 +69,17 @@ elif ask "Turn on Sunshine, always running over Tailscale?"; then
     NEKOZAME_SETUP=1 nekozame-sunshine
 fi
 
+if [ "$(cat /usr/share/nekozame-os/variant 2>/dev/null)" = deck ]; then
+    step "Moonlight (play your other machines' games here)"
+    if flatpak info com.moonlight_stream.Moonlight >/dev/null 2>&1; then
+        ok "installed"
+    elif ask "Install Moonlight, to stream games from your PCs to the Deck?"; then
+        flatpak install --system -y flathub com.moonlight_stream.Moonlight \
+            && steamos-add-to-steam /var/lib/flatpak/exports/share/applications/com.moonlight_stream.Moonlight.desktop 2>/dev/null
+        ok "installed, and in steam's library"
+    fi
+fi
+
 if [ -f /etc/greetd/config.toml ]; then  # the deck starts in game mode by itself
     step "Logging in automatically"
     if nekozame-autologin status >/dev/null; then

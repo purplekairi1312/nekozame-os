@@ -61,6 +61,7 @@ if [ "${VARIANT:-amd}" != deck ]; then
     echo 'QT_QPA_PLATFORMTHEME=qt6ct' > /usr/lib/environment.d/60-nekozame-qt.conf
 else
     # the deck keeps kde; niri is one ujust away
+    echo deck > /usr/share/nekozame-os/variant  # for nekozame-setup
     cat /usr/share/nekozame-os/just/deck.just >> /usr/share/ublue-os/just/60-custom.just
     # kde's look: nekozame's (the panel on top, the nekozame menu), not valve's vapor
     sed -i 's/^LookAndFeelPackage=.*/LookAndFeelPackage=org.nekozame.desktop/' /etc/xdg/kdeglobals
