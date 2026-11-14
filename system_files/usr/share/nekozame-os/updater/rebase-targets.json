@@ -1,0 +1,10 @@
+[
+    {
+        "url": "ostree-image-signed:docker://ghcr.io/purplekairi1312",
+        "images": [
+            { "name": "nekozame-os", "features": ["niri"], "tags": ["stable", "latest"] },
+            { "name": "nekozame-os-nvidia", "features": ["niri", "nvidia"], "tags": ["stable", "latest"] },
+            { "name": "nekozame-os-deck", "features": ["kde", "gamemode"], "tags": ["stable", "latest"] }
+        ]
+    }
+]

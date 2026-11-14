@@ -1,0 +1,18 @@
+{
+    "displayName": "nekozame os",
+    "shortDescription": "Opinionated immutable GNU/Linux distro.",
+    "homepage": "https://git.sr.ht/~purplekairi1312/nekozame-os",
+    "bugAddress": "https://github.com/purplekairi1312/nekozame-os/issues",
+    "version": "@VERSION@",
+    "otherText": "nekozame (猫鮫) is the catshark. Built on Bazzite and Universal Blue.",
+    "authors": [
+        { "name": "purplekairi1312", "task": "Maintainer", "emailAddress": "", "webAddress": "https://git.sr.ht/~purplekairi1312" }
+    ],
+    "credits": [
+        { "name": "Bazzite and Universal Blue", "task": "The base nekozame os is built on", "emailAddress": "", "webAddress": "https://bazzite.gg" }
+    ],
+    "translators": [],
+    "licenses": [{ "name": "GNU General Public License v3.0 or later", "text": "@GPL-3.0-or-later@", "spdx": "GPL-3.0-or-later" }],
+    "copyrightStatement": "© 2026-@CURRENT_YEAR@ purplekairi1312",
+    "programLogo": "/usr/share/icons/hicolor/256x256/apps/nekozame.png"
+}

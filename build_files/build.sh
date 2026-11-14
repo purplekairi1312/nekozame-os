@@ -220,6 +220,21 @@ if [ -f /usr/share/applications/bazzite-documentation.desktop ]; then
     sed -i 's/^NoDisplay=.*/NoDisplay=true/' /usr/share/applications/bazzite-documentation.desktop
 fi
 
+### bazzite's updater, as nekozame updater: it updates and rolls back whatever image
+### is booted (nekozame), offers only nekozame's images to switch to, and shows
+### nekozame-os's own changes as its news
+U=/etc/bazzite-updater
+if [ -d "$U" ]; then
+    install -m0644 /usr/share/nekozame-os/updater/rebase-targets.json "$U/rebase-targets.json"
+    install -m0644 /usr/share/nekozame-os/updater/KAboutData_OS.json "$U/KAboutData_OS.json"
+    sed -i -e 's|^rssFeedType=.*|rssFeedType=atom|' \
+           -e 's|^rssFeed=.*|rssFeed=https://github.com/purplekairi1312/nekozame-os/commits/main.atom|' \
+           -e 's|^systemRollbackCommand=.*|systemRollbackCommand=rpm-ostree rollback|' "$U/config.ini"
+    grep -q '^systemUpdateCommand=/usr/libexec/uupd-update' "$U/config.ini"
+    D=/usr/share/applications/io.github.rfrench3.bazzite-updater.desktop
+    sed -i -e '/^Name\[/d' -e 's/^Name=.*/Name=nekozame Updater/' -e 's/^Icon=.*/Icon=nekozame/' "$D"
+fi
+
 ### Game mode's startup and suspend videos: the same underwater loop, in place of
 ### bazzite's. steam-tweaks copies them into steam where there's none yet; just
 ### before it, nekozame-steam-videos clears out copies of bazzite's own
