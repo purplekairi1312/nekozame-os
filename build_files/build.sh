@@ -100,6 +100,16 @@ rm -rf /tmp/yazi /tmp/yazi.zip
 retry dnf5 -y copr enable scottames/ghostty
 retry dnf5 -y install emacs fuzzel ghostty
 
+### icons: tela in pink (gpl-3.0), dark panels' variant. tela circle has no
+### license, so nekozame os can't ship it: nekozame-icons fetches it per user
+# renovate: datasource=github-tags depName=vinceliuice/Tela-icon-theme
+TELA=2026-07-07
+retry curl -fsSL -o /tmp/tela.tar.gz "https://github.com/vinceliuice/Tela-icon-theme/archive/refs/tags/${TELA}.tar.gz"
+tar -xzf /tmp/tela.tar.gz -C /tmp
+(cd "/tmp/Tela-icon-theme-${TELA}" && ./install.sh -d /usr/share/icons pink)
+rm -rf /tmp/tela.tar.gz "/tmp/Tela-icon-theme-${TELA}"
+systemctl --global enable nekozame-icons.timer
+
 ### gtk and qt apps in nekozame: kvantum (the qt style), qt6ct/qt5ct (qt outside kde)
 ### and adw-gtk3 (gtk 3 apps that take libadwaita's colors)
 retry dnf5 -y install kvantum qt6ct qt5ct adw-gtk3-theme

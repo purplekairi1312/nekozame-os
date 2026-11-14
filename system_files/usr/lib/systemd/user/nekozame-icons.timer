@@ -1,0 +1,10 @@
+[Unit]
+Description=Try fetching the tela circle icons until they're in
+ConditionPathExists=!%h/.local/share/icons/Tela-circle-pink-dark
+
+[Timer]
+OnStartupSec=1min
+OnUnitActiveSec=20min
+
+[Install]
+WantedBy=timers.target

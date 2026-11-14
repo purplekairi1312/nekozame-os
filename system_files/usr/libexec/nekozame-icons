@@ -1,0 +1,21 @@
+#!/bin/bash
+# tela circle (pink), nekozame's icons once there's internet. it has no license, so
+# nekozame os can't ship it: this fetches it from its author for you, once, and
+# switches to it from tela (pink), the set that ships. an icon set you picked stays.
+# its timer tries again every 20 minutes until it's in.
+set -euo pipefail
+# renovate: datasource=github-tags depName=vinceliuice/Tela-circle-icon-theme
+TELA=2026-07-07
+DEST="${XDG_DATA_HOME:-$HOME/.local/share}/icons"
+[ -d "$DEST/Tela-circle-pink-dark" ] && exit 0
+tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
+curl -fsSL --max-time 300 "https://github.com/vinceliuice/Tela-circle-icon-theme/archive/refs/tags/$TELA.tar.gz" \
+    | tar -xz -C "$tmp"
+mkdir -p "$DEST"
+(cd "$tmp/Tela-circle-icon-theme-$TELA" && ./install.sh -c -d "$DEST" pink >/dev/null)
+if [ "$(kreadconfig6 --file kdeglobals --group Icons --key Theme 2>/dev/null)" = Tela-pink-dark ]; then
+    /usr/libexec/plasma-changeicons Tela-circle-pink-dark || true
+fi
+if [ "$(gsettings get org.gnome.desktop.interface icon-theme 2>/dev/null)" = "'Tela-pink-dark'" ]; then
+    gsettings set org.gnome.desktop.interface icon-theme Tela-circle-pink-dark
+fi

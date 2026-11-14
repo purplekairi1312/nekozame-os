@@ -18,6 +18,9 @@ write() {  # write TARGET (text on stdin)
 # gtk: dark, adw-gtk3 for gtk 3 apps, and nekozame's colors in gtk 3 and 4 (libadwaita)
 gsettings set org.gnome.desktop.interface color-scheme prefer-dark 2>/dev/null
 [ -d /usr/share/themes/adw-gtk3-dark ] && gsettings set org.gnome.desktop.interface gtk-theme adw-gtk3-dark 2>/dev/null
+case "$(gsettings get org.gnome.desktop.interface icon-theme 2>/dev/null)" in  # unless you picked your own
+    "'Adwaita'"|"'breeze'"|"'breeze-dark'"|"") gsettings set org.gnome.desktop.interface icon-theme Tela-pink-dark 2>/dev/null ;;
+esac
 put "$S/gtk/gtk-3.0.css" "$C/gtk-3.0/gtk.css"
 put "$S/gtk/gtk-4.0.css" "$C/gtk-4.0/gtk.css"
 
@@ -25,7 +28,7 @@ put "$S/gtk/gtk-4.0.css" "$C/gtk-4.0/gtk.css"
 # (niri) qt apps get it through qt6ct and qt5ct
 printf '[General]\ntheme=nekozame\n' | write "$C/Kvantum/kvantum.kvconfig"
 for q in qt6ct qt5ct; do
-    printf '[Appearance]\nstyle=kvantum\ncustom_palette=false\ncolor_scheme_path=/usr/share/%s/colors/nekozame.conf\nicon_theme=breeze-dark\n' "$q" \
+    printf '[Appearance]\nstyle=kvantum\ncustom_palette=false\ncolor_scheme_path=/usr/share/%s/colors/nekozame.conf\nicon_theme=Tela-pink-dark\n' "$q" \
         | write "$C/$q/$q.conf"
 done
 if command -v kwriteconfig6 >/dev/null && [ "${XDG_CURRENT_DESKTOP:-}" = KDE ]; then
