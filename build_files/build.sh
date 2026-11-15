@@ -71,6 +71,15 @@ else
     sed -i 's|^function post_gamescope_start {|&\n\t/usr/libexec/nekozame-firstboot \|\| true  # nekozame os: the first-boot setup, once|' "$S"
     grep -q nekozame-firstboot "$S"
     cat /usr/share/nekozame-os/just/deck.just >> /usr/share/ublue-os/just/60-custom.just
+    # kde's moving wallpaper: smart video wallpaper reborn (gpl-2.0) plays the catshark
+    # loop, and pauses while a window covers the desktop
+    # renovate: datasource=github-releases depName=luisbocanegra/plasma-smart-video-wallpaper-reborn
+    VW=v2.17.0
+    W=/usr/share/plasma/wallpapers/luisbocanegra.smart.video.wallpaper.reborn
+    mkdir -p "$W"
+    retry curl -fsSL "https://github.com/luisbocanegra/plasma-smart-video-wallpaper-reborn/releases/download/${VW}/plasma-smart-video-wallpaper-reborn-${VW}.tar.gz" \
+        | tar -xz -C "$W"
+    test -s "$W/metadata.json"
     # kde's look: nekozame's (the panel on top, the nekozame menu), not valve's vapor
     sed -i 's/^LookAndFeelPackage=.*/LookAndFeelPackage=org.nekozame.desktop/' /etc/xdg/kdeglobals
     grep -q '^LookAndFeelPackage=org.nekozame.desktop' /etc/xdg/kdeglobals

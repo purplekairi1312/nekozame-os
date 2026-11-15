@@ -4,12 +4,23 @@
 # nekozame in gtk and qt apps. once per version of the look, which resets the
 # panel to nekozame's; --force runs it again.
 set -euo pipefail
-VERSION=4
+VERSION=5
 DONE="${XDG_STATE_HOME:-$HOME/.local/state}/nekozame/kde-defaults"
 [ "${1:-}" = --force ] || [ "$(cat "$DONE" 2>/dev/null)" != "$VERSION" ] || exit 0
 plasma-apply-lookandfeel --apply org.nekozame.desktop --resetLayout || true
 plasma-apply-colorscheme nekozame || true
 plasma-apply-wallpaperimage /usr/share/wallpapers/nekozame-small || true
+# the catshark moving: the video wallpaper (the still one above is its fallback)
+Q=$(command -v qdbus-qt6 qdbus6 qdbus 2>/dev/null | head -1)
+[ -d /usr/share/plasma/wallpapers/luisbocanegra.smart.video.wallpaper.reborn ] && [ -n "$Q" ] && "$Q" org.kde.plasmashell /PlasmaShell \
+    org.kde.PlasmaShell.evaluateScript '
+desktops().forEach(function (d) {
+    d.wallpaperPlugin = "luisbocanegra.smart.video.wallpaper.reborn"
+    d.currentConfigGroup = ["Wallpaper", "luisbocanegra.smart.video.wallpaper.reborn", "General"]
+    d.writeConfig("VideoUrls", JSON.stringify([{ filename: "file:///usr/share/backgrounds/nekozame/small-16x10.mkv", enabled: true, loop: true }]))
+    d.writeConfig("FillMode", 2)
+    d.reloadConfig()
+})' || true
 nekozame-look || true
 kwriteconfig6 --file kdeglobals --group KDE --key SingleClick true || true  # one click opens
 mkdir -p "$(dirname "$DONE")" && echo "$VERSION" > "$DONE"
