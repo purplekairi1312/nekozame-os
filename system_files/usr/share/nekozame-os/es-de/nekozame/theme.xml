@@ -13,8 +13,14 @@
         <!-- each system's name, katakana, maker and year, and its collage: set in
              ./systems/<system>.xml (nekozame-emu esde writes them) -->
         <nkName>${system.fullName}</nkName>
-        <nkKana></nkKana>
-        <nkMaker></nkMaker>
+        <!-- es-de's collections (all games, favorites...) have no file: these show -->
+        <nkKana>コ
+レ
+ク
+シ
+ョ
+ン</nkKana>
+        <nkMaker>nekozame</nkMaker>
         <nkYear></nkYear>
         <nkSystemFile>./systems/${system.theme}.xml</nkSystemFile>
         <nkCollage>./collages/${system.theme}.jpg</nkCollage>
@@ -107,7 +113,6 @@
             <fontPath>${regular}</fontPath>
             <fontSize>0.026</fontSize>
             <letterCase>uppercase</letterCase>
-            <zIndex>40</zIndex>
         </helpsystem>
         <clock name="clock">
             <pos>0.865 0.03</pos>
@@ -116,14 +121,12 @@
             <fontSize>0.03</fontSize>
             <color>${lilac}</color>
             <format>%H:%M</format>
-            <zIndex>40</zIndex>
         </clock>
         <systemstatus name="systemStatus">
             <pos>0.765 0.03</pos>
             <origin>1 0</origin>
             <height>0.03</height>
             <color>${lilac}</color>
-            <zIndex>40</zIndex>
         </systemstatus>
     </view>
 
@@ -161,7 +164,7 @@
         <text name="maker">
             <pos>0.074 0.66</pos>
             <size>0.4 0.05</size>
-            <text>${nkMaker}  ${nkYear}</text>
+            <text>${nkMaker}${nkYear}</text>
             <fontPath>${regular}</fontPath>
             <fontSize>0.032</fontSize>
             <color>${lilac}</color>
@@ -191,7 +194,9 @@
             <size>0.796 0.13</size>
             <staticImage>${nkLogo}</staticImage>
             <text>${nkName}</text>
+            <color>00000000</color>
             <textColor>${lilac}</textColor>
+            <textBackgroundColor>00000000</textBackgroundColor>
             <fontPath>${bold}</fontPath>
             <fontSize>0.036</fontSize>
             <letterCase>uppercase</letterCase>

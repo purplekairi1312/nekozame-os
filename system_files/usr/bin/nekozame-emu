@@ -1075,7 +1075,8 @@ def esde_theme(s, collages=True):
     from xml.sax.saxutils import escape
     os.makedirs(os.path.join(dest, "systems"), exist_ok=True)
     for system, (name, _, _) in SYSTEMS.items():
-        kana, maker, year = POSTER.get(system, ("", "", ""))
+        kana, maker, year = POSTER.get(system, ("ゲーム", "", ""))  # es-de won't take empty text
+        maker, year = maker or name, f"  ·  {year}" if year else ""
         open(os.path.join(dest, "systems", f"{system}.xml"), "w").write(
             f"<theme>\n    <variables>\n        <nkName>{escape(name)}</nkName>\n"
             f"        <nkKana>{escape(tategaki(kana))}</nkKana>\n        <nkMaker>{escape(maker)}</nkMaker>\n"
@@ -1153,7 +1154,9 @@ def esde(off=False):
             st["appid"] = js("SteamClient.Apps.AddShortcut(%s, %s, %s, %s)" % (
                 json.dumps("ES-DE"), json.dumps(appimage), json.dumps(ESDE), json.dumps("")), wait=True)
             js("SteamClient.Apps.SetShortcutName(%d, %s)" % (st["appid"], json.dumps("ES-DE")))
-            subprocess.run(["/usr/libexec/nekozame-steam-art", desktop], capture_output=True)
+            import time
+            time.sleep(10)  # steam writes the shortcut down; then its art
+        subprocess.run(["/usr/libexec/nekozame-steam-art", desktop], capture_output=True)
     except (OSError, StopIteration):
         say("  (steam isn't running: ES-DE goes in its library next time)")
     os.makedirs(os.path.dirname(ESDE_STATE), exist_ok=True)
