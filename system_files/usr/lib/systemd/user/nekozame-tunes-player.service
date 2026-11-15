@@ -2,7 +2,7 @@
 Description=nekozame music's player (mpv), so music keeps going while you play
 
 [Service]
-ExecStart=/usr/libexec/nekozame-music-player
+ExecStart=/usr/libexec/nekozame-tunes-player
 Restart=on-failure
 RestartSec=5
 

@@ -14,7 +14,7 @@ import urllib.request
 
 CSS = "/usr/share/nekozame-os/steam/nekozame.css"
 JS = "/usr/share/nekozame-os/steam/nekozame.js"  # swaps the colours steam sets itself
-MUSIC = "/usr/share/nekozame-os/steam/music-card.js"  # nekozame music's card in quick access
+MUSIC = "/usr/share/nekozame-os/steam/tunes-card.js"  # nekozame music's card in quick access
 PORT = 8080
 STEAM = os.path.expanduser("~/.local/share/Steam")
 STYLE = ("(function(css){var s=document.getElementById('nekozame-theme');"

@@ -7,11 +7,11 @@ access menu. the api only listens on this machine (127.0.0.1:47820).
   GET  /toggle /next /prev /stop
   GET  /volume?d=5             louder (or d=-5, quieter)
   POST /play  {"items": [{"url", "title", "artist"}], "append": false}
-               with the token from $XDG_RUNTIME_DIR/nekozame-music.token (the app's)
+               with the token from $XDG_RUNTIME_DIR/nekozame-tunes.token (the app's)
 
 websites can't use it: requests from a web page are turned away (only steam's own
 menus and programs here get in), and loading music needs the token, which only
-your user can read. nekozame-music-player.service runs it.
+your user can read. nekozame-tunes-player.service runs it.
 """
 import json
 import os
@@ -24,9 +24,9 @@ from urllib.parse import parse_qs, urlparse
 
 PORT = 47820
 RUN = os.environ.get("XDG_RUNTIME_DIR", "/tmp")
-SOCK = os.path.join(RUN, "nekozame-music.sock")
+SOCK = os.path.join(RUN, "nekozame-tunes.sock")
 YTDLP = os.path.expanduser("~/.local/share/nekozame/yt-dlp")
-TOKEN_FILE = os.path.join(RUN, "nekozame-music.token")
+TOKEN_FILE = os.path.join(RUN, "nekozame-tunes.token")
 TOKEN = os.urandom(16).hex()
 
 
