@@ -3,6 +3,7 @@
 # plugins in steam's quick access menu, with the ones nekozame comes with:
 #   nekozame music  tauon's controls and youtube without ads
 #   SteamGridDB     pick art for any game or app in your library
+#   TabMaster       your own library tabs (nekozame-emu sets up Apps and Emulation)
 # run again, it updates the plugins. decky updates itself.
 set -euo pipefail
 user="$(id -nu "${PKEXEC_UID:-${SUDO_UID:?run it with pkexec}}")"
@@ -36,15 +37,22 @@ plugin() {  # plugin NAME FOLDER URL [SHA256]
 
 plugin "nekozame music" nekozame-music \
     https://github.com/purplekairi1312/nekozame-music-decky/releases/latest/download/nekozame-music.zip
-# SteamGridDB from decky's store: its latest version, checked against the store's hash
-sgdb="$(curl -fsSL https://plugins.deckbrew.xyz/plugins | python3 -c '
+# from decky's store: their latest versions, checked against the store's hashes
+store="$(curl -fsSL https://plugins.deckbrew.xyz/plugins)"
+from_store() {  # from_store NAME FOLDER
+    local hash
+    hash="$(printf '%s' "$store" | python3 -c '
 import json, sys
 for p in json.load(sys.stdin):
-    if p["name"] == "SteamGridDB":
+    if p["name"] == sys.argv[1]:
         print(p["versions"][0]["hash"])
-')"
-[ -n "$sgdb" ] && plugin SteamGridDB decky-steamgriddb \
-    "https://cdn.tzatzikiweeb.moe/file/steam-deck-homebrew/versions/$sgdb.zip" "$sgdb"
+' "$1")"
+    [ -n "$hash" ] && plugin "$1" "$2" "https://cdn.tzatzikiweeb.moe/file/steam-deck-homebrew/versions/$hash.zip" "$hash"
+}
+from_store SteamGridDB decky-steamgriddb || echo "  SteamGridDB: not this time (try again later)"
+from_store TabMaster TabMaster || echo "  TabMaster: not this time (try again later)"
+# your emulated games' tabs, if nekozame-emu put games in steam
+runuser -u "$user" -- env HOME="$home" /usr/bin/nekozame-emu steam tabs 2>/dev/null || true
 
 systemctl restart plugin_loader
 echo "done: they're in the quick access menu (···)"

@@ -8,6 +8,8 @@ your saves synced everywhere (nekozame-saves).
   nekozame-emu launch SYSTEM ROM  play: syncs that emulator's saves before and after
   nekozame-emu steam add          every game as its own entry in steam, with its art
   nekozame-emu steam remove       take all of them out of steam again
+  nekozame-emu steam refresh      their art and collections again
+  nekozame-emu steam tabs         tabmaster's tabs: Apps (without the games), Emulation
   nekozame-emu systems            what's supported, and what you have
 
 settings (~/.config/nekozame/emulation.json), all optional:
@@ -16,8 +18,10 @@ settings (~/.config/nekozame/emulation.json), all optional:
   "media": ["~/Emulation/tools/downloaded_media"]             es-de's scraped art
   "steam": {"roms": ["~/Emulation/roms"],     whose games go in steam (big libraries
                                               on a nas are better browsed in es-de)
-            "names": "file"}                  game names: "file" (your file names, with
+            "names": "file",                  game names: "file" (your file names, with
                                               their regions and versions) or "scraped"
+            "labels": true}                   the name under each cover, so versions of
+                                              a game tell apart in the library
 """
 import json
 import os
@@ -32,6 +36,8 @@ import zipfile
 HOME = os.path.expanduser("~")
 CONFIG = os.path.join(HOME, ".config/nekozame/emulation.json")
 STATE = os.path.join(HOME, ".local/state/nekozame/steam-games.json")
+TABMASTER = os.path.join(HOME, "homebrew/settings/TabMaster/settings.json")
+EVERYTHING = "Emulation"  # the collection with all of them (tabmaster's tabs use it)
 VAR = os.path.join(HOME, ".var/app")
 RA = "org.libretro.RetroArch"
 RA_CORES = os.path.join(VAR, RA, "config/retroarch/cores")
@@ -417,13 +423,144 @@ def art(system, rom, s):
     return found
 
 
+_pygame = None
+
+
+def pygame_ready():
+    """pygame for drawing covers (the deck has it), or None."""
+    global _pygame
+    if _pygame is None:
+        try:
+            os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
+            import pygame
+            pygame.display.init()
+            pygame.display.set_mode((1, 1))
+            pygame.font.init()
+            _pygame = pygame
+        except Exception:
+            _pygame = False
+    return _pygame or None
+
+
+def font(pg, px, bold):
+    f = subprocess.run(["fc-match", "-f", "%{file}", "Noto Sans:bold" if bold else "Noto Sans"],
+                       capture_output=True, text=True).stdout or None
+    return pg.font.Font(f, px)
+
+
+def wrap(f, text, width, most):
+    lines, line = [], ""
+    for word in text.split():
+        trial = f"{line} {word}".strip()
+        if f.size(trial)[0] <= width or not line:
+            line = trial
+        else:
+            lines.append(line)
+            line = word
+    if line:
+        lines.append(line)
+    if len(lines) > most:
+        lines = lines[:most]
+        while f.size(lines[-1] + "…")[0] > width and " " in lines[-1]:
+            lines[-1] = lines[-1].rsplit(" ", 1)[0]
+        lines[-1] += "…"
+    return lines
+
+
+def labeled_cover(src, name, dest):
+    """the cover, fitted to steam's shape, with a band under it: the game's name and,
+    in pink, what tells its versions apart (the regions and revisions in brackets)."""
+    pg = pygame_ready()
+    W, H = 600, 900
+    DEEP, PINK, WHITE = (67, 58, 85), (255, 192, 229), (255, 255, 255)
+    cover = pg.image.load(src)
+    title = re.sub(r"\s*[\(\[].*$", "", name).strip() or name
+    details = name[len(title):].strip()
+    big, small = font(pg, 36, True), font(pg, 27, False)
+    t_lines = wrap(big, title, W - 48, 2)
+    d_lines = wrap(small, details, W - 48, 3) if details else []
+    band = 28 + len(t_lines) * big.get_linesize() + (8 + len(d_lines) * small.get_linesize() if d_lines else 0) + 24
+    canvas = pg.Surface((W, H))
+    # behind it: the cover itself, filling and blurred, darkened
+    cw, ch = cover.get_size()
+    k = max(W / cw, H / ch)
+    fill = pg.transform.smoothscale(cover, (max(1, int(cw * k)), max(1, int(ch * k))))
+    blur = pg.transform.smoothscale(pg.transform.smoothscale(fill, (24, 36)), (W, H))
+    canvas.blit(blur, (0, 0))
+    veil = pg.Surface((W, H), pg.SRCALPHA)
+    veil.fill((*DEEP, 150))
+    canvas.blit(veil, (0, 0))
+    # the cover, whole, above the band
+    area = H - band
+    k = min(W / cw, area / ch)
+    fitted = pg.transform.smoothscale(cover, (max(1, int(cw * k)), max(1, int(ch * k))))
+    canvas.blit(fitted, ((W - fitted.get_width()) // 2, (area - fitted.get_height()) // 2))
+    # the band
+    strip = pg.Surface((W, band), pg.SRCALPHA)
+    strip.fill((*DEEP, 240))
+    canvas.blit(strip, (0, H - band))
+    pg.draw.rect(canvas, PINK, (0, H - band, W, 4))
+    y = H - band + 24
+    for line in t_lines:
+        img = big.render(line, True, WHITE)
+        canvas.blit(img, ((W - img.get_width()) // 2, y))
+        y += big.get_linesize()
+    y += 8
+    for line in d_lines:
+        img = small.render(line, True, PINK)
+        canvas.blit(img, ((W - img.get_width()) // 2, y))
+        y += small.get_linesize()
+    pg.image.save(canvas, dest)
+
+
+def put_art(appid, system, rom, name, s):
+    found = art(system, rom, s)
+    for grid in grids():
+        for f in os.listdir(grid):  # what was there before (another type, an old cover)
+            if re.match(rf"{appid}(p|_hero|_logo|)\.(png|jpg)$", f):
+                os.remove(os.path.join(grid, f))
+        for kind, path in found.items():
+            dest = os.path.join(grid, f"{appid}{kind}.{path.rsplit('.', 1)[-1]}")
+            if kind == "p" and s["steam"].get("labels", True) and pygame_ready():
+                try:
+                    labeled_cover(path, name, os.path.join(grid, f"{appid}p.png"))
+                    continue
+                except Exception as e:  # a broken picture: the plain one
+                    say(f"  ! {name}: {e}")
+            shutil.copyfile(path, dest)
+
+
+def collect(js, added):
+    """a collection per system (Saturn, PlayStation 2...) with its games, and one with
+    all of them."""
+    by_system = {EVERYTHING: [a["appid"] for a in added.values()]} if added else {}
+    for a in added.values():
+        by_system.setdefault(SYSTEMS[a["system"]][0], []).append(a["appid"])
+    for name, ids in sorted(by_system.items()):
+        n = js("""(async () => {
+            const name = %s;
+            let c = collectionStore.userCollections.find(c => c.displayName === name);
+            if (!c) { c = collectionStore.NewUnsavedCollection(name, undefined, []); await c.Save();
+                      c = collectionStore.userCollections.find(c => c.displayName === name) || c; }
+            const apps = %s.map(id => appStore.GetAppOverviewByAppID(id)).filter(Boolean);
+            c.AsDragDropCollection().AddApps(apps);
+            await c.Save();
+            return c.allApps.length;
+        })()""" % (json.dumps(name), json.dumps(ids)), wait=True)
+        say(f"  {name}: {n} games")
+
+
+def load_state():
+    try:
+        return json.load(open(STATE))
+    except (OSError, ValueError):
+        return {}
+
+
 def steam_add(systems=None):
     s = settings()
     js = steam_js()
-    try:
-        added = json.load(open(STATE))
-    except (OSError, ValueError):
-        added = {}
+    added = load_state()
     exe = shutil.which("nekozame-emu") or "/usr/bin/nekozame-emu"
     count = 0
     for root in s["steam"]["roms"]:
@@ -442,16 +579,28 @@ def steam_add(systems=None):
                     continue
                 js("SteamClient.Apps.SetShortcutName(%d, %s)" % (appid, json.dumps(name)))
                 js("SteamClient.Apps.SetShortcutLaunchOptions(%d, %s)" % (appid, json.dumps(options)))
-                for grid in grids():
-                    for kind, path in art(system, rom, s).items():
-                        shutil.copyfile(path, os.path.join(grid, f"{appid}{kind}.{path.rsplit('.', 1)[-1]}"))
+                put_art(appid, system, rom, name, s)
                 added[rom] = {"appid": appid, "system": system}
                 count += 1
                 if count % 20 == 0:
                     say(f"  {count} added")
                     save_state(added)
     save_state(added)
+    collect(js, added)
     say(f"{count} games added to steam ({len(added)} in all). restart steam to see all their art.")
+
+
+def steam_refresh():
+    """the art and collections again, for the games already in steam."""
+    s = settings()
+    js = steam_js()
+    added = load_state()
+    for i, (rom, a) in enumerate(added.items(), 1):
+        put_art(a["appid"], a["system"], rom, name_of(rom, a["system"], s), s)
+        if i % 50 == 0:
+            say(f"  {i} done")
+    collect(js, added)
+    say(f"{len(added)} games refreshed. restart steam to see the new art.")
 
 
 def save_state(added):
@@ -463,18 +612,76 @@ def save_state(added):
 
 def steam_remove():
     js = steam_js()
-    try:
-        added = json.load(open(STATE))
-    except (OSError, ValueError):
-        added = {}
+    added = load_state()
     for rom, a in added.items():
         js("SteamClient.Apps.RemoveShortcut(%d)" % a["appid"])
         for grid in grids():
             for f in os.listdir(grid):
                 if f.startswith(str(a["appid"])):
                     os.remove(os.path.join(grid, f))
+    tabs(js, remove=True)
+    # the collections nekozame made, once they're empty
+    for name in sorted({SYSTEMS[a["system"]][0] for a in added.values()} | {EVERYTHING}):
+        js("""(async () => {
+            const c = collectionStore.userCollections.find(c => c.displayName === %s);
+            if (c && c.allApps.length === 0) await c.Delete();
+        })()""" % json.dumps(name), wait=True)
     save_state({})
-    say(f"{len(added)} games taken out of steam (your games and saves are untouched)")
+    say(f"{len(added)} games taken out of steam, with their collections (your games and saves are untouched)")
+
+
+def tabs(js=None, remove=False):
+    """tabmaster's tabs (when it's installed): "Apps", your non-steam apps without the
+    emulated games; "Emulation", the games; steam's own non-steam tab hidden. other
+    tabs you made stay. remove takes ours out and brings steam's back."""
+    if not os.path.isdir(os.path.dirname(TABMASTER)):
+        if not remove:
+            say("  no tabmaster (it comes with nekozame's decky plugins: ujust nekozame-decky)")
+        return
+    js = js or steam_js()
+    user = js("BigInt.asUintN(32, BigInt(App.m_CurrentUser.strSteamID)).toString()")
+    coll = js("collectionStore.userCollections.find(c => c.displayName === %s)?.id" % json.dumps(EVERYTHING))
+    try:
+        cfg = json.load(open(TABMASTER))
+    except (OSError, ValueError):
+        cfg = {}
+    users = cfg.setdefault("usersDict", {})
+    me = users.setdefault(user, {"tabs": {}, "friends": [], "friendsGames": {}})
+    t = me.get("tabs") or {}
+    if not t:  # tabmaster starts from steam's tabs
+        for i, (tid, title) in enumerate([("GreatOnDeck", "Great On Deck"), ("AllGames", "All Games"),
+                                          ("Installed", "Installed"), ("Favorites", "Favorites"),
+                                          ("Collections", "Collections"), ("DesktopApps", "Non-steam"),
+                                          ("Soundtracks", "Soundtracks")]):
+            t[tid] = {"id": tid, "title": title, "position": i}
+    for tid in ("nekozame-apps", "nekozame-emulation"):
+        t.pop(tid, None)
+    if "DesktopApps" in t:
+        t["DesktopApps"]["position"] = -1 if not remove else max(p["position"] for p in t.values()) + 1
+    if not remove:
+        if not coll:
+            say("  no emulation collection yet (nekozame-emu steam add makes it)")
+            return
+        last = max([p["position"] for p in t.values()] + [0])
+        every = 1 | 2 | 8192  # games, software, music
+        t["nekozame-apps"] = {"id": "nekozame-apps", "title": "Apps", "position": last + 1,
+                              "filters": [{"type": "platform", "inverted": False, "params": {"platform": "nonSteam"}},
+                                          {"type": "collection", "inverted": True, "params": {"id": coll, "name": EVERYTHING}}],
+                              "filtersMode": "and", "categoriesToInclude": every, "autoHide": False}
+        t["nekozame-emulation"] = {"id": "nekozame-emulation", "title": "Emulation", "position": last + 2,
+                                   "filters": [{"type": "collection", "inverted": False, "params": {"id": coll, "name": EVERYTHING}}],
+                                   "filtersMode": "and", "categoriesToInclude": every, "autoHide": False}
+    # positions in order again, the hidden ones staying hidden
+    shown = sorted((p for p in t.values() if p["position"] >= 0), key=lambda p: p["position"])
+    for i, p in enumerate(shown):
+        p["position"] = i
+    me["tabs"] = t
+    os.makedirs(os.path.dirname(TABMASTER), exist_ok=True)
+    with open(TABMASTER + ".new", "w") as f:
+        json.dump(cfg, f, indent=4)
+    os.replace(TABMASTER + ".new", TABMASTER)
+    say("  tabmaster's tabs " + ("taken out" if remove else "are set: Apps and Emulation")
+        + " (they show once decky restarts: reboot, or sudo systemctl restart plugin_loader)")
 
 
 def systems_list():
@@ -494,6 +701,10 @@ def main(argv):
         return steam_add(argv[2:] or None)
     if cmd == "steam" and argv[1:2] == ["remove"]:
         return steam_remove()
+    if cmd == "steam" and argv[1:2] == ["refresh"]:
+        return steam_refresh()
+    if cmd == "steam" and argv[1:2] == ["tabs"]:
+        return tabs()
     if cmd == "systems":
         return systems_list()
     say(__doc__)
