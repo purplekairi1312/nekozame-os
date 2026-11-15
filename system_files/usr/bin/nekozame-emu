@@ -1034,11 +1034,17 @@ POSTER = {
 
 
 PHOTOS = "/usr/share/nekozame-os/es-de/photos"
-# each page's picture: a base and a creature fused in, and the caption under the copy
-BASES = ["fish-school", "dolphins", "whale-shark", "diver"]
-FEATURES = [("manta", "▲水面の光の下を、マンタがゆっくりと横切る。"),
-            ("manta-2", "▲青のなかを、マンタが静かに舞う。"),
-            ("jellyfish", "▲深い青に、クラゲがふわりと浮かぶ。")]
+# each page's picture: a base photo and a creature fused into it, where it belongs and
+# the way it would look there: a manta is a dark shape against bright water (it's
+# multiplied in: only its body darkens the scene), a jellyfish glows in the dark (its
+# light is added). x is where it swims, over the base's open water
+PAIRS = [
+    ("fish-school", "manta", 980, "multiply", "▲水面の光の下を、マンタがゆっくりと横切る。"),
+    ("fish-school", "manta-2", 1060, "multiply", "▲青のなかを、マンタが静かに舞う。"),
+    ("whale-shark", "manta", 1080, "multiply", "▲ジンベエザメの上を、マンタが横切っていく。"),
+    ("whale-shark", "manta-2", 1120, "multiply", "▲光の差す水面の下、大きな影がすれ違う。"),
+    ("diver", "manta-2", 1150, "multiply", "▲ダイバーの頭上を、マンタがゆっくりと舞う。"),
+]
 SCHEMES = {
     # sky top and bottom, the headline's two inks, the spine and its block, the
     # body's ink, and the gradient map the photos are printed through
@@ -1093,15 +1099,27 @@ def magazine(system, s, scheme, dest, bare=False):
     for y in range(H):  # the sky
         t = min(1, y / H / 0.45)
         page.fill([int(c["sky"][0][i] + (c["sky"][1][i] - c["sky"][0][i]) * t) for i in range(3)], (0, y, W, 1))
-    base = BASES[rnd.randrange(len(BASES))]
-    feature, caption = FEATURES[rnd.randrange(len(FEATURES))]
+    base, feature, fx, mode, caption = PAIRS[rnd.randrange(len(PAIRS))]
     pic = grade(fill(pg.image.load(f"{PHOTOS}/{base}.jpg").convert(), 1800, 760, 0.5, 0.45)).convert_alpha()
-    fe = grade(fill(pg.image.load(f"{PHOTOS}/{feature}.jpg").convert(), 640, 640, 0.5, 0.42), keep=0.2).convert_alpha()
-    mask = pg.Surface((640, 640), pg.SRCALPHA)
+    fe = grade(fill(pg.image.load(f"{PHOTOS}/{feature}.jpg").convert(), 640, 640, 0.5, 0.42), keep=0.2)
+    mask = pg.Surface((640, 640), pg.SRCALPHA)  # soft all round, so no edge shows
     for r in range(320, 0, -4):
         pg.draw.circle(mask, (255, 255, 255, int(255 * min(1, (1 - r / 320) * 2.4))), (320, 320), r)
-    fe.blit(mask, (0, 0), special_flags=pg.BLEND_RGBA_MULT)
-    pic.blit(fe, (rnd.choice([120, 260, 620]), 40))
+    if mode == "multiply":
+        # white where the mask fades out (multiplying by white changes nothing), the
+        # creature where it's solid; its bright water barely touches the scene
+        lift = fe.copy(); lift.fill((95, 95, 95), special_flags=pg.BLEND_ADD)  # its water to white
+        lay = pg.Surface((640, 640)); lay.fill((255, 255, 255))
+        m = lift.convert_alpha(); m.blit(mask, (0, 0), special_flags=pg.BLEND_RGBA_MULT)
+        lay.blit(m, (0, 0))
+        pic.blit(lay, (fx, 20), special_flags=pg.BLEND_MULT)
+    else:
+        # only its light: the dark water taken away, the glow added, faded at the edge
+        glow = fe.copy(); glow.fill((150, 150, 150), special_flags=pg.BLEND_SUB)  # only what's bright
+        glow.blit(glow.copy(), (0, 0), special_flags=pg.BLEND_ADD)  # and brought back up
+        g = glow.convert_alpha(); g.blit(mask, (0, 0), special_flags=pg.BLEND_RGBA_MULT)
+        lay = pg.Surface((640, 640)); lay.fill((0, 0, 0)); lay.blit(g, (0, 0))
+        pic.blit(lay, (fx, 40), special_flags=pg.BLEND_ADD)
     fade = pg.Surface(pic.get_size(), pg.SRCALPHA)
     for y in range(760):
         fade.fill((255, 255, 255, int(255 * min(1, y / 300) ** 1.4)), (0, y, 1800, 1))
@@ -1114,11 +1132,13 @@ def magazine(system, s, scheme, dest, bare=False):
     page.blit(dots, (0, 0))
     page.fill(c["spine"], (W - 120, 0, 120, H))  # the spine (its words are es-de's)
     if not bare:
-        ja, release = POSTER.get(system, (SYSTEMS[system][0], ""))
+        ja, release = POSTER.get(system, (SYSTEMS[system][0] if system in SYSTEMS else system, ""))
         date, _, maker = release.partition("　")
         if not maker:
             date, maker = "", release
-        count = sum(len(games(r, system)) for r in s["roms"])
+        count = sum(len(games(r, system)) for r in s["roms"]) if system in SYSTEMS else sum(
+            len([x for x in os.listdir(os.path.join(r, system)) if not x.startswith(".")])
+            for r in s["roms"] if os.path.isdir(os.path.join(r, system)))
         # a column of screens from your games
         shots = []
         for media in s["media"]:
@@ -1213,9 +1233,17 @@ def esde_theme(s, pages=True, again=False):
             f"    </variables>\n</theme>\n")
     made = 0
     if pages:
-        for system in SYSTEMS:
-            if not any(games(r, system) for r in s["roms"]):
-                continue
+        # every system es-de shows: each folder with something in it (games nekozame
+        # can't play itself too, like zipped ones)
+        shown = set()
+        for root in s["roms"]:
+            for d in (os.listdir(root) if os.path.isdir(root) else []):
+                path = os.path.join(root, d)
+                if not d.startswith(".") and os.path.isdir(path) and any(
+                        not f.startswith(".") and not f.lower().endswith((".txt", ".xml"))
+                        for f in os.listdir(path)):
+                    shown.add(d)
+        for system in sorted(shown):
             for scheme in SCHEMES:
                 for bare in (False, True):
                     out = os.path.join(dest, "pages", f"{system}-{scheme}{'-bare' if bare else ''}.jpg")
