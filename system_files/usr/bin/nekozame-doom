@@ -10,11 +10,20 @@ DOOMDIR="${DOOMDIR:-$HOME/.config/doom}"
 evil=""
 case "${1:-}" in --evil) evil=on ;; --no-evil) evil=off ;; esac
 
+# packages a cut-off run left half-downloaded trip doom up: clear them, try again
+heal() {
+    local d
+    for d in "$DOOM"/.local/straight/repos/*/; do
+        [ -d "$d" ] || continue
+        git -C "$d" rev-parse -q --verify HEAD >/dev/null 2>&1 || rm -rf "$d"
+    done
+}
+
 if [ ! -d "$DOOM/.git" ]; then
     fresh=""; [ -e "$DOOMDIR" ] || { fresh=1; evil="${evil:-off}"; }
     if [ -e "$DOOM" ]; then mv "$DOOM" "$DOOM.bak.$(date +%s)"; fi
     git clone --depth 1 https://github.com/doomemacs/doomemacs "$DOOM"
-    "$DOOM/bin/doom" install --force
+    "$DOOM/bin/doom" install --force || { heal; "$DOOM/bin/doom" sync; }
     if [ -n "$fresh" ]; then
         # the nekozame theme and logo, from the image
         # Super like Cmd on a Mac, as in every other app (doom does this on macs)
@@ -34,7 +43,7 @@ case "$evil" in
     on)  sed -i 's/^\(\s*\);;\s*(evil +everywhere)/\1(evil +everywhere)/' "$DOOMDIR/init.el" ;;
     off) sed -i 's/^\(\s*\)(evil +everywhere)/\1;;(evil +everywhere)/' "$DOOMDIR/init.el" ;;
 esac
-"$DOOM/bin/doom" sync
+"$DOOM/bin/doom" sync || { heal; "$DOOM/bin/doom" sync; }
 systemctl --user unmask emacs.service 2>/dev/null || true
 systemctl --user restart emacs.service 2>/dev/null || true
 rm -f "$HOME/.config/nekozame/editor"  # doom is the editor again
