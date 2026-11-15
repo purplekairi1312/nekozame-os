@@ -1,0 +1,11 @@
+photos for nekozame's es-de theme: all public domain (us government works: noaa,
+national marine sanctuaries), via wikimedia commons. resized; graded and printed by
+nekozame-emu esde.
+
+dolphins.jpg: Public domain, NOAA Photo Library, https://commons.wikimedia.org/wiki/File:Anim1072_-_Flickr_-_NOAA_Photo_Library.jpg
+manta.jpg: Public domain, National Marine Sanctuaries, https://commons.wikimedia.org/wiki/File:FGBNMS_-_Manta_Ray_(27906039401).jpg
+diver.jpg: Public domain, National Marine Sanctuaries, https://commons.wikimedia.org/wiki/File:FGBNMS_-_diver_and_fish_(27667877814).jpg
+manta-2.jpg: Public domain, National Marine Sanctuaries, https://commons.wikimedia.org/wiki/File:FGBNMS_-_manta_ray_(27624985133).jpg
+whale-shark.jpg: Public domain, National Marine Sanctuaries, https://commons.wikimedia.org/wiki/File:FGBNMS_Whale_Shark_(48782973718).jpg
+jellyfish.jpg: Public domain, National Marine Sanctuaries, https://commons.wikimedia.org/wiki/File:Jellyfish_(55064233378).jpg
+fish-school.jpg: Public domain, NOAA Fisheries/Jeff Milisen, https://commons.wikimedia.org/wiki/File:NOAA_diver_bigeye_scad_school_Saipan_2022.png

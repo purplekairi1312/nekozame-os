@@ -1022,9 +1022,9 @@ POSTER = {
     "apple2": ("Apple II", "1977年発売　アップル"),
     "dos": ("MS-DOS", "1981年　マイクロソフト"),
     "uzebox": ("Uzebox", "2008年"),
-    "arcade": ("アーケードゲーム", "ゲームセンター"),
-    "mame": ("アーケードゲーム", "MAME"),
-    "fbneo": ("アーケードゲーム", "FinalBurn Neo"),
+    "arcade": ("アーケードゲーム", ""),
+    "mame": ("アーケードゲーム", ""),
+    "fbneo": ("アーケードゲーム", ""),
     "cps1": ("CPシステム", "1988年稼働　カプコン"),
     "cps2": ("CPシステムII", "1993年稼働　カプコン"),
     "cps3": ("CPシステムIII", "1996年稼働　カプコン"),
@@ -1033,98 +1033,195 @@ POSTER = {
 }
 
 
-def collage(system, s, dest):
-    """the system's background: screenshots from your own games, tinted pink and plum,
-    tilted like a poster pinned up, fading into the water where the title sits."""
+PHOTOS = "/usr/share/nekozame-os/es-de/photos"
+# each page's picture: a base and a creature fused in, and the caption under the copy
+BASES = ["fish-school", "dolphins", "whale-shark", "diver"]
+FEATURES = [("manta", "▲水面の光の下を、マンタがゆっくりと横切る。"),
+            ("manta-2", "▲青のなかを、マンタが静かに舞う。"),
+            ("jellyfish", "▲深い青に、クラゲがふわりと浮かぶ。")]
+SCHEMES = {
+    # sky top and bottom, the headline's two inks, the spine and its block, the
+    # body's ink, and the gradient map the photos are printed through
+    "nekozame": dict(sky=((248, 242, 232), (255, 192, 229)), ink1=(176, 46, 104), ink2=(92, 62, 116),
+                     spine=(176, 46, 104), block=(40, 26, 52), body=(40, 26, 52), paper=(248, 242, 232),
+                     map=[(0.0, (24, 26, 70)), (0.3, (34, 78, 150)), (0.55, (70, 150, 210)), (0.72, (150, 214, 226)),
+                          (0.86, (255, 214, 232)), (1.0, (255, 250, 244))]),
+    "ocean": dict(sky=((246, 249, 250), (186, 224, 246)), ink1=(26, 60, 124), ink2=(24, 112, 140),
+                  spine=(26, 60, 124), block=(10, 22, 48), body=(16, 28, 52), paper=(246, 249, 250),
+                  map=[(0.0, (6, 20, 52)), (0.3, (14, 66, 140)), (0.55, (40, 140, 206)), (0.72, (130, 210, 236)),
+                       (0.86, (220, 244, 252)), (1.0, (255, 255, 255))]),
+}
+
+
+def magazine(system, s, scheme, dest, bare=False):
+    """a 90s japanese game magazine page for a system: the picture at the bottom, fading
+    into a sky; with bare, only that (the game lists' background). otherwise also the
+    headline, copy written for the system, a column of your games' screens, a data
+    box, the page's small print. the spine's words are es-de's (they move)."""
     import random
     pg = pygame_ready()
-    if not pg:
+    if not pg or not os.path.isdir(PHOTOS):
         return False
-    shots = []
-    for media in s["media"]:
-        for folder in ("screenshots", "titlescreens", "fanart"):
-            d = os.path.join(media, system, folder)
-            if os.path.isdir(d):
-                shots += [os.path.join(d, f) for f in sorted(os.listdir(d)) if f.lower().endswith((".png", ".jpg"))
-                          and not f.startswith(".")]
-    if len(shots) < 4:
-        return False
+    c = SCHEMES[scheme]
     rnd = random.Random(system)
-    picks = rnd.sample(shots, min(14, len(shots)))
     W, H = 1920, 1200
-    canvas = pg.Surface((W, H))
-    canvas.fill((42, 35, 56))
-    tw, th = 520, 390
-    placed = 0
-    for row in range(3):
-        for col in range(5):
-            if placed >= len(picks):
-                break
+
+    def f(pattern, px):
+        return pg.font.Font(subprocess.run(["fc-match", "-f", "%{file}", pattern], capture_output=True, text=True).stdout or None, px)
+
+    def fill(img, w, h, fx=0.5, fy=0.5):
+        iw, ih = img.get_size(); k = max(w / iw, h / ih)
+        img = pg.transform.smoothscale(img, (int(iw * k) + 1, int(ih * k) + 1))
+        return img.subsurface((int((img.get_width() - w) * fx), int((img.get_height() - h) * fy), w, h)).copy()
+
+    def grade(img, keep=0.3):
+        small = pg.transform.smoothscale(img, (img.get_width() // 3, img.get_height() // 3))
+        px = pg.PixelArray(small)
+        for y in range(small.get_height()):
+            for x in range(small.get_width()):
+                r, g, b, _ = small.unmap_rgb(px[x, y])
+                lum = (r * 30 + g * 59 + b * 11) / 25500
+                for i in range(1, len(c["map"])):
+                    if lum <= c["map"][i][0]:
+                        t0, c0 = c["map"][i - 1]; t1, c1 = c["map"][i]; t = (lum - t0) / (t1 - t0)
+                        break
+                px[x, y] = tuple(int((c0[j] + (c1[j] - c0[j]) * t) * (1 - keep) + (r, g, b)[j] * keep) for j in range(3))
+        del px
+        return pg.transform.smoothscale(small, img.get_size())
+
+    page = pg.Surface((W, H))
+    for y in range(H):  # the sky
+        t = min(1, y / H / 0.45)
+        page.fill([int(c["sky"][0][i] + (c["sky"][1][i] - c["sky"][0][i]) * t) for i in range(3)], (0, y, W, 1))
+    base = BASES[rnd.randrange(len(BASES))]
+    feature, caption = FEATURES[rnd.randrange(len(FEATURES))]
+    pic = grade(fill(pg.image.load(f"{PHOTOS}/{base}.jpg").convert(), 1800, 760, 0.5, 0.45)).convert_alpha()
+    fe = grade(fill(pg.image.load(f"{PHOTOS}/{feature}.jpg").convert(), 640, 640, 0.5, 0.42), keep=0.2).convert_alpha()
+    mask = pg.Surface((640, 640), pg.SRCALPHA)
+    for r in range(320, 0, -4):
+        pg.draw.circle(mask, (255, 255, 255, int(255 * min(1, (1 - r / 320) * 2.4))), (320, 320), r)
+    fe.blit(mask, (0, 0), special_flags=pg.BLEND_RGBA_MULT)
+    pic.blit(fe, (rnd.choice([120, 260, 620]), 40))
+    fade = pg.Surface(pic.get_size(), pg.SRCALPHA)
+    for y in range(760):
+        fade.fill((255, 255, 255, int(255 * min(1, y / 300) ** 1.4)), (0, y, 1800, 1))
+    pic.blit(fade, (0, 0), special_flags=pg.BLEND_RGBA_MULT)
+    page.blit(pic, (0, H - 760))
+    dots = pg.Surface((W, H), pg.SRCALPHA)  # printed: fine halftone
+    for y in range(0, H, 6):
+        for x in range((y // 6 % 2) * 3, W, 6):
+            dots.fill((30, 20, 44, 18), (x, y, 2, 2))
+    page.blit(dots, (0, 0))
+    page.fill(c["spine"], (W - 120, 0, 120, H))  # the spine (its words are es-de's)
+    if not bare:
+        ja, release = POSTER.get(system, (SYSTEMS[system][0], ""))
+        date, _, maker = release.partition("　")
+        if not maker:
+            date, maker = "", release
+        count = sum(len(games(r, system)) for r in s["roms"])
+        # a column of screens from your games
+        shots = []
+        for media in s["media"]:
+            d = os.path.join(media, system, "screenshots")
+            if os.path.isdir(d):
+                shots += [os.path.join(d, x) for x in sorted(os.listdir(d)) if x.endswith((".png", ".jpg")) and not x.startswith(".")]
+        for i, shot in enumerate(rnd.sample(shots, min(4, len(shots)))):
+            x, y = 1430, 50 + i * 214
             try:
-                img = pg.image.load(picks[placed]).convert()
+                im = fill(pg.image.load(shot).convert(), 340, 190)
             except Exception:
-                placed += 1
                 continue
-            placed += 1
-            iw, ih = img.get_size()
-            k = max(tw / iw, th / ih)
-            img = pg.transform.smoothscale(img, (int(iw * k) + 1, int(ih * k) + 1))
-            img = img.subsurface(((img.get_width() - tw) // 2, (img.get_height() - th) // 2, tw, th)).copy()
-            img = pg.transform.grayscale(img)
-            img.fill((255, 176, 222), special_flags=pg.BLEND_MULT)  # pink in the light
-            img.fill((44, 30, 66), special_flags=pg.BLEND_ADD)      # plum in the shadows
-            framed = pg.Surface((tw + 16, th + 16), pg.SRCALPHA)  # tilted without dark corners
-            framed.fill((255, 228, 244, 255))
-            framed.blit(img, (8, 8))
-            framed = pg.transform.rotozoom(framed, rnd.uniform(-7, 7), 1)
-            x = col * 400 + (row % 2) * 180 - 120 + rnd.randint(-30, 30)
-            y = row * 400 - 80 + rnd.randint(-30, 30)
-            canvas.blit(framed, (x, y))
-    # fade into the water on the left, where the title sits
-    fade = pg.Surface((W, H), pg.SRCALPHA)
-    for x in range(W):
-        a = max(0, min(255, int(255 * (1 - x / (W * 0.62)) ** 1.4))) if x < W * 0.62 else 0
-        fade.fill((42, 35, 56, a), (x, 0, 1, H))
-    canvas.blit(fade, (0, 0))
+            page.fill(c["block"], (x - 4, y - 4, 348, 198)); page.blit(im, (x, y))
+        # the headline, the copy, its caption
+        fh = f("Noto Sans CJK JP:black", 92)
+        page.blit(fh.render("深く、青く。", True, c["ink1"]), (90, 50))
+        page.blit(fh.render("あの夏の海へ", True, c["ink2"]), (90, 158))
+        intro = f"{date}、{maker}から登場した{ja}。" if date.endswith(("発売", "稼働")) else f"{ja}。"
+        body = (f"　{intro}あれから長い時間が流れたけれど、あの頃のゲームたちは、いまも深い青の底で静かに"
+                f"君を待っている。収録タイトルは全{count}本。コントローラーを握れば、画面の向こうにはあの夏の"
+                f"海がひろがる。光の差す水面から、誰も知らない海の底まで、もう一度、深く潜ってみよう……。")
+        fb = f("Noto Sans CJK JP:regular", 27)
+        lines, line = [], ""
+        for ch in body:  # 禁則: no line starts with 、。」…
+            if len(line) >= 34 and ch not in "、。」』）…ー":
+                lines.append(line); line = ""
+            line += ch
+        lines.append(line)
+        for i, ln in enumerate(lines):
+            page.blit(fb.render(ln, True, c["body"]), (96, 300 + i * 44))
+        page.blit(f("Noto Sans CJK JP:regular", 21).render(caption, True, c["body"]), (96, 300 + len(lines) * 44 + 18))
+        # the data box
+        bx, by, bw, bh = 900, 860, 500, 270
+        page.fill(c["paper"], (bx, by, bw, bh)); pg.draw.rect(page, c["block"], (bx, by, bw, bh), 3)
+        pg.draw.rect(page, c["block"], (bx + 8, by + 8, bw - 16, 90), 2)
+        size = 64
+        while f("Noto Sans CJK JP:black", size).size(ja)[0] > bw - 60:
+            size -= 4
+        t = f("Noto Sans CJK JP:black", size).render(ja, True, c["block"])
+        page.blit(t, (bx + 26, by + 53 - t.get_height() // 2))
+        arcade = "稼働" in date or system in ("arcade", "mame", "fbneo", "naomi", "atomiswave", "cps1", "cps2", "cps3", "neogeo")
+        rows = [("機種", "アーケード" if arcade else "家庭用ゲーム機")]
+        rows += [(k, v) for k, v in (("メーカー", maker), ("発売日", date.replace("発売", "").replace("稼働", ""))) if v]
+        rows.append(("収録", f"{count}本"))
+        for i, (k, v) in enumerate(rows):
+            text = f"{k}／{v}"
+            px = 23
+            while f("Noto Sans CJK JP:regular", px).size(text)[0] > bw - 70:
+                px -= 1
+            pg.draw.circle(page, c["ink1"], (bx + 32, by + 128 + i * 34), 8)
+            page.blit(f("Noto Sans CJK JP:regular", px).render(text, True, c["body"]), (bx + 48, by + 112 + i * 34))
+        page.blit(f("Noto Sans:bold", 30).render(str(rnd.randint(12, 98)), True, (255, 255, 255)), (90, H - 70))
+        page.blit(f("Noto Sans CJK JP:regular", 20).render(
+            "©nekozame　※画面は開発中のものです　写真：NOAA（パブリックドメイン）", True, (255, 255, 255)), (150, H - 62))
     os.makedirs(os.path.dirname(dest), exist_ok=True)
-    pg.image.save(canvas, dest)
+    pg.image.save(page, dest)
     return True
 
 
-def esde_theme(s, collages=True):
-    """nekozame's theme in es-de's themes: the drawn parts from nekozame, your fonts,
-    each system's poster text, and collages from your own art."""
+def esde_theme(s, pages=True, again=False):
+    """nekozame's theme in es-de: its files, your fonts, each system's names and spine,
+    and its magazine pages, printed here (again: print them all anew)."""
     if not os.path.isdir(THEME_SRC):
         return False
     dest = os.path.join(ESDE_HOME, "themes/nekozame")
     os.makedirs(dest, exist_ok=True)
-    shutil.rmtree(os.path.join(dest, "core"), ignore_errors=True)
+    for old in ("core", "collages", "systems"):
+        shutil.rmtree(os.path.join(dest, old), ignore_errors=True)
     shutil.copytree(os.path.join(THEME_SRC, "core"), os.path.join(dest, "core"))
     shutil.copyfile(os.path.join(THEME_SRC, "capabilities.xml"), os.path.join(dest, "capabilities.xml"))
 
     def font(pattern):
         return subprocess.run(["fc-match", "-f", "%{file}", pattern], capture_output=True, text=True).stdout
     xml = open(os.path.join(THEME_SRC, "theme.xml")).read()
-    for key, pattern in (("LIGHT", "Noto Sans:light"), ("REGULAR", "Noto Sans"), ("ITALIC", "Noto Serif:italic"),
-                         ("JA_LIGHT", "Noto Sans CJK JP:light"), ("JA_BOLD", "Noto Sans CJK JP:bold"),
-                         ("JA_SERIF", "Noto Serif CJK JP")):
+    for key, pattern in (("JA_BLACK", "Noto Sans CJK JP:black"), ("JA_BOLD", "Noto Sans CJK JP:bold"),
+                         ("JA_REGULAR", "Noto Sans CJK JP:regular"), ("SANS_BOLD", "Noto Sans:bold"),
+                         ("SANS", "Noto Sans")):
         xml = xml.replace(f"@FONT_{key}@", font(pattern))
     open(os.path.join(dest, "theme.xml"), "w").write(xml)
     from xml.sax.saxutils import escape
-    shutil.rmtree(os.path.join(dest, "systems"), ignore_errors=True)
     os.makedirs(os.path.join(dest, "systems"), exist_ok=True)
+    vertical = {"ー": "丨", "、": "︑", "。": "︒", "・": "・", " ": "　"}
     for system, (name, _, _) in SYSTEMS.items():
-        ja, release = POSTER.get(system, (name, "nekozame"))  # es-de won't take empty text
+        ja, release = POSTER.get(system, (name, ""))
+        year = re.match(r"\d{4}", release)
+        # down the spine: the name, a gap, the page's little line, again and again
+        spine = "\n".join(vertical.get(ch, ch) for ch in f"{ja}　●深い青への誘い　") * 3
+        en = f"{name}  ·  {year.group(0) if year else 'nekozame'}  ·  memories of the deep  ·  " * 3
         open(os.path.join(dest, "systems", f"{system}.xml"), "w").write(
-            f"<theme>\n    <variables>\n        <nkJa>{escape(ja)}</nkJa>\n"
-            f"        <nkRelease>{escape(release)}</nkRelease>\n    </variables>\n</theme>\n")
+            f"<theme>\n    <variables>\n        <nkJa>{escape(ja)}</nkJa>\n        <nkEn>{escape(name)}</nkEn>\n"
+            f"        <nkSpine>{escape(spine)}</nkSpine>\n        <nkSpineEn>{escape(en)}</nkSpineEn>\n"
+            f"    </variables>\n</theme>\n")
     made = 0
-    if collages:
+    if pages:
         for system in SYSTEMS:
-            out = os.path.join(dest, "collages", f"{system}.jpg")
-            if not os.path.exists(out) and collage(system, s, out):
-                made += 1
-    say(f"  the nekozame theme is in es-de ({made} new collages from your art)")
+            if not any(games(r, system) for r in s["roms"]):
+                continue
+            for scheme in SCHEMES:
+                for bare in (False, True):
+                    out = os.path.join(dest, "pages", f"{system}-{scheme}{'-bare' if bare else ''}.jpg")
+                    if (again or not os.path.exists(out)) and magazine(system, s, scheme, out, bare):
+                        made += 1
+    say(f"  the nekozame theme is in es-de ({made} pages printed)")
     return True
 
 
@@ -1168,7 +1265,7 @@ def esde(off=False):
     if s["steam"].get("names") == "file":
         values["ScrapeGameNames"] = ("bool", "false")
         say(f"  {esde_names()} scraped names cleared: es-de shows your file names")
-    if esde_theme(s):
+    if esde_theme(s, again="--again" in sys.argv):
         values["Theme"] = ("string", "nekozame")
     esde_settings(values)
     # in the menu, and in steam with nekozame's art

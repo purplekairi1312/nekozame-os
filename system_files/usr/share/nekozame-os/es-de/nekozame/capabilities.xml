@@ -1,6 +1,6 @@
-<!-- nekozame for ES-DE: an underwater game poster from the 90s. everything here is
-     drawn by hand (svg); the optional collage is made on your machine from your own
-     games' art (nekozame-emu esde). -->
+<!-- nekozame for ES-DE: every system a page from a 90s japanese game magazine. the
+     pages are printed on your machine (nekozame-emu esde) from public-domain NOAA
+     photos and your own games' screens. -->
 <themeCapabilities>
     <themeName>nekozame</themeName>
 
@@ -12,19 +12,11 @@
     </colorScheme>
 
     <variant name="list">
-        <label>list with art</label>
+        <label>game list</label>
         <selectable>true</selectable>
     </variant>
     <variant name="grid">
         <label>cover grid</label>
-        <selectable>true</selectable>
-    </variant>
-    <variant name="listCollage">
-        <label>list with art, your art behind</label>
-        <selectable>true</selectable>
-    </variant>
-    <variant name="gridCollage">
-        <label>cover grid, your art behind</label>
         <selectable>true</selectable>
     </variant>
 </themeCapabilities>
