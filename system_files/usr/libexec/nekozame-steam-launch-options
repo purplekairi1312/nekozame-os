@@ -1,0 +1,59 @@
+#!/usr/bin/python3
+"""nekozame-steam-launch-options APP.desktop...: launch options some apps need in
+game mode, set on their steam shortcuts (desktop mode isn't touched).
+
+  tauon: it waits for its window to show up, which game mode's x11 never confirms,
+         so it quits. on gamescope's own wayland it starts fine.
+
+nekozame-add-to-steam runs it after adding apps; it talks to steam through its
+debugging port (the one nekozame's steam theme uses)."""
+import importlib.machinery
+import importlib.util
+import json
+import os
+import shlex
+import sys
+import urllib.request
+
+NEEDS = {
+    "com.github.taiko2k.tauonmb.desktop": "WAYLAND_DISPLAY={wayland} SDL_VIDEODRIVER=wayland",
+}
+
+
+def load(name, path):
+    """one of nekozame's scripts (they have no .py), as a module."""
+    spec = importlib.util.spec_from_loader(name, importlib.machinery.SourceFileLoader(name, path))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def main(apps):
+    art = load("steam_art", "/usr/libexec/nekozame-steam-art")
+    theme = load("steam_theme", "/usr/libexec/nekozame-steam-theme")
+    wayland = os.environ.get("GAMESCOPE_WAYLAND_DISPLAY", "gamescope-0")
+    try:
+        with urllib.request.urlopen(f"http://127.0.0.1:{theme.PORT}/json", timeout=3) as r:
+            ws = next(t["webSocketDebuggerUrl"] for t in json.load(r) if t.get("title") == "SharedJSContext")
+    except (OSError, StopIteration, ValueError):
+        print("steam isn't reachable")
+        return 1
+    found = art.shortcuts()
+    for app in apps:
+        if app not in NEEDS:
+            continue
+        e = art.entry(app)
+        # steam keeps a shortcut's arguments in its launch options: the app's own
+        # command (without the program, and without the desktop file's placeholders)
+        words = [w for w in shlex.split(e.get("Exec", ""))[1:]
+                 if not w.startswith(("%", "@@")) and w != "--file-forwarding"]
+        options = f"{NEEDS[app].format(wayland=wayland)} %command% {shlex.join(words)}"
+        for _, appid, title in found:
+            if title == e.get("Name"):
+                theme.evaluate(ws, "SteamClient.Apps.SetShortcutLaunchOptions(%d, %s)" % (appid, json.dumps(options)))
+                print(f"{title}: {options}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

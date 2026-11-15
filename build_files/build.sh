@@ -167,6 +167,7 @@ install -Dm0644 "$T/tauon/nekozame.ttheme" /usr/share/nekozame-os/tauon/nekozame
 install -Dm0644 "$T/steam/nekozame.css" /usr/share/nekozame-os/steam/nekozame.css
 install -Dm0644 "$T/steam/nekozame.js" /usr/share/nekozame-os/steam/nekozame.js
 systemctl --global enable nekozame-steam-theme.service
+systemctl --global enable nekozame-audio-follow.service
 # kde: the plasma style (panel, popups) and the window decorations (round buttons)
 mkdir -p /usr/share/plasma/desktoptheme /usr/share/aurorae/themes
 cp -r "$T/plasma/nekozame" /usr/share/plasma/desktoptheme/nekozame

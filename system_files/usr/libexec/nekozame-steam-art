@@ -23,6 +23,12 @@ APPS = [f"{HOME}/.local/share/flatpak/exports/share", "/var/lib/flatpak/exports/
 
 def desktop_entry(name):
     """Name= and Icon= from the app's [Desktop Entry] (not its actions')."""
+    e = entry(name)
+    return e.get("Name"), e.get("Icon")
+
+
+def entry(name):
+    """the app's [Desktop Entry] (not its actions'), as a dict."""
     for base in APPS:
         path = name if os.path.isabs(name) else f"{base}/applications/{name}"
         if not os.path.isfile(path):
@@ -35,8 +41,8 @@ def desktop_entry(name):
             elif section == "[Desktop Entry]" and "=" in line:
                 k, v = line.split("=", 1)
                 entry.setdefault(k, v)
-        return entry.get("Name"), entry.get("Icon")
-    return None, None
+        return entry
+    return {}
 
 
 def icon(name, size):
