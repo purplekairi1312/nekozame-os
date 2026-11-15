@@ -422,8 +422,8 @@ CATALOG = [
     ("apps", "apps", [
         ("zen", "Zen browser", "private, with the extensions and the nekozame look", True,
          lambda: installed("app.zen_browser.zen"), ["app.zen_browser.zen"], False),
-        ("discord", "Discord", "Vesktop: Discord in nekozame colours", False,
-         lambda: installed("dev.vencord.Vesktop"), ["dev.vencord.Vesktop"], True),
+        ("discord", "Discord", "the official app, with vencord and the nekozame theme", False,
+         lambda: installed("com.discordapp.Discord"), ["com.discordapp.Discord"], True),
         ("bitwarden", "Bitwarden", "your passwords", False,
          lambda: installed("com.bitwarden.desktop"), ["com.bitwarden.desktop"], False),
         ("editor", "Editor", "", 0,

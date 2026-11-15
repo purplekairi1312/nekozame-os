@@ -52,13 +52,14 @@ discord() {
         return
     fi
     if [ ! -f "$res/_app.asar" ]; then
-        # vencord goes into the official app; it's the system's flatpak, so it asks
-        # for your password
+        # vencord goes into the official app. a system-wide discord belongs to root, so
+        # then it asks for your password; one installed for you (the deck's setup) doesn't
         flatpak kill com.discordapp.Discord 2>/dev/null || true
         tmp=$(mktemp -d)
+        local as=""; [ -w "$res" ] || as=sudo
         curl -fsSL -o "$tmp/vencord" https://github.com/Vendicated/VencordInstaller/releases/latest/download/VencordInstallerCli-linux \
             && chmod +x "$tmp/vencord" \
-            && sudo "$tmp/vencord" -install -branch auto </dev/null >/dev/null \
+            && $as "$tmp/vencord" -install -branch auto </dev/null >/dev/null \
             || { note "vencord didn't install: run this again"; rm -rf "$tmp"; return; }
         rm -rf "$tmp"
     fi
