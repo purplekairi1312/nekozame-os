@@ -1368,18 +1368,22 @@ def esde_theme(s, pages=True, again=False):
     return True
 
 
-MUSIC_EVENTS = {"startup": "start", "game-end": "resume", "game-start": "pause", "suspend": "pause", "quit": "stop"}
+MUSIC_EVENTS = {"startup": "start", "game-end": "resume", "game-start": "pause", "suspend": "pause", "quit": "stop",
+                "screensaver-start": "pause", "screensaver-end": "resume"}
 
 
 def esde_music(on=True):
     """es-de's event scripts for the music (nekozame-esde-music): on es-de's start,
-    after a game, before one, on quitting."""
+    after a game, before one, around the screensaver, on quitting."""
     for event, cmd in MUSIC_EVENTS.items():
         path = os.path.join(ESDE_HOME, "scripts", event, "nekozame-music")
         if on:
             os.makedirs(os.path.dirname(path), exist_ok=True)
             with open(path, "w") as f:
-                f.write(f"#!/bin/sh\n# nekozame's music in es-de (nekozame-emu esde)\nexec /usr/libexec/nekozame-esde-music {cmd}\n")
+                f.write("#!/bin/sh\n# nekozame's music in es-de (nekozame-emu esde)\n"
+                        # a screensaver that ends in a game: the game's own event pauses it
+                        + ('[ "$1" = game-start ] && exit 0\n' if event == "screensaver-end" else "")
+                        + f"exec /usr/libexec/nekozame-esde-music {cmd}\n")
             os.chmod(path, 0o755)
         elif os.path.exists(path):
             os.remove(path)

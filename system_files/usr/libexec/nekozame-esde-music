@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 """nekozame-esde-music start|pause|resume|stop: the music in es-de, while you browse
 your games. es-de runs it on its events (nekozame-emu esde puts the scripts there):
-it starts with es-de, pauses while a game runs, comes back after, stops when es-de
-does (or goes away).
+it starts with es-de, pauses while a game or the screensaver runs, comes back after,
+stops when es-de does (or goes away).
 
 the track is "dolphin sanctuary" by purplekairi1312: © 2026 purplekairi1312, all rights
 reserved, not under nekozame-os's licence (see /usr/share/nekozame-os/es-de/music/
