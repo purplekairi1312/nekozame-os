@@ -49,7 +49,7 @@ def steam_page(t):
     url = t.get("url", "")
     if t.get("type") != "page":
         return False
-    if url.startswith(("https://steamloopback.host", "about:blank")):
+    if url.startswith(("https://steamloopback.host", "about:blank", "data:")):  # data: is the store view
         return True
     valve = url.startswith(("https://store.steampowered.com", "https://steamcommunity.com"))
     return valve and "/id/" not in url and "/profiles/" not in url
