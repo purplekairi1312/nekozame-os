@@ -22,8 +22,9 @@ STYLE = ("(function(css){var s=document.getElementById('nekozame-theme');"
       "if(s.textContent!==css){s.textContent=css;}})(%s)")
 
 
-def evaluate(ws_url, expression):
-    """one devtools call over a bare websocket (the standard library has none)."""
+def evaluate(ws_url, expression, answer=False):
+    """one devtools call over a bare websocket (the standard library has none). with
+    answer, it returns the expression's value."""
     rest = ws_url.split("://", 1)[1]
     hostport, path = rest.split("/", 1)
     host, port = hostport.split(":")
@@ -40,7 +41,28 @@ def evaluate(ws_url, expression):
                                 bytes([0x80 | 127]) + struct.pack(">Q", n))
         mask = os.urandom(4)
         s.sendall(head + mask + bytes(b ^ mask[i % 4] for i, b in enumerate(payload)))
-        s.recv(65536)  # the answer; nothing in it we need
+        if not answer:
+            s.recv(65536)  # the answer; nothing in it we need
+            return None
+        buf = b""
+        def need(k):
+            nonlocal buf
+            while len(buf) < k:
+                chunk = s.recv(1 << 16)
+                if not chunk:
+                    raise OSError("closed")
+                buf += chunk
+        while True:  # frames until our answer (id 1)
+            need(2)
+            n, off = buf[1] & 0x7F, 2
+            if n == 126:
+                need(4); n, off = struct.unpack(">H", buf[2:4])[0], 4
+            elif n == 127:
+                need(10); n, off = struct.unpack(">Q", buf[2:10])[0], 10
+            need(off + n)
+            msg, buf = json.loads(buf[off:off + n]), buf[off + n:]
+            if msg.get("id") == 1:
+                return msg.get("result", {}).get("result", {}).get("value")
 
 
 def steam_page(t):
@@ -53,6 +75,23 @@ def steam_page(t):
         return True
     valve = url.startswith(("https://store.steampowered.com", "https://steamcommunity.com"))
     return valve and "/id/" not in url and "/profiles/" not in url
+
+
+CDN = {}  # stylesheets fetched for pages that can't fetch them themselves
+
+
+def hand_over_stylesheets(ws_url):
+    """web pages (the store) load their styles from steam's cdn, which pages can't
+    read; fetch those from here and give them to nekozame.js to recolour."""
+    hrefs = json.loads(evaluate(ws_url, "JSON.stringify(window.__nekozameUnreadable ? "
+                                        "window.__nekozameUnreadable() : [])", answer=True) or "[]")
+    for href in hrefs:
+        if not href.startswith("https://") or "steamstatic.com" not in href:
+            continue
+        if href not in CDN:
+            with urllib.request.urlopen(href, timeout=10) as r:
+                CDN[href] = r.read().decode("utf-8", "replace")
+        evaluate(ws_url, "window.__nekozameCopy(%s, %s)" % (json.dumps(href), json.dumps(CDN[href])))
 
 
 def main():
@@ -73,6 +112,8 @@ def main():
                         evaluate(t["webSocketDebuggerUrl"], STYLE % json.dumps(css))
                         if script:  # it only does its work once per page
                             evaluate(t["webSocketDebuggerUrl"], script)
+                            if t.get("url", "").startswith("https://"):
+                                hand_over_stylesheets(t["webSocketDebuggerUrl"])
                     except OSError:
                         pass
         except (OSError, ValueError):
