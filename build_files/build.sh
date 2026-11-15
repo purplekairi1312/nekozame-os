@@ -160,6 +160,7 @@ install -Dm0644 "$T/qt/nekozame.conf" /usr/share/qt5ct/colors/nekozame.conf
 install -Dm0644 "$T/yazi/theme.toml" /usr/share/nekozame-os/yazi/theme.toml
 # steam: nekozame-steam-theme puts it into steam's pages (no decky needed)
 install -Dm0644 "$T/steam/nekozame.css" /usr/share/nekozame-os/steam/nekozame.css
+install -Dm0644 "$T/steam/nekozame.js" /usr/share/nekozame-os/steam/nekozame.js
 systemctl --global enable nekozame-steam-theme.service
 # kde: the plasma style (panel, popups) and the window decorations (round buttons)
 mkdir -p /usr/share/plasma/desktoptheme /usr/share/aurorae/themes

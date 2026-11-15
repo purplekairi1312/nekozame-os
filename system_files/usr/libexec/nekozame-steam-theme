@@ -13,9 +13,10 @@ import time
 import urllib.request
 
 CSS = "/usr/share/nekozame-os/steam/nekozame.css"
+JS = "/usr/share/nekozame-os/steam/nekozame.js"  # swaps the colours steam sets itself
 PORT = 8080
 STEAM = os.path.expanduser("~/.local/share/Steam")
-JS = ("(function(css){var s=document.getElementById('nekozame-theme');"
+STYLE = ("(function(css){var s=document.getElementById('nekozame-theme');"
       "if(!s){s=document.createElement('style');s.id='nekozame-theme';"
       "(document.head||document.documentElement).appendChild(s);}"
       "if(s.textContent!==css){s.textContent=css;}})(%s)")
@@ -58,12 +59,15 @@ def main():
                 open(flag, "a").close()
         try:
             css = open(CSS).read()
+            script = open(JS).read() if os.path.exists(JS) else ""
             with urllib.request.urlopen(f"http://127.0.0.1:{PORT}/json", timeout=3) as r:
                 targets = json.load(r)
             for t in targets:
                 if steam_page(t) and t.get("webSocketDebuggerUrl"):
                     try:
-                        evaluate(t["webSocketDebuggerUrl"], JS % json.dumps(css))
+                        evaluate(t["webSocketDebuggerUrl"], STYLE % json.dumps(css))
+                        if script:  # it only does its work once per page
+                            evaluate(t["webSocketDebuggerUrl"], script)
                     except OSError:
                         pass
         except (OSError, ValueError):
