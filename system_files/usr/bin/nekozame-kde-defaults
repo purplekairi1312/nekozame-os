@@ -9,6 +9,9 @@ DONE="${XDG_STATE_HOME:-$HOME/.local/state}/nekozame/kde-defaults"
 [ "${1:-}" = --force ] || [ "$(cat "$DONE" 2>/dev/null)" != "$VERSION" ] || exit 0
 plasma-apply-lookandfeel --apply org.nekozame.desktop --resetLayout || true
 plasma-apply-colorscheme nekozame || true
+# tela circle once it's been fetched (nekozame-icons), tela pink until then
+[ -d "${XDG_DATA_HOME:-$HOME/.local/share}/icons/Tela-circle-pink-dark" ] \
+    && /usr/libexec/plasma-changeicons Tela-circle-pink-dark || true
 plasma-apply-wallpaperimage /usr/share/wallpapers/nekozame-small || true
 # the catshark moving: the video wallpaper (the still one above is its fallback)
 Q=$(command -v qdbus-qt6 qdbus6 qdbus 2>/dev/null | head -1)
