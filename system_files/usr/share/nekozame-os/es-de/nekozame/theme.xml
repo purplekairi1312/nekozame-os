@@ -38,6 +38,28 @@
         </variables>
     </colorScheme>
 
+    <!-- the longer texts: english by default, japanese with ui settings > theme language -->
+    <language name="en_US">
+        <variables>
+            <nkLang>en</nkLang>
+            <lblDate>● Released</lblDate>
+            <lblMaker>● Publisher</lblMaker>
+            <lblGenre>● Genre</lblGenre>
+            <lblPlayers>● Players</lblPlayers>
+            <dateFormat>%B %d, %Y</dateFormat>
+        </variables>
+    </language>
+    <language name="ja_JP">
+        <variables>
+            <nkLang>ja</nkLang>
+            <lblDate>●発売日／</lblDate>
+            <lblMaker>●メーカー／</lblMaker>
+            <lblGenre>●ジャンル／</lblGenre>
+            <lblPlayers>●プレイ人数／</lblPlayers>
+            <dateFormat>%Y年%m月%d日</dateFormat>
+        </variables>
+    </language>
+
     <include>${nkSystemFile}</include>
 
     <variant name="all">
@@ -114,7 +136,7 @@
             <image name="page">
                 <pos>0 0</pos>
                 <size>1 1</size>
-                <path>./pages/${system.theme}-${nkScheme}.jpg</path>
+                <path>./pages/${system.theme}-${nkScheme}-${nkLang}.jpg</path>
                 <default>./core/sky-${nkScheme}.svg</default>
                 <zIndex>0</zIndex>
             </image>
@@ -209,8 +231,8 @@
             </text>
             <text name="labelDate">
                 <pos>0.567 0.6</pos>
-                <size>0.1 0.04</size>
-                <text>●発売日／</text>
+                <size>0.11 0.04</size>
+                <text>${lblDate}</text>
                 <fontPath>${jaBold}</fontPath>
                 <fontSize>0.024</fontSize>
                 <color>${ink1}</color>
@@ -220,7 +242,7 @@
                 <pos>0.667 0.6</pos>
                 <size>0.236 0.04</size>
                 <metadata>releasedate</metadata>
-                <format>%Y年%m月%d日</format>
+                <format>${dateFormat}</format>
                 <fontPath>${jaRegular}</fontPath>
                 <fontSize>0.024</fontSize>
                 <color>${body}</color>
@@ -228,8 +250,8 @@
             </datetime>
             <text name="labelMaker">
                 <pos>0.567 0.645</pos>
-                <size>0.1 0.04</size>
-                <text>●メーカー／</text>
+                <size>0.11 0.04</size>
+                <text>${lblMaker}</text>
                 <fontPath>${jaBold}</fontPath>
                 <fontSize>0.024</fontSize>
                 <color>${ink1}</color>
@@ -247,8 +269,8 @@
             </text>
             <text name="labelGenre">
                 <pos>0.567 0.69</pos>
-                <size>0.1 0.04</size>
-                <text>●ジャンル／</text>
+                <size>0.11 0.04</size>
+                <text>${lblGenre}</text>
                 <fontPath>${jaBold}</fontPath>
                 <fontSize>0.024</fontSize>
                 <color>${ink1}</color>
@@ -266,8 +288,8 @@
             </text>
             <text name="labelPlayers">
                 <pos>0.567 0.735</pos>
-                <size>0.1 0.04</size>
-                <text>●プレイ人数／</text>
+                <size>0.11 0.04</size>
+                <text>${lblPlayers}</text>
                 <fontPath>${jaBold}</fontPath>
                 <fontSize>0.024</fontSize>
                 <color>${ink1}</color>

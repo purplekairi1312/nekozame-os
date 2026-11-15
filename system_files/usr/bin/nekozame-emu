@@ -1040,21 +1040,41 @@ PHOTOS = "/usr/share/nekozame-os/es-de/photos"
 # light is added). x is where it swims, over the base's open water
 PAIRS = [
     # sharks, on their own (and ネコザメ's cousins)
-    ("horn-shark", None, 0, "", "▲岩陰にひそむ、ネコザメの仲間。"),
-    ("horn-shark-2", None, 0, "", "▲海藻のあいだで休む、ネコザメの仲間。"),
-    ("galapagos-shark", None, 0, "", "▲青のなかを、ガラパゴスザメがゆっくりと泳いでいく。"),
-    ("galapagos-divers", None, 0, "", "▲ダイバーのそばを、ガラパゴスザメがすり抜ける。"),
-    ("blacktip", None, 0, "", "▲浅瀬の光のなかを、ツマグロが泳ぐ。"),
-    ("reef-sharks-light", None, 0, "", "▲光の差すサンゴ礁を、サメたちがめぐる。"),
-    ("blacktip-reef", None, 0, "", "▲サンゴの上を、ツマグロがすべるように泳ぐ。"),
-    ("whitetip-cave", None, 0, "", "▲岩のくぼみで休む、ネムリブカ。"),
+    ("horn-shark", None, 0, "", "▲岩陰にひそむ、ネコザメの仲間。", "▲ A cousin of the nekozame, hiding in the rocks."),
+    ("horn-shark-2", None, 0, "", "▲海藻のあいだで休む、ネコザメの仲間。", "▲ A cousin of the nekozame, resting in the weed."),
+    ("galapagos-shark", None, 0, "", "▲青のなかを、ガラパゴスザメがゆっくりと泳いでいく。", "▲ A Galápagos shark glides slowly through the blue."),
+    ("galapagos-divers", None, 0, "", "▲ダイバーのそばを、ガラパゴスザメがすり抜ける。", "▲ A Galápagos shark slips past the divers."),
+    ("blacktip", None, 0, "", "▲浅瀬の光のなかを、ツマグロが泳ぐ。", "▲ A blacktip reef shark swims through the light of the shallows."),
+    ("reef-sharks-light", None, 0, "", "▲光の差すサンゴ礁を、サメたちがめぐる。", "▲ Sharks circle a reef in the sunlight."),
+    ("blacktip-reef", None, 0, "", "▲サンゴの上を、ツマグロがすべるように泳ぐ。", "▲ A blacktip glides over the coral."),
+    ("whitetip-cave", None, 0, "", "▲岩のくぼみで休む、ネムリブカ。", "▲ A whitetip reef shark rests in a hollow of the rock."),
     # a creature fused into a scene
-    ("fish-school", "manta", 980, "multiply", "▲水面の光の下を、マンタがゆっくりと横切る。"),
-    ("fish-school", "manta-2", 1060, "multiply", "▲青のなかを、マンタが静かに舞う。"),
-    ("whale-shark", "manta", 1080, "multiply", "▲ジンベエザメの上を、マンタが横切っていく。"),
-    ("whale-shark", "manta-2", 1120, "multiply", "▲光の差す水面の下、大きな影がすれ違う。"),
-    ("diver", "manta-2", 1150, "multiply", "▲ダイバーの頭上を、マンタがゆっくりと舞う。"),
+    ("fish-school", "manta", 980, "multiply", "▲水面の光の下を、マンタがゆっくりと横切る。", "▲ A manta drifts slowly under the light of the surface."),
+    ("fish-school", "manta-2", 1060, "multiply", "▲青のなかを、マンタが静かに舞う。", "▲ A manta dances quietly in the blue."),
+    ("whale-shark", "manta", 1080, "multiply", "▲ジンベエザメの上を、マンタが横切っていく。", "▲ A manta passes over a whale shark."),
+    ("whale-shark", "manta-2", 1120, "multiply", "▲光の差す水面の下、大きな影がすれ違う。", "▲ Under the sunlit surface, great shadows pass each other."),
+    ("diver", "manta-2", 1150, "multiply", "▲ダイバーの頭上を、マンタがゆっくりと舞う。", "▲ A manta dances slowly above a diver."),
 ]
+MAKERS_EN = {"任天堂": "Nintendo", "セガ": "Sega", "ソニー・コンピュータエンタテインメント": "Sony Computer Entertainment",
+             "NECホームエレクトロニクス": "NEC Home Electronics", "日本電気": "NEC", "NEC": "NEC", "SNK": "SNK",
+             "バンダイ": "Bandai", "アタリ": "Atari", "松下電器産業": "Matsushita (Panasonic)", "コレコ": "Coleco",
+             "マテル": "Mattel", "GCE": "GCE", "マグナボックス": "Magnavox", "アスキー・マイクロソフト": "ASCII / Microsoft",
+             "コモドール": "Commodore", "シンクレア": "Sinclair", "アムストラッド": "Amstrad", "アップル": "Apple",
+             "マイクロソフト": "Microsoft", "サミー": "Sammy", "カプコン": "Capcom"}
+MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
+          "November", "December"]
+
+
+def date_en(date):
+    """1994年12月3日発売（北米） → December 3, 1994 (North America)"""
+    m = re.match(r"(\d{4})年(?:(\d+)月)?(?:(\d+)日)?", date)
+    if not m:
+        return ""
+    y, mo, d = m.groups()
+    out = f"{MONTHS[int(mo) - 1]} {d}, {y}" if d else f"{MONTHS[int(mo) - 1]} {y}" if mo else y
+    return out + (" (North America)" if "北米" in date else "")
+
+
 SCHEMES = {
     # sky top and bottom, the headline's two inks, the spine and its block, the
     # body's ink, and the gradient map the photos are printed through
@@ -1069,7 +1089,7 @@ SCHEMES = {
 }
 
 
-def magazine(system, s, scheme, dest, bare=False):
+def magazine(system, s, scheme, dest, bare=False, lang="en"):
     """a 90s japanese game magazine page for a system: the picture at the bottom, fading
     into a sky; with bare, only that (the game lists' background). otherwise also the
     headline, copy written for the system, a column of your games' screens, a data
@@ -1109,7 +1129,7 @@ def magazine(system, s, scheme, dest, bare=False):
     for y in range(H):  # the sky
         t = min(1, y / H / 0.45)
         page.fill([int(c["sky"][0][i] + (c["sky"][1][i] - c["sky"][0][i]) * t) for i in range(3)], (0, y, W, 1))
-    base, feature, fx, mode, caption = PAIRS[rnd.randrange(len(PAIRS))]
+    base, feature, fx, mode, caption, caption_en = PAIRS[rnd.randrange(len(PAIRS))]
     pic = grade(fill(pg.image.load(f"{PHOTOS}/{base}.jpg").convert(), 1800, 760, 0.5, 0.45)).convert_alpha()
     fe = grade(fill(pg.image.load(f"{PHOTOS}/{feature}.jpg").convert(), 640, 640, 0.5, 0.42), keep=0.2) if feature else None
     mask = pg.Surface((640, 640), pg.SRCALPHA)  # soft all round, so no edge shows
@@ -1153,7 +1173,7 @@ def magazine(system, s, scheme, dest, bare=False):
             page.blit(neko, (880, 10), special_flags=pg.BLEND_MULT)
             page.blit(pg.font.Font(subprocess.run(["fc-match", "-f", "%{file}", "Noto Sans CJK JP:regular"], capture_output=True,
                                                   text=True).stdout or None, 18).render(
-                "▲ネコザメ（猫鮫）Heterodontus japonicus　デュメリル画", True, c["body"]), (900, 12 + int(ih * k)))
+                "▲ネコザメ（猫鮫）Heterodontus japonicus　デュメリル画", True, c["body"]), (930, 300))
         except (pg.error, OSError):
             pass
         ja, release = POSTER.get(system, (SYSTEMS[system][0] if system in SYSTEMS else system, ""))
@@ -1176,47 +1196,81 @@ def magazine(system, s, scheme, dest, bare=False):
             except Exception:
                 continue
             page.fill(c["block"], (x - 4, y - 4, 348, 198)); page.blit(im, (x, y))
-        # the headline, the copy, its caption
+        # the headline (japanese, always), the copy and its caption (english, or japanese)
         fh = f("Noto Sans CJK JP:black", 92)
         page.blit(fh.render("深く、青く。", True, c["ink1"]), (90, 50))
         page.blit(fh.render("あの夏の海へ", True, c["ink2"]), (90, 158))
-        intro = f"{date}、{maker}から登場した{ja}。" if date.endswith(("発売", "稼働")) else f"{ja}。"
-        body = (f"　{intro}あれから長い時間が流れたけれど、あの頃のゲームたちは、いまも深い青の底で静かに"
-                f"君を待っている。収録タイトルは全{count}本。コントローラーを握れば、画面の向こうにはあの夏の"
-                f"海がひろがる。光の差す水面から、誰も知らない海の底まで、もう一度、深く潜ってみよう……。")
-        fb = f("Noto Sans CJK JP:regular", 27)
-        lines, line = [], ""
-        for ch in body:  # 禁則: no line starts with 、。」…
-            if len(line) >= 34 and ch not in "、。」』）…ー":
-                lines.append(line); line = ""
-            line += ch
-        lines.append(line)
+        en_name = SYSTEMS[system][0] if system in SYSTEMS else system
+        maker_en = MAKERS_EN.get(maker, maker)
+        arcade = "稼働" in date or system in ("arcade", "mame", "fbneo", "naomi", "atomiswave", "cps1", "cps2", "cps3", "neogeo")
+        if lang == "ja":
+            intro = f"{date}、{maker}から登場した{ja}。" if date.endswith(("発売", "稼働")) else f"{ja}。"
+            body = (f"　{intro}あれから長い時間が流れたけれど、あの頃のゲームたちは、いまも深い青の底で静かに"
+                    f"君を待っている。収録タイトルは全{count}本。コントローラーを握れば、画面の向こうにはあの夏の"
+                    f"海がひろがる。光の差す水面から、誰も知らない海の底まで、もう一度、深く潜ってみよう……。")
+            fb = f("Noto Sans CJK JP:regular", 27)
+            lines, line = [], ""
+            for ch in body:  # 禁則: no line starts with 、。」…
+                if len(line) >= 30 and ch not in "、。」』）…ー":
+                    lines.append(line); line = ""
+                line += ch
+            lines.append(line)
+        else:
+            when = date_en(date)
+            intro = (f"The {en_name}, {'in arcades from' if arcade else 'released'} {when}"
+                     f"{' by ' + maker_en if maker_en else ''}. " if when else f"The {en_name}. ")
+            body = (f"{intro}Years have passed, but the games of those days are still waiting quietly at the "
+                    f"bottom of the deep blue: {count} titles in all. Pick up the controller, and that summer sea "
+                    f"opens up beyond the screen. From the sunlit surface down to depths no one has seen, "
+                    f"let's dive deep, once more…")
+            fb = f("Noto Sans", 28)
+            lines, line = [], ""
+            for word in body.split():
+                trial = f"{line} {word}".strip()
+                if fb.size(trial)[0] > 800 and line:
+                    lines.append(line); line = word
+                else:
+                    line = trial
+            lines.append(line)
         for i, ln in enumerate(lines):
             page.blit(fb.render(ln, True, c["body"]), (96, 300 + i * 44))
-        page.blit(f("Noto Sans CJK JP:regular", 21).render(caption, True, c["body"]), (96, 300 + len(lines) * 44 + 18))
+        cy = 300 + len(lines) * 44 + 18
+        if lang == "ja":
+            page.blit(f("Noto Sans CJK JP:regular", 21).render(caption, True, c["body"]), (96, cy))
+        else:  # the ▲ from the japanese font (the italic has none)
+            mark = f("Noto Sans CJK JP:regular", 21).render("▲", True, c["body"]); page.blit(mark, (96, cy))
+            page.blit(f("Noto Sans:italic", 22).render(caption_en.lstrip("▲ "), True, c["body"]), (96 + mark.get_width() + 6, cy - 1))
         # the data box
         bx, by, bw, bh = 900, 860, 500, 270
         page.fill(c["paper"], (bx, by, bw, bh)); pg.draw.rect(page, c["block"], (bx, by, bw, bh), 3)
         pg.draw.rect(page, c["block"], (bx + 8, by + 8, bw - 16, 90), 2)
+        title = ja if lang == "ja" else en_name
         size = 64
-        while f("Noto Sans CJK JP:black", size).size(ja)[0] > bw - 60:
+        while f("Noto Sans CJK JP:black", size).size(title)[0] > bw - 60:
             size -= 4
-        t = f("Noto Sans CJK JP:black", size).render(ja, True, c["block"])
+        t = f("Noto Sans CJK JP:black", size).render(title, True, c["block"])
         page.blit(t, (bx + 26, by + 53 - t.get_height() // 2))
-        arcade = "稼働" in date or system in ("arcade", "mame", "fbneo", "naomi", "atomiswave", "cps1", "cps2", "cps3", "neogeo")
-        rows = [("機種", "アーケード" if arcade else "家庭用ゲーム機")]
-        rows += [(k, v) for k, v in (("メーカー", maker), ("発売日", date.replace("発売", "").replace("稼働", ""))) if v]
-        rows.append(("収録", f"{count}本"))
+        if lang == "ja":
+            rows = [("機種", "アーケード" if arcade else "家庭用ゲーム機")]
+            rows += [(k, v) for k, v in (("メーカー", maker), ("発売日", date.replace("発売", "").replace("稼働", ""))) if v]
+            rows.append(("収録", f"{count}本"))
+            sep, face = "／", "Noto Sans CJK JP:regular"
+        else:
+            rows = [("System", "Arcade" if arcade else "Home console")]
+            rows += [(k, v) for k, v in (("Maker", maker_en), ("Released", date_en(date))) if v]
+            rows.append(("Titles", f"{count}"))
+            sep, face = ": ", "Noto Sans"
         for i, (k, v) in enumerate(rows):
-            text = f"{k}／{v}"
+            text = f"{k}{sep}{v}"
             px = 23
-            while f("Noto Sans CJK JP:regular", px).size(text)[0] > bw - 70:
+            while f(face, px).size(text)[0] > bw - 70:
                 px -= 1
             pg.draw.circle(page, c["ink1"], (bx + 32, by + 128 + i * 34), 8)
-            page.blit(f("Noto Sans CJK JP:regular", px).render(text, True, c["body"]), (bx + 48, by + 112 + i * 34))
+            page.blit(f(face, px).render(text, True, c["body"]), (bx + 48, by + 112 + i * 34))
         page.blit(f("Noto Sans:bold", 30).render(str(rnd.randint(12, 98)), True, (255, 255, 255)), (90, H - 70))
-        page.blit(f("Noto Sans CJK JP:regular", 20).render(
-            "©nekozame　※画面は開発中のものです　写真：NOAA（パブリックドメイン）", True, (255, 255, 255)), (150, H - 62))
+        note = ("©nekozame　※画面は開発中のものです　写真：NOAA（パブリックドメイン）" if lang == "ja" else
+                "© nekozame   * screens are from the games   photos: NOAA (public domain)")
+        page.blit(f("Noto Sans CJK JP:regular", 20).render(note, True, (255, 255, 255)), (150, H - 62))
     os.makedirs(os.path.dirname(dest), exist_ok=True)
     pg.image.save(page, dest)
     return True
@@ -1269,9 +1323,10 @@ def esde_theme(s, pages=True, again=False):
                     shown.add(d)
         for system in sorted(shown):
             for scheme in SCHEMES:
-                for bare in (False, True):
-                    out = os.path.join(dest, "pages", f"{system}-{scheme}{'-bare' if bare else ''}.jpg")
-                    if (again or not os.path.exists(out)) and magazine(system, s, scheme, out, bare):
+                for name, bare, lang in ((f"{system}-{scheme}-en", False, "en"), (f"{system}-{scheme}-ja", False, "ja"),
+                                         (f"{system}-{scheme}-bare", True, "en")):
+                    out = os.path.join(dest, "pages", f"{name}.jpg")
+                    if (again or not os.path.exists(out)) and magazine(system, s, scheme, out, bare, lang):
                         made += 1
     say(f"  the nekozame theme is in es-de ({made} pages printed)")
     return True

@@ -4,6 +4,9 @@
 <themeCapabilities>
     <themeName>nekozame</themeName>
 
+    <language>en_US</language>
+    <language>ja_JP</language>
+
     <colorScheme name="nekozame">
         <label>nekozame</label>
     </colorScheme>
@@ -12,11 +15,13 @@
     </colorScheme>
 
     <variant name="list">
-        <label>game list</label>
+        <label language="en_US">game list</label>
+        <label language="ja_JP">ゲームリスト</label>
         <selectable>true</selectable>
     </variant>
     <variant name="grid">
-        <label>cover grid</label>
+        <label language="en_US">cover grid</label>
+        <label language="ja_JP">パッケージ一覧</label>
         <selectable>true</selectable>
     </variant>
 </themeCapabilities>
