@@ -1,0 +1,548 @@
+#!/usr/bin/python3
+"""nekozame-saves: your game saves on every machine, the newest one winning, and
+nothing ever thrown away.
+
+  nekozame-saves sync [EMULATOR...]   sync now (nekozame's game launcher does it before
+                                      and after every game)
+  nekozame-saves status               where saves go, and what would change
+  nekozame-saves history PATH         the kept versions of a save
+  nekozame-saves restore PATH VERSION put a kept version back (the current one is kept)
+  nekozame-saves setup                pick where your saves live
+
+your saves are ~/Emulation/saves (one folder per emulator, like agartha or emudeck
+lay them out). they sync with one place every machine reaches:
+  a folder   any mounted share (smb, nfs...), e.g. /mnt/nas/Emulation/saves
+  webdav     a webdav server. when retroarch's cloud sync is set up, its server and
+             login are used, in a folder of its own (nekozame-saves/)
+retroarch's own saves are left to retroarch's cloud sync when that's on.
+
+how a save wins: it remembers each save as it was at the last sync. changed on one
+side only: that side's goes to the other. changed on both (you played on two machines
+in between): the newest wins and the other is kept, and you're told. before any save
+is replaced, on either side, the old one is kept in the history (the last 20 of each).
+deleting a save doesn't delete it elsewhere: the next sync brings it back.
+settings: ~/.config/nekozame/saves.json
+"""
+import base64
+import calendar
+import fcntl
+import hashlib
+import json
+import os
+import re
+import shutil
+import socket
+import sys
+import tempfile
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+from xml.etree import ElementTree
+
+HOME = os.path.expanduser("~")
+CONFIG = os.path.join(HOME, ".config/nekozame/saves.json")
+STATE_DIR = os.path.join(HOME, ".local/state/nekozame")
+HISTORY = os.path.join(HOME, ".local/share/nekozame/saves-history")
+RETROARCH_CFG = [os.path.join(HOME, p) for p in (
+    ".var/app/org.libretro.RetroArch/config/retroarch/retroarch.cfg",
+    ".config/retroarch/retroarch.cfg",
+    "Library/Application Support/RetroArch/config/retroarch.cfg")]
+META = ".nekozame"  # on the other side: the manifest, a lock, the history
+IGNORE = re.compile(r"(^|/)(\.nekozame.*|\.DS_Store|desktop\.ini|Thumbs\.db|.*\.part|\.~lock.*)$")
+MACHINE = socket.gethostname().split(".")[0] or "machine"
+
+
+def say(*a):
+    print(*a, flush=True)
+
+
+# --- settings ------------------------------------------------------------------
+
+def retroarch():
+    """retroarch's cloud sync settings, if it's on: (url, user, password)."""
+    for path in RETROARCH_CFG:
+        try:
+            cfg = dict(re.findall(r'^\s*(\w+)\s*=\s*"(.*)"\s*$', open(path, errors="replace").read(), re.M))
+        except OSError:
+            continue
+        if cfg.get("cloud_sync_enable") == "true" and cfg.get("cloud_sync_driver") == "webdav" and cfg.get("webdav_url"):
+            return cfg["webdav_url"], cfg.get("webdav_username", ""), cfg.get("webdav_password", "")
+    return None
+
+
+def settings():
+    s = {"local": "~/Emulation/saves", "remote": None, "keep": 20, "skip": ["es-de"]}
+    try:
+        s.update(json.load(open(CONFIG)))
+    except (OSError, ValueError):
+        pass
+    s["local"] = os.path.expanduser(s["local"])
+    ra = retroarch()
+    if ra and "retroarch" not in s["skip"]:
+        s["skip"] = s["skip"] + ["retroarch"]  # retroarch syncs its own
+    if not s["remote"] and ra:
+        s["remote"] = {"type": "retroarch"}
+    return s
+
+
+# --- the other side: a folder or a webdav server -------------------------------
+
+class Folder:
+    def __init__(self, path):
+        self.root = os.path.expanduser(path)
+        self.name = self.root
+
+    def reachable(self):
+        return os.path.isdir(self.root)
+
+    def files(self):
+        out = {}
+        for d, dirs, names in os.walk(self.root, followlinks=True):
+            dirs[:] = [x for x in dirs if x != META]
+            for n in names:
+                rel = os.path.relpath(os.path.join(d, n), self.root)
+                if not IGNORE.search(rel):
+                    out[rel] = os.path.getmtime(os.path.join(d, n))
+        return out
+
+    def get(self, rel, dest):
+        shutil.copyfile(os.path.join(self.root, rel), dest)
+
+    def put(self, src, rel):
+        path = os.path.join(self.root, rel)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        tmp = path + ".part"
+        shutil.copy2(src, tmp)  # with the save's own time
+        os.replace(tmp, path)
+
+    def move(self, rel, to):
+        path = os.path.join(self.root, to)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        os.replace(os.path.join(self.root, rel), path)
+
+    def delete(self, rel):
+        os.remove(os.path.join(self.root, rel))
+
+    def read(self, rel):
+        try:
+            return open(os.path.join(self.root, rel), "rb").read()
+        except FileNotFoundError:
+            return None
+
+    def write(self, rel, data):
+        path = os.path.join(self.root, rel)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path + ".part", "wb") as f:
+            f.write(data)
+        os.replace(path + ".part", path)
+
+    def listdir(self, rel):
+        try:
+            return os.listdir(os.path.join(self.root, rel))
+        except FileNotFoundError:
+            return []
+
+
+class WebDAV:
+    def __init__(self, url, user, password):
+        self.base = url.rstrip("/") + "/"
+        self.name = self.base
+        self.auth = "Basic " + base64.b64encode(f"{user}:{password}".encode()).decode() if user else None
+        self.made = set()
+
+    def url(self, rel):
+        return self.base + urllib.parse.quote(rel)
+
+    def call(self, method, rel, data=None, headers=None, ok=(200, 201, 204, 207)):
+        h = dict(headers or {})
+        if self.auth:
+            h["Authorization"] = self.auth
+        req = urllib.request.Request(self.url(rel), data=data, method=method, headers=h)
+        try:
+            with urllib.request.urlopen(req, timeout=30) as r:
+                return r.status, r.read()
+        except urllib.error.HTTPError as e:
+            if e.code in ok:
+                return e.code, e.read()
+            raise
+
+    def reachable(self):
+        try:
+            self.mkdirs("")
+            return True
+        except (OSError, urllib.error.URLError):
+            return False
+
+    def mkdirs(self, rel):
+        parts = [p for p in rel.split("/") if p]
+        path = ""
+        for p in [""] + parts:
+            path = f"{path}{p}/" if p else path
+            if path in self.made:
+                continue
+            try:
+                self.call("MKCOL", path, ok=(201, 405))  # 405: it's there
+            except urllib.error.HTTPError as e:
+                if e.code != 409:
+                    raise
+            self.made.add(path)
+
+    def propfind(self, rel):
+        body = b'<?xml version="1.0"?><d:propfind xmlns:d="DAV:"><d:prop><d:getlastmodified/><d:resourcetype/></d:prop></d:propfind>'
+        try:
+            _, xml = self.call("PROPFIND", rel, body, {"Depth": "1", "Content-Type": "application/xml"})
+        except urllib.error.HTTPError as e:
+            if e.code == 404:
+                return []
+            raise
+        out = []
+        root = urllib.parse.urlparse(self.url(rel)).path.rstrip("/")
+        for resp in ElementTree.fromstring(xml).iter("{DAV:}response"):
+            href = urllib.parse.unquote(urllib.parse.urlparse(resp.findtext("{DAV:}href")).path).rstrip("/")
+            if href == urllib.parse.unquote(root):
+                continue
+            is_dir = resp.find(".//{DAV:}collection") is not None
+            mod = resp.findtext(".//{DAV:}getlastmodified")
+            try:
+                mtime = calendar.timegm(time.strptime(mod, "%a, %d %b %Y %H:%M:%S GMT")) if mod else 0
+            except ValueError:
+                mtime = 0
+            out.append((href.rsplit("/", 1)[-1], is_dir, mtime))
+        return out
+
+    def files(self, rel=""):
+        out = {}
+        for name, is_dir, mtime in self.propfind(rel):
+            path = f"{rel}{name}"
+            if is_dir:
+                if name != META:
+                    out.update(self.files(path + "/"))
+            elif not IGNORE.search(path):
+                out[path] = mtime
+        return out
+
+    def get(self, rel, dest):
+        _, data = self.call("GET", rel, ok=(200,))
+        with open(dest, "wb") as f:
+            f.write(data)
+
+    def put(self, src, rel):
+        self.mkdirs(os.path.dirname(rel))
+        with open(src, "rb") as f:
+            self.call("PUT", rel, f.read())
+
+    def move(self, rel, to):
+        self.mkdirs(os.path.dirname(to))
+        self.call("MOVE", rel, headers={"Destination": self.url(to), "Overwrite": "T"})
+
+    def delete(self, rel):
+        self.call("DELETE", rel, ok=(200, 204, 404))
+
+    def read(self, rel):
+        try:
+            return self.call("GET", rel, ok=(200,))[1]
+        except urllib.error.HTTPError as e:
+            if e.code == 404:
+                return None
+            raise
+
+    def write(self, rel, data):
+        self.mkdirs(os.path.dirname(rel))
+        self.call("PUT", rel, data)
+
+    def listdir(self, rel):
+        return [n for n, _, _ in self.propfind(rel.rstrip("/") + "/")]
+
+
+def remote(s):
+    r = s["remote"]
+    if not r:
+        return None
+    if r["type"] == "folder":
+        return Folder(r["path"])
+    if r["type"] == "webdav":
+        return WebDAV(r["url"], r.get("user", ""), r.get("password", ""))
+    if r["type"] == "retroarch":
+        ra = retroarch()
+        return WebDAV(ra[0].rstrip("/") + "/nekozame-saves", ra[1], ra[2]) if ra else None
+    return None
+
+
+# --- the sync ------------------------------------------------------------------
+
+def sha(path):
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        while chunk := f.read(1 << 20):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def stamp(t=None):
+    return time.strftime("%Y%m%d-%H%M%S", time.localtime(t or time.time()))
+
+
+def local_files(root, skip):
+    out = {}
+    for d, dirs, names in os.walk(root, followlinks=True):
+        rel_d = os.path.relpath(d, root)
+        if rel_d == ".":
+            dirs[:] = [x for x in dirs if x not in skip and not x.startswith(".")]
+        for n in names:
+            p = os.path.join(d, n)
+            rel = os.path.relpath(p, root)
+            if not IGNORE.search(rel) and os.path.isfile(p):
+                out[rel] = p
+    return out
+
+
+class Sync:
+    def __init__(self, s, other, dry=False):
+        self.s, self.other, self.dry = s, other, dry
+        self.root = s["local"]
+        key = hashlib.sha1(other.name.encode()).hexdigest()[:12]
+        self.state_file = os.path.join(STATE_DIR, f"saves-{key}.json")
+        self.notes, self.conflicts = [], []
+
+    # history: before a save is replaced on either side, the old one is kept
+    def keep_local(self, rel, reason):
+        src = os.path.join(self.root, rel)
+        if not os.path.exists(src):
+            return
+        folder = os.path.join(HISTORY, rel)
+        os.makedirs(folder, exist_ok=True)
+        shutil.copy2(src, os.path.join(folder, f"{stamp(os.path.getmtime(src))}-{MACHINE}-{reason}"))
+        versions = sorted(os.listdir(folder))
+        for old in versions[:-self.s["keep"]]:
+            os.remove(os.path.join(folder, old))
+
+    def keep_remote(self, rel, reason, manifest):
+        entry = manifest.get(rel, {})
+        folder = f"{META}/history/{rel}"
+        name = f"{stamp(entry.get('mtime'))}-{entry.get('machine', 'unknown')}-{reason}"
+        try:
+            self.other.move(rel, f"{folder}/{name}")
+        except (OSError, urllib.error.URLError):
+            return
+        versions = sorted(self.other.listdir(folder))
+        for old in versions[:-self.s["keep"]]:
+            try:
+                self.other.delete(f"{folder}/{old}")
+            except (OSError, urllib.error.URLError):
+                pass
+
+    def download(self, rel, entry):
+        dest = os.path.realpath(os.path.join(self.root, rel))  # through emudeck-style links
+        os.makedirs(os.path.dirname(dest), exist_ok=True)
+        fd, tmp = tempfile.mkstemp(dir=os.path.dirname(dest), prefix=".nekozame-")
+        os.close(fd)
+        try:
+            self.other.get(rel, tmp)
+            if entry.get("hash") and sha(tmp) != entry["hash"]:
+                raise OSError(f"{rel}: the download doesn't match")
+            if entry.get("mtime"):
+                os.utime(tmp, (entry["mtime"], entry["mtime"]))
+            os.replace(tmp, dest)
+        finally:
+            if os.path.exists(tmp):
+                os.remove(tmp)
+
+    def run(self, only=None):
+        if not self.other.reachable():
+            say(f"  {self.other.name} isn't reachable: playing with what's here, it syncs next time")
+            return 0
+        os.makedirs(STATE_DIR, exist_ok=True)
+        lock = open(self.state_file + ".lock", "w")
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        try:
+            state = json.load(open(self.state_file))
+        except (OSError, ValueError):
+            state = {}
+        raw = self.other.read(f"{META}/manifest.json")
+        manifest = json.loads(raw) if raw else {}
+        here = local_files(self.root, self.s["skip"])
+        there = {k: v for k, v in self.other.files().items() if k.split("/")[0] not in self.s["skip"]}
+        # the other side's files that nekozame didn't put there (agartha's saves from
+        # before, another tool), or that changed there by hand: know them by contents
+        dirty = raw is None
+        for rel, mtime in there.items():
+            m = manifest.get(rel)
+            by_hand = isinstance(self.other, Folder) and m and abs(m.get("mtime", 0) - mtime) > 2
+            if m and not by_hand:
+                continue
+            if isinstance(self.other, Folder):
+                h = sha(os.path.join(self.other.root, rel))
+            else:
+                fd, tmp = tempfile.mkstemp(prefix=".nekozame-")
+                os.close(fd)
+                try:
+                    self.other.get(rel, tmp)
+                    h = sha(tmp)
+                finally:
+                    os.remove(tmp)
+            if not m or h != m["hash"]:
+                manifest[rel] = {"hash": h, "mtime": mtime, "machine": "unknown"}
+            else:
+                m["mtime"] = mtime
+            dirty = True
+        for rel in list(manifest):
+            if rel not in there:
+                del manifest[rel]  # gone from there (someone removed it by hand)
+                dirty = True
+
+        changed = dirty
+        for rel in sorted(set(here) | set(manifest)):
+            if only and rel.split("/")[0] not in only:
+                continue
+            path = here.get(rel)
+            lh = sha(path) if path else None
+            lm = os.path.getmtime(path) if path else 0
+            rm = manifest.get(rel)
+            rh = rm["hash"] if rm else None
+            was = state.get(rel)
+            if lh and lh == rh:
+                state[rel] = lh
+                continue
+            mine = lh is not None and lh != was
+            theirs = rh is not None and rh != was
+            if lh and (not rh or (mine and not theirs)):
+                action = "up"
+            elif rh and (not lh or (theirs and not mine)):
+                action = "down"
+            else:  # both changed since the last sync: the newest wins, the other is kept
+                action = "up" if lm >= rm.get("mtime", 0) else "down"
+                self.conflicts.append(rel)
+            if self.dry:
+                say(f"  {'↑' if action == 'up' else '↓'} {rel}" + ("  (changed on both: the newest wins, the other is kept)" if rel in self.conflicts else ""))
+                continue
+            reason = "conflict" if rel in self.conflicts else "replaced"
+            try:
+                if action == "up":
+                    if rm:
+                        self.keep_remote(rel, reason, manifest)
+                    self.other.put(path, rel)
+                    manifest[rel] = {"hash": lh, "mtime": lm, "machine": MACHINE}
+                    state[rel] = lh
+                    self.notes.append(f"↑ {rel}")
+                else:
+                    if lh:
+                        self.keep_local(rel, reason)
+                    self.download(rel, rm)
+                    state[rel] = rh
+                    self.notes.append(f"↓ {rel}")
+                changed = True
+            except (OSError, urllib.error.URLError) as e:
+                say(f"  ! {rel}: {e}")
+        if not self.dry:
+            if changed:
+                self.other.write(f"{META}/manifest.json", json.dumps(manifest, indent=1).encode())
+            with open(self.state_file + ".new", "w") as f:
+                json.dump(state, f)
+            os.replace(self.state_file + ".new", self.state_file)
+        for n in self.notes:
+            say("  " + n)
+        for c in self.conflicts:
+            say(f"  ⚠ {c} changed here and on {self.other.name}: the newest is in use, "
+                f"the other is kept (nekozame-saves history {c})")
+        if not self.notes and not self.dry:
+            say("  saves are in sync")
+        return 0
+
+
+# --- commands ------------------------------------------------------------------
+
+def setup():
+    s = settings()
+    say("where should your saves live, so every machine has them?")
+    ra = retroarch()
+    options = []
+    if ra:
+        options.append(("the webdav server retroarch's cloud sync uses (" + ra[0] + ")", {"type": "retroarch"}))
+    options += [("a folder (a mounted share)", "folder"), ("a webdav server", "webdav"), ("only this machine", None)]
+    for i, (label, _) in enumerate(options, 1):
+        say(f"  {i}. {label}")
+    pick = options[int(input("> ").strip() or "1") - 1][1]
+    if pick == "folder":
+        pick = {"type": "folder", "path": input("the folder (e.g. /mnt/nas/Emulation/saves): ").strip()}
+    elif pick == "webdav":
+        import getpass
+        pick = {"type": "webdav", "url": input("address: ").strip(), "user": input("user: ").strip(),
+                "password": getpass.getpass("password: ")}
+    cfg = {}
+    try:
+        cfg = json.load(open(CONFIG))
+    except (OSError, ValueError):
+        pass
+    cfg["remote"] = pick
+    os.makedirs(os.path.dirname(CONFIG), exist_ok=True)
+    fd = os.open(CONFIG + ".new", os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w") as f:
+        json.dump(cfg, f, indent=2)
+    os.replace(CONFIG + ".new", CONFIG)
+    say("saved. nekozame-saves status shows what the first sync would do")
+
+
+def history(rel):
+    folder = os.path.join(HISTORY, rel)
+    versions = sorted(os.listdir(folder)) if os.path.isdir(folder) else []
+    s = settings()
+    other = remote(s)
+    there = []
+    if other and other.reachable():
+        there = sorted(other.listdir(f"{META}/history/{rel}"))
+    for v in versions:
+        say(f"  here   {v}")
+    for v in there:
+        say(f"  there  {v}")
+    if not versions and not there:
+        say("  no kept versions")
+
+
+def restore(rel, version):
+    s = settings()
+    dest = os.path.join(s["local"], rel)
+    src = os.path.join(HISTORY, rel, version)
+    if not os.path.exists(src):
+        other = remote(s)
+        if not other or not other.reachable():
+            raise SystemExit("that version isn't here, and the other side isn't reachable")
+        fd, tmp = tempfile.mkstemp()
+        os.close(fd)
+        other.get(f"{META}/history/{rel}/{version}", tmp)
+        src = tmp
+    Sync(s, remote(s) or Folder("/")).keep_local(rel, "before-restore")
+    os.makedirs(os.path.dirname(dest), exist_ok=True)
+    shutil.copyfile(src, os.path.realpath(dest) if os.path.exists(dest) else dest)
+    say(f"  restored {rel} ({version}); it goes everywhere with the next sync")
+
+
+def main(argv):
+    cmd = argv[0] if argv else "status"
+    s = settings()
+    if cmd == "setup":
+        return setup()
+    if cmd == "history" and len(argv) == 2:
+        return history(argv[1])
+    if cmd == "restore" and len(argv) == 3:
+        return restore(argv[1], argv[2])
+    if cmd in ("sync", "status"):
+        other = remote(s)
+        if not other:
+            say("  saves stay on this machine (nekozame-saves setup to sync them)")
+            return 0
+        if cmd == "status":
+            say(f"  your saves: {s['local']}\n  synced with: {other.name}"
+                + (f"\n  left to their own sync: {', '.join(s['skip'])}" if s["skip"] else ""))
+        if not os.path.isdir(s["local"]):
+            os.makedirs(s["local"], exist_ok=True)
+        return Sync(s, other, dry=(cmd == "status")).run(argv[1:] or None)
+    say(__doc__)
+    return 1
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main(sys.argv[1:]))
+    except KeyboardInterrupt:
+        sys.exit(130)
