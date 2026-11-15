@@ -11,6 +11,8 @@ your saves synced everywhere (nekozame-saves).
   nekozame-emu steam refresh      their art and collections again
   nekozame-emu steam tabs         tabmaster's tabs: Apps (without the games), Emulation
   nekozame-emu systems            what's supported, and what you have
+  nekozame-emu art [SYSTEM...]    covers and screenshots for games without (libretro's
+                                  thumbnail library, matched by your file names)
 
 settings (~/.config/nekozame/emulation.json), all optional:
   "roms":  ["~/Emulation/roms", "/mnt/nas/Emulation/roms"]   where your games are
@@ -24,10 +26,13 @@ settings (~/.config/nekozame/emulation.json), all optional:
                                               a game tell apart in the library
 """
 import json
+import urllib.parse
 import os
 import re
 import shlex
 import shutil
+import socket
+import struct
 import subprocess
 import sys
 import urllib.request
@@ -42,6 +47,38 @@ VAR = os.path.join(HOME, ".var/app")
 RA = "org.libretro.RetroArch"
 RA_CORES = os.path.join(VAR, RA, "config/retroarch/cores")
 BUILDBOT = "https://buildbot.libretro.com/nightly/linux/x86_64/latest"
+THUMBNAILS = "https://thumbnails.libretro.com"
+MISSES = os.path.join(HOME, ".local/state/nekozame/art-misses.json")
+# libretro's thumbnail library, by system: covers, title screens and screenshots under
+# the no-intro and redump names (the names most romsets use)
+LIBRETRO = {
+    "nes": "Nintendo - Nintendo Entertainment System", "fds": "Nintendo - Family Computer Disk System",
+    "snes": "Nintendo - Super Nintendo Entertainment System", "sfc": "Nintendo - Super Nintendo Entertainment System",
+    "n64": "Nintendo - Nintendo 64", "gb": "Nintendo - Game Boy", "gbc": "Nintendo - Game Boy Color",
+    "gba": "Nintendo - Game Boy Advance", "nds": "Nintendo - Nintendo DS", "virtualboy": "Nintendo - Virtual Boy",
+    "pokemini": "Nintendo - Pokemon Mini", "gc": "Nintendo - GameCube", "wii": "Nintendo - Wii",
+    "n3ds": "Nintendo - Nintendo 3DS", "wiiu": "Nintendo - Wii U", "switch": "Nintendo - Nintendo Switch",
+    "psx": "Sony - PlayStation", "ps2": "Sony - PlayStation 2", "ps3": "Sony - PlayStation 3",
+    "psp": "Sony - PlayStation Portable", "ps4": "Sony - PlayStation 4",
+    "sg-1000": "Sega - SG-1000", "mastersystem": "Sega - Master System - Mark III", "gamegear": "Sega - Game Gear",
+    "megadrive": "Sega - Mega Drive - Genesis", "megadrivejp": "Sega - Mega Drive - Genesis",
+    "genesis": "Sega - Mega Drive - Genesis", "segacd": "Sega - Mega-CD - Sega CD", "megacd": "Sega - Mega-CD - Sega CD",
+    "megacdjp": "Sega - Mega-CD - Sega CD", "sega32x": "Sega - 32X", "sega32xjp": "Sega - 32X", "sega32xna": "Sega - 32X",
+    "saturn": "Sega - Saturn", "saturnjp": "Sega - Saturn", "dreamcast": "Sega - Dreamcast", "naomi": "Sega - Naomi",
+    "atomiswave": "Atomiswave", "pcengine": "NEC - PC Engine - TurboGrafx 16", "tg16": "NEC - PC Engine - TurboGrafx 16",
+    "pcenginecd": "NEC - PC Engine CD - TurboGrafx-CD", "tg-cd": "NEC - PC Engine CD - TurboGrafx-CD",
+    "pcfx": "NEC - PC-FX", "pc88": "NEC - PC-8001 - PC-8801", "pc98": "NEC - PC-98",
+    "ngp": "SNK - Neo Geo Pocket", "ngpc": "SNK - Neo Geo Pocket Color", "neogeo": "SNK - Neo Geo",
+    "neogeocd": "SNK - Neo Geo CD", "wonderswan": "Bandai - WonderSwan", "wonderswancolor": "Bandai - WonderSwan Color",
+    "atari2600": "Atari - 2600", "atari5200": "Atari - 5200", "atari7800": "Atari - 7800", "atarilynx": "Atari - Lynx",
+    "atarijaguar": "Atari - Jaguar", "3do": "The 3DO Company - 3DO", "colecovision": "Coleco - ColecoVision",
+    "intellivision": "Mattel - Intellivision", "vectrex": "GCE - Vectrex", "odyssey2": "Magnavox - Odyssey2",
+    "msx": "Microsoft - MSX", "msx2": "Microsoft - MSX2", "c64": "Commodore - 64", "amiga": "Commodore - Amiga",
+    "zxspectrum": "Sinclair - ZX Spectrum", "amstradcpc": "Amstrad - CPC", "apple2": "Apple - II",
+    "dos": "DOS", "uzebox": "Uzebox", "arcade": "MAME", "mame": "MAME", "fbneo": "FBNeo - Arcade Games",
+    "cps1": "FBNeo - Arcade Games", "cps2": "FBNeo - Arcade Games", "cps3": "FBNeo - Arcade Games",
+    "xbox": "Microsoft - Xbox", "scummvm": "ScummVM",
+}
 
 # --- the emulators ---------------------------------------------------------------
 # flatpak: its app id. run: how a game starts ({rom}). saves: its folders in
@@ -393,6 +430,14 @@ def steam_js():
     spec = importlib.util.spec_from_loader("steam_theme", importlib.machinery.SourceFileLoader("steam_theme", path))
     theme = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(theme)
+
+    class Patient:  # steam answers slowly with a big library: wait up to a minute
+        def __getattr__(self, name):
+            return getattr(socket, name)
+
+        def create_connection(self, address, timeout=None):
+            return socket.create_connection(address, timeout=60)
+    theme.socket = Patient()
     with urllib.request.urlopen(f"http://127.0.0.1:{theme.PORT}/json", timeout=3) as r:
         ws = next(t["webSocketDebuggerUrl"] for t in json.load(r) if t.get("title") == "SharedJSContext")
     return lambda js, wait=False: theme.evaluate(ws, js, answer=True, wait=wait)
@@ -530,7 +575,7 @@ def put_art(appid, system, rom, name, s):
             shutil.copyfile(path, dest)
 
 
-def collect(js, added):
+def collect(js, added, quiet=False):
     """a collection per system (Saturn, PlayStation 2...) with its games, and one with
     all of them."""
     by_system = {EVERYTHING: [a["appid"] for a in added.values()]} if added else {}
@@ -547,7 +592,8 @@ def collect(js, added):
             await c.Save();
             return c.allApps.length;
         })()""" % (json.dumps(name), json.dumps(ids)), wait=True)
-        say(f"  {name}: {n} games")
+        if not quiet:
+            say(f"  {name}: {n} games")
 
 
 def load_state():
@@ -562,7 +608,7 @@ def steam_add(systems=None):
     js = steam_js()
     added = load_state()
     exe = shutil.which("nekozame-emu") or "/usr/bin/nekozame-emu"
-    count = 0
+    count, fresh = 0, {}
     for root in s["steam"]["roms"]:
         for system in SYSTEMS:
             if systems and system not in systems:
@@ -580,14 +626,68 @@ def steam_add(systems=None):
                 js("SteamClient.Apps.SetShortcutName(%d, %s)" % (appid, json.dumps(name)))
                 js("SteamClient.Apps.SetShortcutLaunchOptions(%d, %s)" % (appid, json.dumps(options)))
                 put_art(appid, system, rom, name, s)
-                added[rom] = {"appid": appid, "system": system}
+                added[rom] = fresh[rom] = {"appid": appid, "system": system}
                 count += 1
                 if count % 20 == 0:
                     say(f"  {count} added")
                     save_state(added)
+                if len(fresh) >= 200:  # into their collections as they come (not in Apps)
+                    collect(js, fresh, quiet=True)
+                    fresh = {}
     save_state(added)
+    tidy(js, added)
     collect(js, added)
     say(f"{count} games added to steam ({len(added)} in all). restart steam to see all their art.")
+
+
+def steam_shortcuts():
+    """(appid, exe, launch options) of every shortcut in steam (its shortcuts.vdf)."""
+    import glob
+    out = []
+    for path in glob.glob(os.path.join(HOME, ".local/share/Steam/userdata/[1-9]*/config/shortcuts.vdf")):
+        data = open(path, "rb").read()
+        i, cur = 0, {}
+
+        def cstr(i):
+            j = data.index(b"\0", i)
+            return data[i:j].decode(errors="replace"), j + 1
+        try:
+            while i < len(data):
+                t = data[i]
+                i += 1
+                if t == 8:
+                    continue
+                k, i = cstr(i)
+                k = k.lower()
+                if t == 0:
+                    if k.isdigit():
+                        if cur.get("appid"):
+                            out.append(cur)
+                        cur = {}
+                elif t == 1:
+                    v, i = cstr(i)
+                    cur[k] = v
+                elif t == 2:
+                    cur[k] = struct.unpack("<I", data[i:i + 4])[0]
+                    i += 4
+        except (ValueError, struct.error):
+            pass
+        if cur.get("appid"):
+            out.append(cur)
+    return out
+
+
+def tidy(js, added):
+    """nekozame game entries steam has but nekozame has no record of (a second copy
+    of a game, when steam was too slow to answer): taken out."""
+    known = {a["appid"] for a in added.values()}
+    extra = [sc["appid"] for sc in steam_shortcuts()
+             if sc.get("exe", "").strip('"').endswith("nekozame-emu") and sc["appid"] not in known
+             and (sc.get("launchoptions", "").startswith("launch ") or not sc.get("launchoptions"))]
+    for appid in extra:
+        js("SteamClient.Apps.RemoveShortcut(%d)" % appid)
+    if extra:
+        say(f"  {len(extra)} doubled entries taken out")
 
 
 def steam_refresh():
@@ -684,6 +784,85 @@ def tabs(js=None, remove=False):
         + " (they show once decky restarts: reboot, or sudo systemctl restart plugin_loader)")
 
 
+def fetch_art(systems=None):
+    """covers, title screens and screenshots from libretro's thumbnail library for the
+    games that have none, matched by file name (your versions included; a hack or a
+    translation falls back to its original's), saved where es-de keeps its art."""
+    from concurrent.futures import ThreadPoolExecutor
+    s = settings()
+    media = next((m for m in s["media"] if os.path.isdir(os.path.dirname(m.rstrip("/"))) and os.access(os.path.dirname(m.rstrip("/")), os.W_OK)), None)
+    if not media:
+        say("  no folder for art (settings: media)")
+        return 1
+    try:
+        misses = set(json.load(open(MISSES)))
+    except (OSError, ValueError):
+        misses = set()
+    todo = []
+    for root in s["roms"]:
+        for system in SYSTEMS:
+            if (systems and system not in systems) or system not in LIBRETRO:
+                continue
+            for rom in games(root, system):
+                base = os.path.splitext(os.path.basename(rom))[0]
+                if f"{system}/{base}" in misses or art(system, rom, s).get("p"):
+                    continue
+                todo.append((system, base))
+    say(f"  {len(todo)} games without art; asking libretro's thumbnail library")
+    kinds = [("Named_Boxarts", "covers"), ("Named_Titles", "titlescreens"), ("Named_Snaps", "screenshots")]
+
+    def candidates(base):
+        """the name as it is, then without its trailing tags one by one (keeping the
+        title and first region)."""
+        names, name = [base], base
+        while True:
+            shorter = re.sub(r"\s*[\(\[][^\(\)\[\]]*[\)\]]\s*$", "", name)
+            if shorter == name or not re.search(r"\(", shorter):
+                break
+            names.append(shorter)
+            name = shorter
+        return names
+
+    def one(job):
+        system, base = job
+        got = False
+        for remote, folder in kinds:
+            dest = os.path.join(media, system, folder, base + ".png")
+            if os.path.exists(dest):
+                got = True
+                continue
+            for name in candidates(base):
+                safe = re.sub(r'[&*/:`<>?\\|"]', "_", name)
+                url = f"{THUMBNAILS}/{urllib.parse.quote(LIBRETRO[system])}/{remote}/{urllib.parse.quote(safe)}.png"
+                try:
+                    with urllib.request.urlopen(url, timeout=30) as r:
+                        data = r.read()
+                except (OSError, ValueError):
+                    continue
+                os.makedirs(os.path.dirname(dest), exist_ok=True)
+                with open(dest + ".part", "wb") as f:
+                    f.write(data)
+                os.replace(dest + ".part", dest)
+                got = True
+                break
+        return job, got
+
+    found = 0
+    with ThreadPoolExecutor(6) as pool:
+        for i, ((system, base), got) in enumerate(pool.map(one, todo), 1):
+            if got:
+                found += 1
+            else:
+                misses.add(f"{system}/{base}")
+            if i % 200 == 0:
+                say(f"  {i}/{len(todo)}, art for {found}")
+                os.makedirs(os.path.dirname(MISSES), exist_ok=True)
+                json.dump(sorted(misses), open(MISSES, "w"))
+    os.makedirs(os.path.dirname(MISSES), exist_ok=True)
+    json.dump(sorted(misses), open(MISSES, "w"))
+    say(f"  art for {found} of {len(todo)} (nekozame-emu steam refresh puts it in steam)")
+
+
 def systems_list():
     s = settings()
     for system, (name, emu, _) in SYSTEMS.items():
@@ -707,6 +886,8 @@ def main(argv):
         return tabs()
     if cmd == "systems":
         return systems_list()
+    if cmd == "art":
+        return fetch_art(argv[1:] or None)
     say(__doc__)
     return 1
 
