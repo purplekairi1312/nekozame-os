@@ -10,6 +10,9 @@ your saves synced everywhere (nekozame-saves).
   nekozame-emu steam remove       take all of them out of steam again
   nekozame-emu steam refresh      their art and collections again
   nekozame-emu steam tabs         tabmaster's tabs: Apps (without the games), Emulation
+  nekozame-emu esde [on|off]      ES-DE, for browsing your whole library: nekozame's
+                                  launcher first (saves sync), your names kept;
+                                  off takes it away again (lists and art stay)
   nekozame-emu systems            what's supported, and what you have
   nekozame-emu art [SYSTEM...]    covers and screenshots for games without (libretro's
                                   thumbnail library, matched by your file names)
@@ -245,7 +248,7 @@ def games(root, system):
         dirs[:] = [x for x in dirs if not x.startswith(".") and x not in ("media", "images", "videos", "manuals")]
         for n in names:
             ext = n.rsplit(".", 1)[-1].lower() if "." in n else ""
-            if ext not in exts:
+            if ext not in exts or n.startswith("."):  # hidden ones (macos' ._ copies too)
                 continue
             path = os.path.join(d, n)
             if ext in ("m3u", "cue", "gdi", "ccd"):  # the files they point at aren't games
@@ -580,7 +583,8 @@ def collect(js, added, quiet=False):
     all of them."""
     by_system = {EVERYTHING: [a["appid"] for a in added.values()]} if added else {}
     for a in added.values():
-        by_system.setdefault(SYSTEMS[a["system"]][0], []).append(a["appid"])
+        if a["system"]:  # es-de goes in the one with all of them only
+            by_system.setdefault(SYSTEMS[a["system"]][0], []).append(a["appid"])
     for name, ids in sorted(by_system.items()):
         n = js("""(async () => {
             const name = %s;
@@ -863,6 +867,160 @@ def fetch_art(systems=None):
     say(f"  art for {found} of {len(todo)} (nekozame-emu steam refresh puts it in steam)")
 
 
+# --- es-de ---------------------------------------------------------------------------
+
+ESDE = os.path.join(HOME, ".local/share/nekozame/es-de")
+ESDE_HOME = os.path.join(HOME, "ES-DE")
+ESDE_STATE = os.path.join(HOME, ".local/state/nekozame/es-de.json")
+ESDE_RELEASES = "https://gitlab.com/api/v4/projects/es-de%2Femulationstation-de/releases?per_page=1"
+
+
+def esde_settings(values):
+    """es-de's settings file: these values set, everything else as it was."""
+    path = os.path.join(ESDE_HOME, "settings/es_settings.xml")
+    from xml.sax.saxutils import quoteattr
+    lines = open(path, errors="replace").read().splitlines() if os.path.exists(path) else ['<?xml version="1.0"?>']
+    out = []
+    for line in lines:
+        m = re.match(r'\s*<(\w+) name="([^"]+)" value=', line)
+        if m and m.group(2) in values:
+            continue
+        out.append(line)
+    for k, (kind, v) in values.items():
+        out.append(f"<{kind} name={quoteattr(k)} value={quoteattr(str(v))} />")
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path + ".new", "w") as f:
+        f.write("\n".join(out) + "\n")
+    os.replace(path + ".new", path)
+
+
+def esde_systems(appimage):
+    """es-de's own system list, with nekozame's launcher as each system's first
+    emulator (so saves sync); es-de's other emulators stay choosable."""
+    import tempfile
+    from xml.sax.saxutils import escape
+    with tempfile.TemporaryDirectory() as tmp:
+        subprocess.run([appimage, "--appimage-extract", "usr/share/es-de/resources/systems/linux/es_systems.xml"],
+                       cwd=tmp, capture_output=True)
+        found = [os.path.join(d, f) for d, _, fs in os.walk(tmp) for f in fs if f == "es_systems.xml"]
+        if not found:
+            raise OSError("es-de's system list isn't in the appimage")
+        xml = open(found[0], errors="replace").read()
+    exe = shutil.which("nekozame-emu") or "/usr/bin/nekozame-emu"
+
+    def ours(m):
+        block = m.group(0)
+        name = re.search(r"<name>(.*?)</name>", block).group(1)
+        if name not in SYSTEMS:
+            return block
+        cmd = f'<command label="nekozame">{escape(exe)} launch {name} %ROM%</command>'
+        return re.sub(r"(\s*)(<command)", lambda c: f"{c.group(1)}{cmd}{c.group(1)}{c.group(2)}", block, count=1)
+    custom = re.sub(r"<system>.*?</system>", ours, xml, flags=re.S)
+    folder = os.path.join(ESDE_HOME, "custom_systems")
+    os.makedirs(folder, exist_ok=True)
+    for f in ("es_systems.xml", "es_find_rules.xml"):  # what was there (emudeck's): kept aside
+        old = os.path.join(folder, f)
+        if os.path.exists(old) and "nekozame" not in open(old, errors="replace").read():
+            os.replace(old, old + ".before-nekozame")
+    with open(os.path.join(folder, "es_systems.xml"), "w") as f:
+        f.write(custom.replace("<!-- This is the ES-DE Frontend game systems configuration file for Linux -->",
+                               "<!-- nekozame: es-de's systems, with nekozame's launcher first (nekozame-emu esde) -->"))
+
+
+def esde_names():
+    """your file names as the games' names: the names scraped in before are cleared
+    (the game lists are kept aside first, once)."""
+    lists = os.path.join(ESDE_HOME, "gamelists")
+    if not os.path.isdir(lists):
+        return 0
+    backup = lists + ".before-nekozame"
+    if not os.path.exists(backup):
+        shutil.copytree(lists, backup)
+    cleared = 0
+    for d, _, files in os.walk(lists):
+        for f in files:
+            if f != "gamelist.xml":
+                continue
+            path = os.path.join(d, f)
+            xml, n = re.subn(r"\s*<name>.*?</name>", "", open(path, errors="replace").read(), flags=re.S)
+            cleared += n
+            open(path, "w").write(xml)
+    return cleared
+
+
+def esde(off=False):
+    try:
+        st = json.load(open(ESDE_STATE))
+    except (OSError, ValueError):
+        st = {}
+    appimage = os.path.join(ESDE, "ES-DE.AppImage")
+    desktop = os.path.join(HOME, ".local/share/applications/org.es_de.frontend.desktop")
+    if off:
+        try:
+            if st.get("appid"):
+                steam_js()("SteamClient.Apps.RemoveShortcut(%d)" % st["appid"])
+        except (OSError, StopIteration):
+            say("  (steam isn't running: take ES-DE out of it by hand)")
+        shutil.rmtree(ESDE, ignore_errors=True)
+        for f in (desktop, ESDE_STATE, os.path.join(ESDE_HOME, "custom_systems/es_systems.xml")):
+            if os.path.exists(f):
+                os.remove(f)
+        say("ES-DE is gone (your game lists, art and saves stay)")
+        return 0
+    s = settings()
+    # es-de itself: the newest release (its steam deck build on a deck)
+    with urllib.request.urlopen(ESDE_RELEASES, timeout=30) as r:
+        release = json.load(r)[0]
+    deck = open("/sys/devices/virtual/dmi/id/sys_vendor").read().strip() == "Valve" \
+        if os.path.exists("/sys/devices/virtual/dmi/id/sys_vendor") else False
+    want = "ES-DE_x64_SteamDeck.AppImage" if deck else "ES-DE_x64.AppImage"
+    link = next(l["url"] for l in release["assets"]["links"] if l["name"] == want)
+    if st.get("version") != release["tag_name"] or not os.path.exists(appimage):
+        say(f"getting ES-DE {release['tag_name']}")
+        os.makedirs(ESDE, exist_ok=True)
+        urllib.request.urlretrieve(link, appimage + ".part")
+        os.chmod(appimage + ".part", 0o755)
+        os.replace(appimage + ".part", appimage)
+        st["version"] = release["tag_name"]
+    esde_systems(appimage)
+    values = {"ROMDirectory": ("string", s["roms"][0]), "MediaDirectory": ("string", s["media"][0]),
+              "ApplicationUpdaterFrequency": ("string", "never")}
+    if s["steam"].get("names") == "file":
+        values["ScrapeGameNames"] = ("bool", "false")
+        say(f"  {esde_names()} scraped names cleared: es-de shows your file names")
+    if os.path.isdir(os.path.join(ESDE_HOME, "themes/nekozame")):
+        values["Theme"] = ("string", "nekozame")
+    esde_settings(values)
+    # in the menu, and in steam with nekozame's art
+    icon = os.path.join(ESDE, "es-de.svg")
+    if not os.path.exists(icon):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            subprocess.run([appimage, "--appimage-extract", "usr/share/icons/*"], cwd=tmp, capture_output=True)
+            found = [os.path.join(d, f) for d, _, fs in os.walk(tmp) for f in fs
+                     if f.endswith(".svg") and "es_de" in f and os.path.isfile(os.path.join(d, f))]
+            if found:
+                shutil.copyfile(found[0], icon)
+    os.makedirs(os.path.dirname(desktop), exist_ok=True)
+    with open(desktop, "w") as f:
+        f.write(f"[Desktop Entry]\nType=Application\nName=ES-DE\nComment=Your whole game library\n"
+                f"Exec={appimage}\nIcon={icon}\nCategories=Game;Emulator;\nTerminal=false\n")
+    try:
+        js = steam_js()
+        if not st.get("appid") or not js("appStore.GetAppOverviewByAppID(%d)?.appid" % st["appid"]):
+            st["appid"] = js("SteamClient.Apps.AddShortcut(%s, %s, %s, %s)" % (
+                json.dumps("ES-DE"), json.dumps(appimage), json.dumps(ESDE), json.dumps("")), wait=True)
+            js("SteamClient.Apps.SetShortcutName(%d, %s)" % (st["appid"], json.dumps("ES-DE")))
+            subprocess.run(["/usr/libexec/nekozame-steam-art", desktop], capture_output=True)
+        collect(js, {"es-de": {"appid": st["appid"], "system": None}}, quiet=True)  # with the games
+    except (OSError, StopIteration):
+        say("  (steam isn't running: ES-DE goes in its library next time)")
+    os.makedirs(os.path.dirname(ESDE_STATE), exist_ok=True)
+    json.dump(st, open(ESDE_STATE, "w"))
+    say(f"ES-DE {st['version']} is ready: in steam, and in your apps menu")
+    return 0
+
+
 def systems_list():
     s = settings()
     for system, (name, emu, _) in SYSTEMS.items():
@@ -888,6 +1046,10 @@ def main(argv):
         return systems_list()
     if cmd == "art":
         return fetch_art(argv[1:] or None)
+    if cmd == "esde" and argv[1:2] in ([], ["on"]):
+        return esde()
+    if cmd == "esde" and argv[1:2] == ["off"]:
+        return esde(off=True)
     say(__doc__)
     return 1
 
