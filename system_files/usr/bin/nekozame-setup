@@ -46,6 +46,17 @@ fi
 echo "  dark reader, ublock origin, privacy badger, libredirect, clearurls and"
 echo "  consent-o-matic come with it; duckduckgo, https-only, no telemetry."
 
+step "Music: Tauon, the player for your music"
+if flatpak info com.github.taiko2k.tauonmb >/dev/null 2>&1; then
+    ok "installed"
+else
+    flatpak install --system -y flathub com.github.taiko2k.tauonmb && ok "installed"
+fi
+# it opens your music files
+xdg-mime default com.github.taiko2k.tauonmb.desktop audio/mpeg audio/flac audio/ogg audio/x-vorbis+ogg \
+    audio/opus audio/mp4 audio/x-m4a audio/aac audio/wav audio/x-wav audio/x-ape audio/x-wavpack 2>/dev/null
+echo "  your navidrome or jellyfin goes in its settings; nekozame music (ujust nekozame-music) is for game mode"
+
 step "Tailscale"
 if tailscale status >/dev/null 2>&1; then
     ok "logged in"

@@ -1,8 +1,9 @@
 #!/bin/bash
-# nekozame-apps-theme [zen|discord|bitwig]: the nekozame look in apps that keep it in
-# your profile or need a little patching. all three without an argument.
+# nekozame-apps-theme [zen|discord|bitwig|tauon]: the nekozame look in apps that keep it
+# in your profile or need a little patching. all of them without an argument.
 #   zen:     see-through toolbars, and pages, github and youtube in nekozame
 #   discord: the official app, through vencord
+#   tauon:   the music player
 #   bitwig:  the native one (ujust nekozame-music-production), through the bitwig theme editor
 # run it again after discord or bitwig update. flatpak apps can't see /usr/share,
 # so the theme files are copied in, not linked; your own versions of them are kept.
@@ -15,6 +16,16 @@ note() { echo "  · $*"; }
 put() {  # put FILE TARGET MARKER
     if [ ! -e "$2" ] || grep -qs -- "$3" "$2"; then mkdir -p "$(dirname "$2")"; cp "$1" "$2"
     else note "${2/#$HOME/~} is yours, kept"; fi
+}
+
+tauon() {
+    if ! flatpak info com.github.taiko2k.tauonmb >/dev/null 2>&1; then
+        note "no Tauon: install it (flatpak install flathub com.github.taiko2k.tauonmb), then run this again"
+        return
+    fi
+    put "$T/tauon/nekozame.ttheme" \
+        "$HOME/.var/app/com.github.taiko2k.tauonmb/data/TauonMusicBox/theme/nekozame.ttheme" "nekozame, by purplekairi1312"
+    ok "tauon: pick nekozame in its settings, under Theme"
 }
 
 zen() {
@@ -106,6 +117,6 @@ for r in json.load(sys.stdin):
     ok "bitwig $ver"
 }
 
-for a in ${@:-zen discord bitwig}; do
-    case "$a" in zen|discord|bitwig) "$a" ;; *) echo "nekozame-apps-theme [zen|discord|bitwig]" >&2; exit 1 ;; esac
+for a in ${@:-zen discord bitwig tauon}; do
+    case "$a" in zen|discord|bitwig|tauon) "$a" ;; *) echo "nekozame-apps-theme [zen|discord|bitwig|tauon]" >&2; exit 1 ;; esac
 done

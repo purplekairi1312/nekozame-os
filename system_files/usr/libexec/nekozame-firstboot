@@ -420,6 +420,8 @@ CATALOG = [
          lambda: sh("tailscale", "status")[0], [], False),
     ]),
     ("apps", "apps", [
+        ("tauon", "Tauon", "the music player, for desktop mode (your server works there too)", True,
+         lambda: installed("com.github.taiko2k.tauonmb"), ["com.github.taiko2k.tauonmb"], False),
         ("music", "nekozame music", "music while you play: your server, youtube without ads, your files", True,
          lambda: False, [], False),
         ("zen", "Zen browser", "private, with the extensions and the nekozame look", True,
@@ -596,6 +598,9 @@ class Working:
         editor = picked.get("editor")
         if editor in (0, 1):
             add("Doom Emacs (takes a while)", "nekozame-doom", *(["--evil"] if editor == 1 else []))
+        if picked.get("tauon"):  # it opens your music files
+            add("Tauon for your music files", "xdg-mime", "default", "com.github.taiko2k.tauonmb.desktop",
+                "audio/mpeg", "audio/flac", "audio/ogg", "audio/opus", "audio/mp4", "audio/x-m4a", "audio/wav")
         if picked.get("music"):  # it's in the image: only steam's library needs it
             self.to_steam.append("nekozame-music.desktop")
         if picked.get("helium"):
