@@ -49,7 +49,9 @@ RETROARCH_CFG = [os.path.join(HOME, p) for p in (
     ".config/retroarch/retroarch.cfg",
     "Library/Application Support/RetroArch/config/retroarch.cfg")]
 META = ".nekozame"  # on the other side: the manifest, a lock, the history
-IGNORE = re.compile(r"(^|/)(\.nekozame.*|\.DS_Store|desktop\.ini|Thumbs\.db|.*\.part|\.~lock.*)$")
+IGNORE = re.compile(r"(^|/)(\.nekozame.*|\.DS_Store|\._.*|desktop\.ini|Thumbs\.db|.*\.part|\.~lock.*)$"
+                    r"|^ryujinx/(system|system_saves)/"  # macos' leftovers; switch keys and firmware aren't saves
+                    r"|^\.[^/]*$")  # other tools' markers at the top
 MACHINE = socket.gethostname().split(".")[0] or "machine"
 
 
