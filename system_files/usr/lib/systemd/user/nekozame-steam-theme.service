@@ -1,0 +1,10 @@
+[Unit]
+Description=nekozame's colors in steam (game mode, big picture, the store)
+
+[Service]
+ExecStart=/usr/libexec/nekozame-steam-theme
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=default.target
