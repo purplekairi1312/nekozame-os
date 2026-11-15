@@ -63,7 +63,7 @@
                 <fontSize>0.046</fontSize>
                 <color>ffffff</color>
                 <horizontalAlignment>center</horizontalAlignment>
-                <lineSpacing>1.05</lineSpacing>
+                <lineSpacing>1.3</lineSpacing>
                 <zIndex>31</zIndex>
             </text>
             <text name="spineEn">
