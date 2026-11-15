@@ -3,7 +3,7 @@
 # your profile or need a little patching. all three without an argument.
 #   zen:     see-through toolbars, and pages, github and youtube in nekozame
 #   discord: the official app, through vencord
-#   bitwig:  the native one (ujust nekozame-music), through the bitwig theme editor
+#   bitwig:  the native one (ujust nekozame-music-production), through the bitwig theme editor
 # run it again after discord or bitwig update. flatpak apps can't see /usr/share,
 # so the theme files are copied in, not linked; your own versions of them are kept.
 set -uo pipefail
@@ -83,7 +83,7 @@ bitwig() {
     if [ ! -f "$b/bin/bitwig.jar" ]; then
         if flatpak info com.bitwig.BitwigStudio >/dev/null 2>&1; then
             note "the Bitwig flatpak can't be themed (its files are read-only):"
-            note "ujust nekozame-music installs the native one, which can"
+            note "ujust nekozame-music-production installs the native one, which can"
         fi
         return
     fi

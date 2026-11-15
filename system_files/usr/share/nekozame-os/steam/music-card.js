@@ -1,6 +1,6 @@
 // nekozame music's card in steam's quick access menu (the ··· button): what's playing,
 // with previous, play/pause and next. nekozame-steam-theme puts it there; it talks to
-// nekozame-tunes-player on this machine. it hides when nothing's playing.
+// nekozame-music-player on this machine. it hides when nothing's playing.
 (function () {
   if (window.__nekozameMusic) return;
   window.__nekozameMusic = true;

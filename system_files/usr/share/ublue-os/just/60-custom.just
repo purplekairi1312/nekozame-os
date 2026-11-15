@@ -10,10 +10,15 @@ nekozame-setup:
 nekozame-audio LATENCY="status":
     /usr/bin/nekozame-audio {{ LATENCY }}
 
-# Music production: DAWs (Bitwig, Reaper, Renoise, Ardour, LMMS) and a checklist of plugins
+# Music while you play: your server, youtube without ads, your files (controller-friendly)
 [group('nekozame')]
 nekozame-music:
     /usr/bin/nekozame-music
+
+# Music production: DAWs (Bitwig, Reaper, Renoise, Ardour, LMMS) and a checklist of plugins
+[group('nekozame')]
+nekozame-music-production:
+    /usr/bin/nekozame-music-production
 
 # Your editor: doom (default), neovim, helix, micro, nano or any command
 [group('nekozame')]

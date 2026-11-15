@@ -1,5 +1,5 @@
 #!/bin/bash
-# the music production checklist (nekozame-music): every plugin and app in Audinux
+# the music production checklist (nekozame-music-production): every plugin and app in Audinux
 # (copr ycollet/audinux) that installs on this Fedora, with its plugin formats and
 # summary, one line per plugin. runs in its own Fedora stage; writes /out/catalog.tsv
 # and /out/audinux.repo

@@ -597,7 +597,7 @@ class Working:
         if editor in (0, 1):
             add("Doom Emacs (takes a while)", "nekozame-doom", *(["--evil"] if editor == 1 else []))
         if picked.get("music"):  # it's in the image: only steam's library needs it
-            self.to_steam.append("nekozame-tunes.desktop")
+            self.to_steam.append("nekozame-music.desktop")
         if picked.get("helium"):
             add("Helium", "nekozame-helium")
         add("nekozame in your apps", "nekozame-apps-theme")

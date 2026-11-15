@@ -108,9 +108,9 @@ fi
 
 step "Music production"
 if command -v yabridgectl >/dev/null || [ -x "$HOME/.local/bin/yabridgectl" ]; then
-    ok "set up (more DAWs: ujust nekozame-music)"
+    ok "set up (more DAWs: ujust nekozame-music-production)"
 elif ask "Set up music production? (DAWs, plugins, Windows plugins)" false; then
-    nekozame-music
+    nekozame-music-production
 fi
 
 step "nekozame in your apps: Zen, Discord, Bitwig, gtk and qt apps, yazi"

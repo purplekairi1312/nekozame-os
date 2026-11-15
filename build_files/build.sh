@@ -131,7 +131,7 @@ systemctl --global enable nekozame-icons.timer
 ### nekozame music: mpv plays (yt-dlp comes per user, kept up to date), the player
 ### runs for everyone in the background
 retry dnf5 -y install mpv
-systemctl --global enable nekozame-tunes-player.service
+systemctl --global enable nekozame-music-player.service
 
 ### gtk and qt apps in nekozame: kvantum (the qt style), qt6ct/qt5ct (qt outside kde)
 ### and adw-gtk3 (gtk 3 apps that take libadwaita's colors)
@@ -193,10 +193,10 @@ command -v mpvpaper
 
 ### audio, for everyone: low latency (pipewire config + threadirqs in system_files),
 ### realtime priority (limits.d in system_files) and a patchbay. daws and plugins are
-### per user: nekozame-music
+### per user: nekozame-music-production
 retry dnf5 -y install realtime-setup qpwgraph
 
-### music production (nekozame-music layers what each person picks): the audinux
+### music production (nekozame-music-production layers what each person picks): the audinux
 ### checklist from its build stage, and plugin folders every daw finds. fedora's
 ### plugins are in /usr/lib64; reaper, bitwig and most hosts look in /usr/lib (and
 ### follow folders inside it), so link lib64 in there. lv2/ladspa/dssi don't follow
@@ -210,7 +210,7 @@ for f in vst3 vst clap; do
     ln -sfn "/usr/lib64/$f" "/usr/lib/$f/lib64"
 done
 
-### wine: windows apps (and windows plugins, once nekozame-music sets up yabridge)
+### wine: windows apps (and windows plugins, once nekozame-music-production sets up yabridge)
 retry dnf5 -y install wine
 
 ### windows vms: quickemu on top of dx's libvirt/qemu/swtpm/ovmf
