@@ -593,10 +593,24 @@ class Working:
 
 # --- the app --------------------------------------------------------------------------
 
+def show_in_game_mode():
+    """game mode's compositor shows the windows steam tells it to, by app id (769 is
+    steam's own interface). before steam starts nobody tells it, and the screen stays
+    black: so this window says it's 769, and if nothing's set yet, so does the screen."""
+    wid = pygame.display.get_wm_info().get("window")
+    if not wid or not shutil.which("xprop"):
+        return
+    sh("xprop", "-id", str(wid), "-f", "STEAM_GAME", "32c", "-set", "STEAM_GAME", "769")
+    ok, out = sh("xprop", "-root", "GAMESCOPECTRL_BASELAYER_APPID")
+    if not ok or "not found" in out or "=" not in out:
+        sh("xprop", "-root", "-f", "GAMESCOPECTRL_BASELAYER_APPID", "32c", "-set", "GAMESCOPECTRL_BASELAYER_APPID", "769")
+
+
 def main():
     pygame.init()
     screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
     pygame.display.set_caption("nekozame setup")
+    show_in_game_mode()
     pygame.mouse.set_visible(True)
     look, inp, clock = Look(screen), Input(), pygame.time.Clock()
     order = ["welcome", "wifi", "choices", "tailscale", "working"]
