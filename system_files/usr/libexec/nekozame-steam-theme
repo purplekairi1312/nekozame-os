@@ -44,10 +44,10 @@ def evaluate(ws_url, expression):
 
 
 def steam_page(t):
-    """steam's own pages, not websites opened inside it."""
+    """steam's own interface, not web pages shown inside it (the store, the community,
+    people's profiles keep their own colours)."""
     url = t.get("url", "")
-    return t.get("type") == "page" and (url.startswith(("https://steamloopback.host", "about:blank", "data:"))
-                                        or "store.steampowered.com" in url or "steamcommunity.com" in url)
+    return t.get("type") == "page" and url.startswith(("https://steamloopback.host", "about:blank"))
 
 
 def main():
