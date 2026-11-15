@@ -583,8 +583,7 @@ def collect(js, added, quiet=False):
     all of them."""
     by_system = {EVERYTHING: [a["appid"] for a in added.values()]} if added else {}
     for a in added.values():
-        if a["system"]:  # es-de goes in the one with all of them only
-            by_system.setdefault(SYSTEMS[a["system"]][0], []).append(a["appid"])
+        by_system.setdefault(SYSTEMS[a["system"]][0], []).append(a["appid"])
     for name, ids in sorted(by_system.items()):
         n = js("""(async () => {
             const name = %s;
@@ -1012,7 +1011,6 @@ def esde(off=False):
                 json.dumps("ES-DE"), json.dumps(appimage), json.dumps(ESDE), json.dumps("")), wait=True)
             js("SteamClient.Apps.SetShortcutName(%d, %s)" % (st["appid"], json.dumps("ES-DE")))
             subprocess.run(["/usr/libexec/nekozame-steam-art", desktop], capture_output=True)
-        collect(js, {"es-de": {"appid": st["appid"], "system": None}}, quiet=True)  # with the games
     except (OSError, StopIteration):
         say("  (steam isn't running: ES-DE goes in its library next time)")
     os.makedirs(os.path.dirname(ESDE_STATE), exist_ok=True)
