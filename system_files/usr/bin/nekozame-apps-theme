@@ -25,7 +25,15 @@ tauon() {
     fi
     put "$T/tauon/nekozame.ttheme" \
         "$HOME/.var/app/com.github.taiko2k.tauonmb/data/TauonMusicBox/theme/nekozame.ttheme" "nekozame, by purplekairi1312"
-    ok "tauon: pick nekozame in its settings, under Theme"
+    # on tauon's own default theme: nekozame. a theme you picked stays (tauon writes its
+    # settings when it closes, so this takes when it isn't running)
+    local conf="$HOME/.var/app/com.github.taiko2k.tauonmb/data/TauonMusicBox/tauon.conf"
+    if grep -qs '^theme-name = "Mindaro"' "$conf"; then
+        sed -i 's/^theme-name = "Mindaro"/theme-name = "nekozame"/' "$conf"
+        ok "tauon, in nekozame"
+    else
+        ok "tauon: nekozame is in its themes (settings → Theme)"
+    fi
 }
 
 zen() {
