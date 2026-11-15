@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=nekozame music
+Comment=Music while you play: your library, youtube without ads, your own files
+Exec=nekozame-music
+Icon=nekozame
+Categories=AudioVideo;Audio;Player;

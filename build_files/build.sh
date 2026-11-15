@@ -128,6 +128,11 @@ tar -xzf /tmp/tela.tar.gz -C /tmp
 rm -rf /tmp/tela.tar.gz "/tmp/Tela-icon-theme-${TELA}"
 systemctl --global enable nekozame-icons.timer
 
+### nekozame music: mpv plays (yt-dlp comes per user, kept up to date), the player
+### runs for everyone in the background
+retry dnf5 -y install mpv
+systemctl --global enable nekozame-music-player.service
+
 ### gtk and qt apps in nekozame: kvantum (the qt style), qt6ct/qt5ct (qt outside kde)
 ### and adw-gtk3 (gtk 3 apps that take libadwaita's colors)
 retry dnf5 -y install kvantum qt6ct qt5ct adw-gtk3-theme

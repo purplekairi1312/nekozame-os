@@ -420,6 +420,8 @@ CATALOG = [
          lambda: sh("tailscale", "status")[0], [], False),
     ]),
     ("apps", "apps", [
+        ("music", "nekozame music", "music while you play: your server, youtube without ads, your files", True,
+         lambda: False, [], False),
         ("zen", "Zen browser", "private, with the extensions and the nekozame look", True,
          lambda: installed("app.zen_browser.zen"), ["app.zen_browser.zen"], False),
         ("discord", "Discord", "the official app, with vencord and the nekozame theme", False,
@@ -594,6 +596,8 @@ class Working:
         editor = picked.get("editor")
         if editor in (0, 1):
             add("Doom Emacs (takes a while)", "nekozame-doom", *(["--evil"] if editor == 1 else []))
+        if picked.get("music"):  # it's in the image: only steam's library needs it
+            self.to_steam.append("nekozame-music.desktop")
         if picked.get("helium"):
             add("Helium", "nekozame-helium")
         add("nekozame in your apps", "nekozame-apps-theme")
