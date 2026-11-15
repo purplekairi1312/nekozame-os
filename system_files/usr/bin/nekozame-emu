@@ -1055,6 +1055,19 @@ PAIRS = [
     ("whale-shark", "manta-2", 1120, "multiply", "▲光の差す水面の下、大きな影がすれ違う。", "▲ Under the sunlit surface, great shadows pass each other."),
     ("diver", "manta-2", 1150, "multiply", "▲ダイバーの頭上を、マンタがゆっくりと舞う。", "▲ A manta dances slowly above a diver."),
 ]
+# 川原慶賀's sharks (photos/kawahara-*.jpg, the paper made white), and what they are;
+# the ネコザメ more often than the others
+DRAWINGS = [("kawahara-heterodontus", "ネコザメ（猫鮫）Heterodontus japonicus", "Japanese bullhead shark (nekozame)"),
+            ("kawahara-heterodontus", "ネコザメ（猫鮫）Heterodontus japonicus", "Japanese bullhead shark (nekozame)"),
+            ("kawahara-heterodontus", "ネコザメ（猫鮫）Heterodontus japonicus", "Japanese bullhead shark (nekozame)"),
+            ("kawahara-halaelurus", "トラザメの仲間　Halaelurus buergeri", "Catshark"),
+            ("kawahara-orectolobus", "オオセ　Orectolobus japonicus", "Japanese wobbegong"),
+            ("kawahara-isurus", "アオザメ　Isurus oxyrinchus", "Shortfin mako"),
+            ("kawahara-notorynchus", "エビスザメ　Notorynchus cepedianus", "Broadnose sevengill"),
+            ("kawahara-squalus", "ツノザメの仲間　Squalus", "Dogfish"),
+            ("kawahara-squatina", "カスザメ　Squatina japonica", "Japanese angelshark"),
+            ("kawahara-pristiophorus", "ノコギリザメ　Pristiophorus japonicus", "Japanese sawshark"),
+            ("kawahara-sphyrna", "シロシュモクザメ　Sphyrna zygaena", "Smooth hammerhead")]
 MAKERS_EN = {"任天堂": "Nintendo", "セガ": "Sega", "ソニー・コンピュータエンタテインメント": "Sony Computer Entertainment",
              "NECホームエレクトロニクス": "NEC Home Electronics", "日本電気": "NEC", "NEC": "NEC", "SNK": "SNK",
              "バンダイ": "Bandai", "アタリ": "Atari", "松下電器産業": "Matsushita (Panasonic)", "コレコ": "Coleco",
@@ -1164,16 +1177,25 @@ def magazine(system, s, scheme, dest, bare=False, lang="en"):
     page.blit(dots, (0, 0))
     page.fill(c["spine"], (W - 120, 0, 120, H))  # the spine (its words are es-de's)
     if not bare:
-        # the ネコザメ, as a field guide drew it (duméril): printed onto the sky
+        # a shark as 川原慶賀 painted it for siebold (1820s): printed onto the sky, a
+        # different one now and then; the ネコザメ most often
+        drawings = [d for d in DRAWINGS if os.path.exists(f"{PHOTOS}/{d[0]}.jpg")] or DRAWINGS
+        name_, ja_cap, en_cap = drawings[rnd.randrange(len(drawings))]
         try:
-            neko = pg.image.load(f"{PHOTOS}/nekozame-dumeril.jpg").convert()
-            iw, ih = neko.get_size(); k = 470 / iw
-            neko = pg.transform.smoothscale(neko, (470, int(ih * k)))
-            neko.fill((24, 24, 24), special_flags=pg.BLEND_ADD)  # its paper to white, so it vanishes
-            page.blit(neko, (880, 10), special_flags=pg.BLEND_MULT)
-            page.blit(pg.font.Font(subprocess.run(["fc-match", "-f", "%{file}", "Noto Sans CJK JP:regular"], capture_output=True,
-                                                  text=True).stdout or None, 18).render(
-                "▲ネコザメ（猫鮫）Heterodontus japonicus　デュメリル画", True, c["body"]), (930, 300))
+            art = pg.image.load(f"{PHOTOS}/{name_}.jpg").convert()
+            iw, ih = art.get_size(); k = min(470 / iw, 230 / ih)
+            art = pg.transform.smoothscale(art, (int(iw * k), int(ih * k)))
+            art.fill((14, 14, 14), special_flags=pg.BLEND_ADD)  # its paper to white, so it vanishes
+            page.blit(art, (880 + (470 - art.get_width()) // 2, 30 + (230 - art.get_height()) // 2), special_flags=pg.BLEND_MULT)
+            cap = (f"▲{ja_cap}　川原慶賀画" if lang == "ja" else f"▲ {en_cap} · painted by Kawahara Keiga")
+            cf = pg.font.Font(subprocess.run(["fc-match", "-f", "%{file}", "Noto Sans CJK JP:regular"], capture_output=True,
+                                             text=True).stdout or None, 18)
+            parts = [cap]
+            if cf.size(cap)[0] > 470:  # two lines, split where it reads well
+                cut = cap.rfind("　") if lang == "ja" else cap.rfind(" · ")
+                parts = [cap[:cut], "　" + cap[cut:].strip(" ·　")] if cut > 0 else [cap]
+            for i, part in enumerate(parts):
+                page.blit(cf.render(part, True, c["body"]), (930, 268 + i * 24))
         except (pg.error, OSError):
             pass
         ja, release = POSTER.get(system, (SYSTEMS[system][0] if system in SYSTEMS else system, ""))
