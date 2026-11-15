@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1200" viewBox="0 0 1920 1200" preserveAspectRatio="none">
+  <defs>
+    <linearGradient id="ray" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff0f8" stop-opacity="1"/>
+      <stop offset="1" stop-color="#ffc0e5" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+    <polygon points="293,0 329,0 644,1200 226,1200" fill="url(#ray)" opacity="0.09"/>
+  <polygon points="512,0 548,0 668,1200 392,1200" fill="url(#ray)" opacity="0.07"/>
+  <polygon points="701,0 737,0 872,1200 710,1200" fill="url(#ray)" opacity="0.11"/>
+  <polygon points="874,0 910,0 1065,1200 731,1200" fill="url(#ray)" opacity="0.05"/>
+  <polygon points="993,0 1029,0 946,1200 574,1200" fill="url(#ray)" opacity="0.07"/>
+  <polygon points="1289,0 1325,0 1538,1200 1206,1200" fill="url(#ray)" opacity="0.05"/>
+  <polygon points="1426,0 1462,0 1427,1200 1047,1200" fill="url(#ray)" opacity="0.05"/>
+  <polygon points="1642,0 1678,0 1650,1200 1236,1200" fill="url(#ray)" opacity="0.05"/>
+  <polygon points="1817,0 1853,0 1787,1200 1599,1200" fill="url(#ray)" opacity="0.09"/>
+    <path d="M -40 40 q 58.5 -24 117 0 q 50.0 22 100 0 q 52.0 8 104 0 q 59.0 8 118 0 q 64.0 -19 128 0 q 38.5 -4 77 0 q 59.5 5 119 0 q 50.0 16 100 0 q 51.5 -9 103 0 q 36.0 14 72 0 q 48.0 23 96 0 q 54.0 -25 108 0 q 61.5 6 123 0 q 40.0 -9 80 0 q 62.5 9 125 0 q 36.0 4 72 0 q 60.5 0 121 0 q 63.5 6 127 0 q 56.0 -16 112 0" fill="none" stroke="#ffe6f4" stroke-width="3" opacity="0.100"/>
+  <path d="M -40 86 q 53.5 21 107 0 q 40.5 -15 81 0 q 49.0 -14 98 0 q 35.5 12 71 0 q 59.0 -5 118 0 q 40.0 -17 80 0 q 50.0 1 100 0 q 40.5 -4 81 0 q 63.0 6 126 0 q 37.5 -13 75 0 q 45.0 -21 90 0 q 54.5 10 109 0 q 58.0 -10 116 0 q 44.5 15 89 0 q 37.0 23 74 0 q 40.5 11 81 0 q 65.0 19 130 0 q 61.5 -17 123 0 q 58.0 7 116 0 q 35.0 -17 70 0 q 53.0 2 106 0" fill="none" stroke="#ffe6f4" stroke-width="3" opacity="0.083"/>
+  <path d="M -40 132 q 48.5 -15 97 0 q 49.5 -17 99 0 q 59.5 -23 119 0 q 39.0 -10 78 0 q 44.5 20 89 0 q 57.0 22 114 0 q 39.0 -4 78 0 q 52.0 -8 104 0 q 47.5 -24 95 0 q 64.0 21 128 0 q 57.0 -13 114 0 q 54.5 14 109 0 q 58.0 -8 116 0 q 59.0 -15 118 0 q 40.5 -14 81 0 q 54.0 4 108 0 q 37.0 6 74 0 q 54.0 7 108 0 q 65.0 -26 130 0 q 57.5 26 115 0" fill="none" stroke="#ffe6f4" stroke-width="2" opacity="0.066"/>
+  <path d="M -40 178 q 56.0 -15 112 0 q 51.0 -19 102 0 q 60.0 -21 120 0 q 61.5 -26 123 0 q 50.0 24 100 0 q 59.0 7 118 0 q 50.5 6 101 0 q 64.0 -13 128 0 q 44.0 -4 88 0 q 64.0 20 128 0 q 60.5 22 121 0 q 39.5 17 79 0 q 42.0 -4 84 0 q 60.0 2 120 0 q 36.0 17 72 0 q 55.0 -7 110 0 q 37.5 8 75 0 q 45.5 -13 91 0 q 58.0 21 116 0 q 43.5 -20 87 0" fill="none" stroke="#ffe6f4" stroke-width="3" opacity="0.049"/>
+  <path d="M -40 224 q 40.0 -20 80 0 q 51.5 -7 103 0 q 61.0 -2 122 0 q 59.5 11 119 0 q 60.5 26 121 0 q 64.5 -12 129 0 q 53.5 -22 107 0 q 53.5 22 107 0 q 45.5 -23 91 0 q 35.5 -14 71 0 q 48.5 15 97 0 q 53.0 -10 106 0 q 50.5 -24 101 0 q 46.0 14 92 0 q 62.0 11 124 0 q 48.5 5 97 0 q 35.5 7 71 0 q 47.0 3 94 0 q 48.0 -19 96 0 q 53.5 15 107 0" fill="none" stroke="#ffe6f4" stroke-width="4" opacity="0.032"/>
+</svg>

@@ -1,0 +1,272 @@
+<!-- nekozame for ES-DE, by purplekairi1312. license: the same as nekozame-os (GPL-3.0).
+     the fonts (@FONT_*@) are filled in by nekozame-emu esde from the machine's own. -->
+<theme>
+    <variables>
+        <bold>@FONT_BOLD@</bold>
+        <regular>@FONT_REGULAR@</regular>
+        <japanese>@FONT_JP@</japanese>
+        <pink>ffc0e5</pink>
+        <soft>ffd4ee</soft>
+        <lilac>e8def5</lilac>
+        <dim>b3a7cb</dim>
+        <deep>2a2338</deep>
+        <!-- each system's name, katakana, maker and year, and its collage: set in
+             ./systems/<system>.xml (nekozame-emu esde writes them) -->
+        <nkName>${system.fullName}</nkName>
+        <nkKana></nkKana>
+        <nkMaker></nkMaker>
+        <nkYear></nkYear>
+        <nkSystemFile>./systems/${system.theme}.xml</nkSystemFile>
+        <nkCollage>./collages/${system.theme}.jpg</nkCollage>
+        <nkLogo>./logos/${system.theme}.svg</nkLogo>
+    </variables>
+    <include>${nkSystemFile}</include>
+
+    <!-- the water, the light, the bubbles and the crt, under everything -->
+    <view name="system, gamelist">
+        <image name="water">
+            <pos>0 0</pos>
+            <size>1 1</size>
+            <path>./core/water.svg</path>
+            <zIndex>0</zIndex>
+        </image>
+        <image name="collage">
+            <pos>0 0</pos>
+            <size>1 1</size>
+            <path>${nkCollage}</path>
+            <opacity>0.55</opacity>
+            <zIndex>1</zIndex>
+        </image>
+        <image name="light">
+            <pos>0 0</pos>
+            <size>1 1</size>
+            <path>./core/light.svg</path>
+            <zIndex>2</zIndex>
+        </image>
+        <image name="halftone">
+            <pos>0 0</pos>
+            <size>1 1</size>
+            <path>./core/halftone.svg</path>
+            <tile>true</tile>
+            <tileSize>0.0065 0</tileSize>
+            <zIndex>3</zIndex>
+        </image>
+        <image name="bubbles">
+            <pos>0 0</pos>
+            <size>1 1</size>
+            <path>./core/bubbles.svg</path>
+            <zIndex>4</zIndex>
+        </image>
+        <image name="markTop">
+            <pos>0.018 0.028</pos>
+            <size>0.031 0</size>
+            <path>./core/mark.svg</path>
+            <zIndex>6</zIndex>
+        </image>
+        <image name="markBottom">
+            <pos>0.835 0.925</pos>
+            <size>0.031 0</size>
+            <path>./core/mark.svg</path>
+            <zIndex>6</zIndex>
+        </image>
+        <image name="scanlines">
+            <pos>0 0</pos>
+            <size>1 1</size>
+            <path>./core/scanlines.svg</path>
+            <tile>true</tile>
+            <tileSize>0 0.004</tileSize>
+            <opacity>0.7</opacity>
+            <zIndex>90</zIndex>
+        </image>
+        <!-- the poster's side: the system's name in katakana, top to bottom -->
+        <image name="kanaPanel">
+            <pos>0.885 0</pos>
+            <size>0.115 1</size>
+            <path>./core/panel.svg</path>
+            <zIndex>20</zIndex>
+        </image>
+        <text name="kana">
+            <pos>0.885 0.08</pos>
+            <size>0.115 0.84</size>
+            <text>${nkKana}</text>
+            <fontPath>${japanese}</fontPath>
+            <fontSize>0.072</fontSize>
+            <color>${pink}</color>
+            <horizontalAlignment>center</horizontalAlignment>
+            <verticalAlignment>top</verticalAlignment>
+            <lineSpacing>1.05</lineSpacing>
+            <zIndex>21</zIndex>
+        </text>
+        <helpsystem name="help">
+            <pos>0.025 0.955</pos>
+            <origin>0 0.5</origin>
+            <textColor>${lilac}</textColor>
+            <iconColor>${pink}</iconColor>
+            <textColorDimmed>${dim}</textColorDimmed>
+            <iconColorDimmed>${dim}</iconColorDimmed>
+            <fontPath>${regular}</fontPath>
+            <fontSize>0.026</fontSize>
+            <letterCase>uppercase</letterCase>
+            <zIndex>40</zIndex>
+        </helpsystem>
+        <clock name="clock">
+            <pos>0.865 0.03</pos>
+            <origin>1 0</origin>
+            <fontPath>${regular}</fontPath>
+            <fontSize>0.03</fontSize>
+            <color>${lilac}</color>
+            <format>%H:%M</format>
+            <zIndex>40</zIndex>
+        </clock>
+        <systemstatus name="systemStatus">
+            <pos>0.765 0.03</pos>
+            <origin>1 0</origin>
+            <height>0.03</height>
+            <color>${lilac}</color>
+            <zIndex>40</zIndex>
+        </systemstatus>
+    </view>
+
+    <!-- systems: a poster each. the title over a pink sun, the maker and the year, the
+         other systems along the bottom -->
+    <view name="system">
+        <image name="sun">
+            <pos>0.1 0.29</pos>
+            <maxSize>0.3 0.48</maxSize>
+            <path>./core/sun.svg</path>
+            <zIndex>7</zIndex>
+        </image>
+        <text name="titleShadow">
+            <pos>0.074 0.488</pos>
+            <size>0.8 0.17</size>
+            <text>${nkName}</text>
+            <fontPath>${bold}</fontPath>
+            <fontSize>0.13</fontSize>
+            <color>${deep}B0</color>
+            <letterCase>uppercase</letterCase>
+            <verticalAlignment>bottom</verticalAlignment>
+            <zIndex>8</zIndex>
+        </text>
+        <text name="title">
+            <pos>0.07 0.48</pos>
+            <size>0.8 0.17</size>
+            <text>${nkName}</text>
+            <fontPath>${bold}</fontPath>
+            <fontSize>0.13</fontSize>
+            <color>${soft}</color>
+            <letterCase>uppercase</letterCase>
+            <verticalAlignment>bottom</verticalAlignment>
+            <zIndex>9</zIndex>
+        </text>
+        <text name="maker">
+            <pos>0.074 0.66</pos>
+            <size>0.4 0.05</size>
+            <text>${nkMaker}  ${nkYear}</text>
+            <fontPath>${regular}</fontPath>
+            <fontSize>0.032</fontSize>
+            <color>${lilac}</color>
+            <letterCase>uppercase</letterCase>
+            <zIndex>9</zIndex>
+        </text>
+        <text name="gameCount">
+            <pos>0.48 0.66</pos>
+            <size>0.39 0.05</size>
+            <systemdata>gamecount</systemdata>
+            <fontPath>${regular}</fontPath>
+            <fontSize>0.032</fontSize>
+            <color>${pink}</color>
+            <horizontalAlignment>right</horizontalAlignment>
+            <letterCase>uppercase</letterCase>
+            <zIndex>9</zIndex>
+        </text>
+        <image name="rule">
+            <pos>0.074 0.72</pos>
+            <size>0.796 0.004</size>
+            <path>./core/rule.svg</path>
+            <zIndex>9</zIndex>
+        </image>
+        <carousel name="systemCarousel">
+            <type>horizontal</type>
+            <pos>0.074 0.735</pos>
+            <size>0.796 0.13</size>
+            <staticImage>${nkLogo}</staticImage>
+            <text>${nkName}</text>
+            <textColor>${lilac}</textColor>
+            <fontPath>${bold}</fontPath>
+            <fontSize>0.036</fontSize>
+            <letterCase>uppercase</letterCase>
+            <maxItemCount>5</maxItemCount>
+            <itemSize>0.2 0.1</itemSize>
+            <itemScale>1.25</itemScale>
+            <unfocusedItemOpacity>0.35</unfocusedItemOpacity>
+            <zIndex>30</zIndex>
+        </carousel>
+    </view>
+
+    <!-- a system's games: your names on the left (with their versions), the cover and a
+         screenshot on the right -->
+    <view name="gamelist">
+        <text name="listTitle">
+            <pos>0.045 0.03</pos>
+            <size>0.6 0.07</size>
+            <text>${nkName}</text>
+            <fontPath>${bold}</fontPath>
+            <fontSize>0.055</fontSize>
+            <color>${soft}</color>
+            <letterCase>uppercase</letterCase>
+            <zIndex>30</zIndex>
+        </text>
+        <gamelistinfo name="gamelistInfo">
+            <pos>0.045 0.095</pos>
+            <size>0.4 0.035</size>
+            <fontPath>${regular}</fontPath>
+            <fontSize>0.026</fontSize>
+            <color>${dim}</color>
+            <zIndex>30</zIndex>
+        </gamelistinfo>
+        <image name="listPanel">
+            <pos>0.03 0.14</pos>
+            <size>0.53 0.78</size>
+            <path>./core/panel.svg</path>
+            <cornerRadius>0.012</cornerRadius>
+            <zIndex>10</zIndex>
+        </image>
+        <textlist name="gamelist">
+            <pos>0.045 0.155</pos>
+            <size>0.505 0.75</size>
+            <fontPath>${regular}</fontPath>
+            <fontSize>0.03</fontSize>
+            <lineSpacing>1.65</lineSpacing>
+            <primaryColor>${lilac}</primaryColor>
+            <secondaryColor>${pink}</secondaryColor>
+            <selectedColor>${deep}</selectedColor>
+            <selectedSecondaryColor>${deep}</selectedSecondaryColor>
+            <selectedBackgroundColor>${pink}</selectedBackgroundColor>
+            <selectedSecondaryBackgroundColor>${pink}</selectedSecondaryBackgroundColor>
+            <selectedBackgroundCornerRadius>0.012</selectedBackgroundCornerRadius>
+            <selectedBackgroundMargins>0.006 0.006</selectedBackgroundMargins>
+            <horizontalMargin>0.012</horizontalMargin>
+            <letterCase>none</letterCase>
+            <zIndex>20</zIndex>
+        </textlist>
+        <image name="cover">
+            <pos>0.72 0.42</pos>
+            <origin>0.5 0.5</origin>
+            <maxSize>0.27 0.5</maxSize>
+            <imageType>cover, miximage, screenshot</imageType>
+            <default>./core/default-cover.svg</default>
+            <cornerRadius>0.012</cornerRadius>
+            <scrollFadeIn>true</scrollFadeIn>
+            <zIndex>25</zIndex>
+        </image>
+        <image name="screenshot">
+            <pos>0.72 0.81</pos>
+            <origin>0.5 0.5</origin>
+            <maxSize>0.26 0.2</maxSize>
+            <imageType>titlescreen, screenshot</imageType>
+            <cornerRadius>0.008</cornerRadius>
+            <scrollFadeIn>true</scrollFadeIn>
+            <zIndex>25</zIndex>
+        </image>
+    </view>
+</theme>

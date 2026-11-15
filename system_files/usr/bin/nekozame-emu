@@ -947,6 +947,149 @@ def esde_names():
     return cleared
 
 
+THEME_SRC = "/usr/share/nekozame-os/es-de/nekozame"
+# the poster's side text and small print: katakana (as it's said in japan), maker, year
+POSTER = {
+    "nes": ("ファミコン", "Nintendo", 1983), "fds": ("ディスクシステム", "Nintendo", 1986),
+    "snes": ("スーパーファミコン", "Nintendo", 1990), "sfc": ("スーパーファミコン", "Nintendo", 1990),
+    "n64": ("ニンテンドウ64", "Nintendo", 1996), "gb": ("ゲームボーイ", "Nintendo", 1989),
+    "gbc": ("ゲームボーイカラー", "Nintendo", 1998), "gba": ("ゲームボーイアドバンス", "Nintendo", 2001),
+    "nds": ("ニンテンドーDS", "Nintendo", 2004), "virtualboy": ("バーチャルボーイ", "Nintendo", 1995),
+    "pokemini": ("ポケモンミニ", "Nintendo", 2001), "gc": ("ゲームキューブ", "Nintendo", 2001),
+    "wii": ("ウィー", "Nintendo", 2006), "wiiu": ("ウィーユー", "Nintendo", 2012),
+    "n3ds": ("ニンテンドー3DS", "Nintendo", 2011), "switch": ("ニンテンドースイッチ", "Nintendo", 2017),
+    "psx": ("プレイステーション", "Sony", 1994), "ps2": ("プレイステーション2", "Sony", 2000),
+    "ps3": ("プレイステーション3", "Sony", 2006), "ps4": ("プレイステーション4", "Sony", 2013),
+    "psp": ("プレイステーションポータブル", "Sony", 2004),
+    "sg-1000": ("エスジーセン", "Sega", 1983), "mastersystem": ("マスターシステム", "Sega", 1987),
+    "gamegear": ("ゲームギア", "Sega", 1990), "megadrive": ("メガドライブ", "Sega", 1988),
+    "megadrivejp": ("メガドライブ", "Sega", 1988), "genesis": ("ジェネシス", "Sega", 1989),
+    "segacd": ("メガシーディー", "Sega", 1991), "megacd": ("メガシーディー", "Sega", 1991),
+    "megacdjp": ("メガシーディー", "Sega", 1991), "sega32x": ("スーパー32X", "Sega", 1994),
+    "sega32xjp": ("スーパー32X", "Sega", 1994), "sega32xna": ("ジェネシス32X", "Sega", 1994),
+    "saturn": ("セガサターン", "Sega", 1994), "saturnjp": ("セガサターン", "Sega", 1994),
+    "dreamcast": ("ドリームキャスト", "Sega", 1998), "naomi": ("ナオミ", "Sega", 1998),
+    "atomiswave": ("アトミスウェイブ", "Sammy", 2003),
+    "pcengine": ("ピーシーエンジン", "NEC", 1987), "pcenginecd": ("シーディーロムロム", "NEC", 1988),
+    "tg16": ("ピーシーエンジン", "NEC", 1989), "tg-cd": ("シーディーロムロム", "NEC", 1989),
+    "pcfx": ("ピーシーエフエックス", "NEC", 1994), "pc88": ("パソコン8801", "NEC", 1981),
+    "pc98": ("キュウハチ", "NEC", 1982), "ngp": ("ネオジオポケット", "SNK", 1998),
+    "ngpc": ("ネオジオポケットカラー", "SNK", 1999), "neogeo": ("ネオジオ", "SNK", 1990),
+    "neogeocd": ("ネオジオシーディー", "SNK", 1994), "wonderswan": ("ワンダースワン", "Bandai", 1999),
+    "wonderswancolor": ("ワンダースワンカラー", "Bandai", 2000), "atari2600": ("アタリ2600", "Atari", 1977),
+    "atari5200": ("アタリ5200", "Atari", 1982), "atari7800": ("アタリ7800", "Atari", 1986),
+    "atarilynx": ("リンクス", "Atari", 1989), "atarijaguar": ("ジャガー", "Atari", 1993),
+    "3do": ("スリーディーオー", "Panasonic", 1993), "colecovision": ("コレコビジョン", "Coleco", 1982),
+    "intellivision": ("インテレビジョン", "Mattel", 1979), "vectrex": ("ベクトレックス", "GCE", 1982),
+    "odyssey2": ("オデッセイ2", "Magnavox", 1978), "msx": ("エムエスエックス", "ASCII", 1983),
+    "msx2": ("エムエスエックス2", "ASCII", 1985), "c64": ("コモドール64", "Commodore", 1982),
+    "amiga": ("アミーガ", "Commodore", 1985), "zxspectrum": ("スペクトラム", "Sinclair", 1982),
+    "amstradcpc": ("アムストラッド", "Amstrad", 1984), "apple2": ("アップル2", "Apple", 1977),
+    "dos": ("ドス", "IBM PC", 1981), "uzebox": ("ユーズボックス", "Belogic", 2008),
+    "arcade": ("アーケード", "Arcade", ""), "mame": ("アーケード", "MAME", ""),
+    "fbneo": ("アーケード", "FinalBurn Neo", ""), "cps1": ("シーピーエス", "Capcom", 1988),
+    "cps2": ("シーピーエス2", "Capcom", 1993), "cps3": ("シーピーエス3", "Capcom", 1996),
+    "xbox": ("エックスボックス", "Microsoft", 2001), "scummvm": ("スカムブイエム", "ScummVM", ""),
+}
+
+
+def tategaki(kana):
+    """written top to bottom: a character a line, the long vowel standing up."""
+    return "\n".join("丨" if c in "ーｰ" else c for c in kana)
+
+
+def collage(system, s, dest):
+    """the system's background: screenshots from your own games, tinted pink and plum,
+    tilted like a poster pinned up, fading into the water where the title sits."""
+    import random
+    pg = pygame_ready()
+    if not pg:
+        return False
+    shots = []
+    for media in s["media"]:
+        for folder in ("screenshots", "titlescreens", "fanart"):
+            d = os.path.join(media, system, folder)
+            if os.path.isdir(d):
+                shots += [os.path.join(d, f) for f in sorted(os.listdir(d)) if f.lower().endswith((".png", ".jpg"))
+                          and not f.startswith(".")]
+    if len(shots) < 4:
+        return False
+    rnd = random.Random(system)
+    picks = rnd.sample(shots, min(14, len(shots)))
+    W, H = 1920, 1200
+    canvas = pg.Surface((W, H))
+    canvas.fill((42, 35, 56))
+    tw, th = 520, 390
+    placed = 0
+    for row in range(3):
+        for col in range(5):
+            if placed >= len(picks):
+                break
+            try:
+                img = pg.image.load(picks[placed]).convert()
+            except Exception:
+                placed += 1
+                continue
+            placed += 1
+            iw, ih = img.get_size()
+            k = max(tw / iw, th / ih)
+            img = pg.transform.smoothscale(img, (int(iw * k) + 1, int(ih * k) + 1))
+            img = img.subsurface(((img.get_width() - tw) // 2, (img.get_height() - th) // 2, tw, th)).copy()
+            img = pg.transform.grayscale(img)
+            img.fill((255, 176, 222), special_flags=pg.BLEND_MULT)  # pink in the light
+            img.fill((44, 30, 66), special_flags=pg.BLEND_ADD)      # plum in the shadows
+            framed = pg.Surface((tw + 16, th + 16), pg.SRCALPHA)  # tilted without dark corners
+            framed.fill((255, 228, 244, 255))
+            framed.blit(img, (8, 8))
+            framed = pg.transform.rotozoom(framed, rnd.uniform(-7, 7), 1)
+            x = col * 400 + (row % 2) * 180 - 120 + rnd.randint(-30, 30)
+            y = row * 400 - 80 + rnd.randint(-30, 30)
+            canvas.blit(framed, (x, y))
+    # fade into the water on the left, where the title sits
+    fade = pg.Surface((W, H), pg.SRCALPHA)
+    for x in range(W):
+        a = max(0, min(255, int(255 * (1 - x / (W * 0.62)) ** 1.4))) if x < W * 0.62 else 0
+        fade.fill((42, 35, 56, a), (x, 0, 1, H))
+    canvas.blit(fade, (0, 0))
+    os.makedirs(os.path.dirname(dest), exist_ok=True)
+    pg.image.save(canvas, dest)
+    return True
+
+
+def esde_theme(s, collages=True):
+    """nekozame's theme in es-de's themes: the drawn parts from nekozame, your fonts,
+    each system's poster text, and collages from your own art."""
+    if not os.path.isdir(THEME_SRC):
+        return False
+    dest = os.path.join(ESDE_HOME, "themes/nekozame")
+    os.makedirs(dest, exist_ok=True)
+    shutil.copytree(os.path.join(THEME_SRC, "core"), os.path.join(dest, "core"), dirs_exist_ok=True)
+    shutil.copyfile(os.path.join(THEME_SRC, "capabilities.xml"), os.path.join(dest, "capabilities.xml"))
+
+    def font(pattern):
+        return subprocess.run(["fc-match", "-f", "%{file}", pattern], capture_output=True, text=True).stdout
+    xml = open(os.path.join(THEME_SRC, "theme.xml")).read()
+    xml = xml.replace("@FONT_BOLD@", font("Noto Sans:bold")).replace("@FONT_REGULAR@", font("Noto Sans"))
+    xml = xml.replace("@FONT_JP@", font("Noto Sans CJK JP:bold"))
+    open(os.path.join(dest, "theme.xml"), "w").write(xml)
+    from xml.sax.saxutils import escape
+    os.makedirs(os.path.join(dest, "systems"), exist_ok=True)
+    for system, (name, _, _) in SYSTEMS.items():
+        kana, maker, year = POSTER.get(system, ("", "", ""))
+        open(os.path.join(dest, "systems", f"{system}.xml"), "w").write(
+            f"<theme>\n    <variables>\n        <nkName>{escape(name)}</nkName>\n"
+            f"        <nkKana>{escape(tategaki(kana))}</nkKana>\n        <nkMaker>{escape(maker)}</nkMaker>\n"
+            f"        <nkYear>{year}</nkYear>\n    </variables>\n</theme>\n")
+    made = 0
+    if collages:
+        for system in SYSTEMS:
+            out = os.path.join(dest, "collages", f"{system}.jpg")
+            if not os.path.exists(out) and collage(system, s, out):
+                made += 1
+    say(f"  the nekozame theme is in es-de ({made} new collages from your art)")
+    return True
+
+
 def esde(off=False):
     try:
         st = json.load(open(ESDE_STATE))
@@ -987,7 +1130,7 @@ def esde(off=False):
     if s["steam"].get("names") == "file":
         values["ScrapeGameNames"] = ("bool", "false")
         say(f"  {esde_names()} scraped names cleared: es-de shows your file names")
-    if os.path.isdir(os.path.join(ESDE_HOME, "themes/nekozame")):
+    if esde_theme(s):
         values["Theme"] = ("string", "nekozame")
     esde_settings(values)
     # in the menu, and in steam with nekozame's art
