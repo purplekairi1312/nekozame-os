@@ -55,7 +55,8 @@ fi
 # it opens your music files
 xdg-mime default com.github.taiko2k.tauonmb.desktop audio/mpeg audio/flac audio/ogg audio/x-vorbis+ogg \
     audio/opus audio/mp4 audio/x-m4a audio/aac audio/wav audio/x-wav audio/x-ape audio/x-wavpack 2>/dev/null
-echo "  your navidrome or jellyfin goes in its settings; nekozame music (ujust nekozame-music) is for game mode"
+echo "  your navidrome or jellyfin goes in its settings. in game mode, ujust nekozame-decky"
+echo "  puts it (and youtube without ads) in the quick access menu"
 
 step "Tailscale"
 if tailscale status >/dev/null 2>&1; then

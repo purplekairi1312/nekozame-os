@@ -25,9 +25,17 @@ tauon() {
     fi
     put "$T/tauon/nekozame.ttheme" \
         "$HOME/.var/app/com.github.taiko2k.tauonmb/data/TauonMusicBox/theme/nekozame.ttheme" "nekozame, by purplekairi1312"
-    # on tauon's own default theme: nekozame. a theme you picked stays (tauon writes its
-    # settings when it closes, so this takes when it isn't running)
+    # its remote control on, for nekozame music in game mode (the firewall keeps it to
+    # this machine and tailscale), and on tauon's own default theme: nekozame. a theme
+    # you picked stays. tauon writes its settings when it closes, so this takes when it
+    # isn't running
     local conf="$HOME/.var/app/com.github.taiko2k.tauonmb/data/TauonMusicBox/tauon.conf"
+    if [ ! -f "$conf" ]; then
+        printf 'enable-remote-interface = true\ntheme-name = "nekozame"\n' > "$conf"
+        ok "tauon, in nekozame"
+        return
+    fi
+    sed -i 's/^enable-remote-interface = false/enable-remote-interface = true/' "$conf"
     if grep -qs '^theme-name = "Mindaro"' "$conf"; then
         sed -i 's/^theme-name = "Mindaro"/theme-name = "nekozame"/' "$conf"
         ok "tauon, in nekozame"

@@ -1,0 +1,50 @@
+#!/bin/bash
+# run by pkexec (from nekozame-firstboot, or ujust nekozame-decky): decky loader, for
+# plugins in steam's quick access menu, with the ones nekozame comes with:
+#   nekozame music  tauon's controls and youtube without ads
+#   SteamGridDB     pick art for any game or app in your library
+# run again, it updates the plugins. decky updates itself.
+set -euo pipefail
+user="$(id -nu "${PKEXEC_UID:-${SUDO_UID:?run it with pkexec}}")"
+home="$(getent passwd "$user" | cut -d: -f6)"
+plugins="$home/homebrew/plugins"
+tmp="$(mktemp -d)"
+trap 'rm -rf "$tmp"' EXIT
+
+if [ ! -f /etc/systemd/system/plugin_loader.service ]; then
+    echo "installing decky"
+    # some plugins expect /home/deck (bazzite does the same)
+    [ -e /home/deck ] || [ "$home" = /home/deck ] || ln -sf "$home" /home/deck
+    curl -fsSL -o "$tmp/install.sh" \
+        https://github.com/SteamDeckHomebrew/decky-installer/releases/latest/download/install_release.sh
+    SUDO_USER="$user" bash "$tmp/install.sh"
+    chcon -R -t bin_t "$home/homebrew/services/PluginLoader" 2>/dev/null || true
+fi
+
+plugin() {  # plugin NAME FOLDER URL [SHA256]
+    echo "$1"
+    curl -fsSL -o "$tmp/p.zip" "$3"
+    if [ -n "${4:-}" ] && ! echo "$4  $tmp/p.zip" | sha256sum -c --status; then
+        echo "  $1: the download doesn't match decky's store, skipped" >&2
+        return 1
+    fi
+    rm -rf "${plugins:?}/$2" "$tmp/x"
+    mkdir -p "$plugins" "$tmp/x"
+    unzip -q "$tmp/p.zip" -d "$tmp/x"
+    mv "$tmp/x/"* "$plugins/$2"
+}
+
+plugin "nekozame music" nekozame-music \
+    https://github.com/purplekairi1312/nekozame-music-decky/releases/latest/download/nekozame-music.zip
+# SteamGridDB from decky's store: its latest version, checked against the store's hash
+sgdb="$(curl -fsSL https://plugins.deckbrew.xyz/plugins | python3 -c '
+import json, sys
+for p in json.load(sys.stdin):
+    if p["name"] == "SteamGridDB":
+        print(p["versions"][0]["hash"])
+')"
+[ -n "$sgdb" ] && plugin SteamGridDB decky-steamgriddb \
+    "https://cdn.tzatzikiweeb.moe/file/steam-deck-homebrew/versions/$sgdb.zip" "$sgdb"
+
+systemctl restart plugin_loader
+echo "done: they're in the quick access menu (···)"

@@ -1,6 +1,6 @@
 """nekozame's controller-friendly ui pieces (pygame): the palette, input from a
 controller, keyboard, mouse or touch, the look (the underwater loop behind a plum
-veil) and an on-screen keyboard. nekozame-music uses them; nekozame-firstboot has
+veil) and an on-screen keyboard. nekozame-steam-art uses the palette; nekozame-firstboot has
 its own copy.
 """
 import os

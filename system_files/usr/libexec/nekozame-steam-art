@@ -1,0 +1,220 @@
+#!/usr/bin/python3
+"""nekozame-steam-art APP.desktop...: library artwork for apps added to steam (which
+otherwise shows them as grey tiles): the app's own icon and name on the nekozame
+colours, in every size steam uses (cover, wide, banner, logo and icon). art that's
+already there (from steam, another tool or you) is kept. steam shows it after it
+restarts. nekozame-add-to-steam runs it for what it adds."""
+import glob
+import io
+import os
+import re
+import struct
+import sys
+
+os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
+import pygame  # noqa: E402
+
+sys.path.insert(0, "/usr/share/nekozame-os/python")
+from nekoui import DEEP, PINK, PLUM, SOFT, sh  # noqa: E402
+
+HOME = os.path.expanduser("~")
+APPS = [f"{HOME}/.local/share/flatpak/exports/share", "/var/lib/flatpak/exports/share", "/usr/share"]
+
+
+def desktop_entry(name):
+    """Name= and Icon= from the app's [Desktop Entry] (not its actions')."""
+    for base in APPS:
+        path = name if os.path.isabs(name) else f"{base}/applications/{name}"
+        if not os.path.isfile(path):
+            continue
+        entry, section = {}, ""
+        for line in open(path, encoding="utf-8", errors="replace"):
+            line = line.strip()
+            if line.startswith("["):
+                section = line
+            elif section == "[Desktop Entry]" and "=" in line:
+                k, v = line.split("=", 1)
+                entry.setdefault(k, v)
+        return entry.get("Name"), entry.get("Icon")
+    return None, None
+
+
+def icon(name, size):
+    """the app's icon at SIZE: its svg drawn at that size if there is one, or its
+    biggest png."""
+    if os.path.isabs(name) and os.path.isfile(name):
+        files = [name]
+    else:
+        files = []
+        for base in APPS:
+            files += glob.glob(f"{base}/icons/hicolor/scalable/apps/{name}.svg")
+        for base in APPS:
+            pngs = glob.glob(f"{base}/icons/hicolor/*/apps/{name}.png")
+            files += sorted(pngs, key=lambda p: -int(re.match(r"(\d+)", p.split("/")[-3] + "0").group(1)))
+        files += glob.glob(f"/usr/share/pixmaps/{name}.*")
+    for f in files:
+        try:
+            if f.endswith(".svg"):
+                svg = open(f, encoding="utf-8", errors="replace").read()
+                # tell it it's big (keeping its shape), so it's drawn sharp at that size
+                tag = re.search(r"<svg\b[^>]*>", svg)
+                vb = re.search(r'viewBox="\s*[-\d.]+[\s,]+[-\d.]+[\s,]+([\d.]+)[\s,]+([\d.]+)', tag.group(0))
+                vw, vh = (float(vb.group(1)), float(vb.group(2))) if vb else (1.0, 1.0)
+                k = size * 2 / max(vw, vh)
+                new = re.sub(r'\s(width|height)="[^"]*"', "", tag.group(0))
+                new = new.replace("<svg", f'<svg width="{round(vw * k)}" height="{round(vh * k)}"', 1)
+                svg = svg[:tag.start()] + new + svg[tag.end():]
+                img = pygame.image.load(io.BytesIO(svg.encode()), "icon.svg")
+            else:
+                img = pygame.image.load(f)
+            # some icons sit small in a big empty canvas: just the visible part, made SIZE
+            img = img.convert_alpha()
+            box = img.get_bounding_rect(min_alpha=8)
+            if box.w and box.h:
+                img = img.subsurface(box).copy()
+            k = size / max(img.get_width(), img.get_height())
+            img = pygame.transform.smoothscale(img, (max(1, round(img.get_width() * k)), max(1, round(img.get_height() * k))))
+            out = pygame.Surface((size, size), pygame.SRCALPHA)
+            out.blit(img, ((size - img.get_width()) // 2, (size - img.get_height()) // 2))
+            return out
+        except (pygame.error, OSError, ValueError):
+            continue
+    return None
+
+
+def font(px, bold=True):
+    f = sh("fc-match", "-f", "%{file}", "Noto Sans:bold" if bold else "Noto Sans")[1] or None
+    return pygame.font.Font(f, px)
+
+
+def background(w, h):
+    """deep plum at the bottom to plum at the top, with a soft pink glow."""
+    s = pygame.Surface((w, h))
+    for y in range(h):
+        k = y / max(h - 1, 1)
+        s.fill([round(a + (b - a) * k) for a, b in zip(PLUM, DEEP)], (0, y, w, 1))
+    glow = pygame.Surface((w, h), pygame.SRCALPHA)
+    r = int(max(w, h) * 0.45)
+    for i in range(24, 0, -1):
+        pygame.draw.circle(glow, (*PINK, 3), (w // 2, int(h * 0.42)), r * i // 24)
+    s.blit(glow, (0, 0))
+    return s
+
+
+def text_fit(text, px, width, color):
+    while px > 18:
+        img = font(px).render(text, True, color)
+        if img.get_width() <= width:
+            return img
+        px -= 4
+    return font(px).render(text, True, color)
+
+
+def card(w, h, name, ico, icon_px, text_px, side=False):
+    s = background(w, h)
+    i = icon(ico, icon_px)
+    label = text_fit(name, text_px, w - 80 if not side else w - icon_px - 140, PINK)
+    if side:  # wide: icon on the left, the name beside it
+        x = (w - icon_px - 40 - label.get_width()) // 2
+        if i:
+            s.blit(i, (x, (h - icon_px) // 2))
+        s.blit(label, (x + icon_px + 40, (h - label.get_height()) // 2))
+    else:
+        total = icon_px + 40 + label.get_height()
+        y = (h - total) // 2
+        if i:
+            s.blit(i, ((w - icon_px) // 2, y))
+        s.blit(label, ((w - label.get_width()) // 2, y + icon_px + 40))
+    return s
+
+
+def hero(w, h, ico):
+    """the banner behind the logo: the colours, and the icon big and faint at the side."""
+    s = background(w, h)
+    i = icon(ico, int(h * 1.3))
+    if i:
+        i.set_alpha(40)
+        s.blit(i, (w - int(h * 1.1), -int(h * 0.15)))
+    return s
+
+
+def logo(name):
+    """the name, in pink with a plum edge so it reads over any banner."""
+    label = text_fit(name, 120, 1180, SOFT)
+    edge = text_fit(name, 120, 1180, DEEP)
+    s = pygame.Surface((label.get_width() + 12, label.get_height() + 12), pygame.SRCALPHA)
+    for dx in range(-4, 5, 2):
+        for dy in range(-4, 5, 2):
+            s.blit(edge, (6 + dx, 6 + dy))
+    s.blit(label, (6, 6))
+    return s
+
+
+def shortcuts():
+    """(grid folder, appid, name) for every steam shortcut, from shortcuts.vdf (binary)."""
+    out = []
+    for cfg in glob.glob(f"{HOME}/.local/share/Steam/userdata/[1-9]*/config"):
+        try:
+            data = open(f"{cfg}/shortcuts.vdf", "rb").read()
+        except OSError:
+            continue
+        i, appid = 0, None
+
+        def cstr(i):
+            j = data.index(b"\0", i)
+            return data[i:j].decode(errors="replace"), j + 1
+        try:
+            while i < len(data):
+                t = data[i]
+                i += 1
+                if t == 8:
+                    continue
+                k, i = cstr(i)
+                if t == 1:
+                    v, i = cstr(i)
+                    if k.lower() == "appname" and appid is not None:
+                        out.append((f"{cfg}/grid", appid, v))
+                elif t == 2:
+                    v = struct.unpack("<I", data[i:i + 4])[0]
+                    i += 4
+                    if k.lower() == "appid":
+                        appid = v
+        except (ValueError, struct.error):
+            pass
+    return out
+
+
+def main(apps):
+    pygame.display.init()
+    pygame.display.set_mode((1, 1))
+    pygame.font.init()
+    found = shortcuts()
+    for app in apps:
+        name, ico = desktop_entry(app)
+        if not name:
+            print(f"{app}: no such app")
+            continue
+        for grid, appid, title in found:
+            if title != name:
+                continue
+            os.makedirs(grid, exist_ok=True)
+            art = {
+                f"{appid}p.png": lambda: card(600, 900, name, ico, 300, 72),
+                f"{appid}.png": lambda: card(920, 430, name, ico, 200, 80, side=True),
+                f"{appid}_hero.png": lambda: hero(1920, 620, ico),
+                f"{appid}_logo.png": lambda: logo(name),
+                f"{appid}_icon.png": lambda: icon(ico, 256),
+            }
+            made = []
+            for f, draw in art.items():
+                if any(os.path.exists(f"{grid}/{f[:-4]}{e}") for e in (".png", ".jpg", ".ico")):
+                    continue
+                img = draw()
+                if img:
+                    pygame.image.save(img, f"{grid}/{f}")
+                    made.append(f)
+            print(f"{name}: {len(made)} pictures" if made else f"{name}: has its art")
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])

@@ -1,6 +1,6 @@
 #!/bin/bash
 # adds apps (by their .desktop file name) to steam's library, once steam is running
-# with someone signed in. nekozame-firstboot starts it before steam is up; it waits
+# with someone signed in, with nekozame artwork (nekozame-steam-art). nekozame-firstboot starts it before steam is up; it waits
 # (up to two hours), then exits.
 set -uo pipefail
 for _ in $(seq 1 720); do
@@ -12,6 +12,8 @@ for _ in $(seq 1 720); do
                 [ -f "$d/$app" ] && { steamos-add-to-steam "$d/$app"; break; }
             done
         done
+        sleep 10  # steam writes them down
+        /usr/libexec/nekozame-steam-art "$@"
         exit 0
     fi
     sleep 10

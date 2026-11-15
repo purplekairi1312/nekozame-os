@@ -420,10 +420,10 @@ CATALOG = [
          lambda: sh("tailscale", "status")[0], [], False),
     ]),
     ("apps", "apps", [
-        ("tauon", "Tauon", "the music player, for desktop mode (your server works there too)", True,
-         lambda: installed("com.github.taiko2k.tauonmb"), ["com.github.taiko2k.tauonmb"], False),
-        ("music", "nekozame music", "music while you play: your server, youtube without ads, your files", True,
-         lambda: False, [], False),
+        ("tauon", "Tauon", "the music player: your files, navidrome or jellyfin, with the controller", True,
+         lambda: installed("com.github.taiko2k.tauonmb"), ["com.github.taiko2k.tauonmb"], True),
+        ("music", "nekozame music", "tauon and youtube without ads in quick access, with decky", True,
+         lambda: os.path.isdir(os.path.join(HOME, "homebrew/plugins/nekozame-music")), [], False),
         ("zen", "Zen browser", "private, with the extensions and the nekozame look", True,
          lambda: installed("app.zen_browser.zen"), ["app.zen_browser.zen"], False),
         ("discord", "Discord", "the official app, with vencord and the nekozame theme", False,
@@ -601,8 +601,8 @@ class Working:
         if picked.get("tauon"):  # it opens your music files
             add("Tauon for your music files", "xdg-mime", "default", "com.github.taiko2k.tauonmb.desktop",
                 "audio/mpeg", "audio/flac", "audio/ogg", "audio/opus", "audio/mp4", "audio/x-m4a", "audio/wav")
-        if picked.get("music"):  # it's in the image: only steam's library needs it
-            self.to_steam.append("nekozame-music.desktop")
+        if picked.get("music"):  # decky, with nekozame music and steamgriddb
+            add("Decky and nekozame music", "pkexec", "/usr/libexec/nekozame-decky")
         if picked.get("helium"):
             add("Helium", "nekozame-helium")
         add("nekozame in your apps", "nekozame-apps-theme")

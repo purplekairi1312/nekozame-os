@@ -10,10 +10,10 @@ nekozame-setup:
 nekozame-audio LATENCY="status":
     /usr/bin/nekozame-audio {{ LATENCY }}
 
-# Music while you play: your server, youtube without ads, your files (controller-friendly)
+# Decky, with nekozame music (Tauon and YouTube without ads in Quick Access) and SteamGridDB
 [group('nekozame')]
-nekozame-music:
-    /usr/bin/nekozame-music
+nekozame-decky:
+    pkexec /usr/libexec/nekozame-decky
 
 # Music production: DAWs (Bitwig, Reaper, Renoise, Ardour, LMMS) and a checklist of plugins
 [group('nekozame')]
