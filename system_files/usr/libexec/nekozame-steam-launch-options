@@ -2,21 +2,23 @@
 """nekozame-steam-launch-options APP.desktop...: launch options some apps need in
 game mode, set on their steam shortcuts (desktop mode isn't touched).
 
-  tauon: it waits for its window to show up, which game mode's x11 never confirms,
-         so it quits. on gamescope's own wayland it starts fine.
+  tauon: when it sees game mode (GAMESCOPE_WAYLAND_DISPLAY) it asks for fullscreen
+         and waits for that, which game mode's x11 never confirms, so it quits.
+         without that variable it opens as a normal window, which game mode shows
+         fullscreen anyway. (on gamescope's wayland it starts, but steam can't tell
+         the window is tauon's and never shows it.)
 
 nekozame-add-to-steam runs it after adding apps; it talks to steam through its
 debugging port (the one nekozame's steam theme uses)."""
 import importlib.machinery
 import importlib.util
 import json
-import os
 import shlex
 import sys
 import urllib.request
 
 NEEDS = {
-    "com.github.taiko2k.tauonmb.desktop": "WAYLAND_DISPLAY={wayland} SDL_VIDEODRIVER=wayland",
+    "com.github.taiko2k.tauonmb.desktop": "env -u GAMESCOPE_WAYLAND_DISPLAY",
 }
 
 
@@ -31,7 +33,6 @@ def load(name, path):
 def main(apps):
     art = load("steam_art", "/usr/libexec/nekozame-steam-art")
     theme = load("steam_theme", "/usr/libexec/nekozame-steam-theme")
-    wayland = os.environ.get("GAMESCOPE_WAYLAND_DISPLAY", "gamescope-0")
     try:
         with urllib.request.urlopen(f"http://127.0.0.1:{theme.PORT}/json", timeout=3) as r:
             ws = next(t["webSocketDebuggerUrl"] for t in json.load(r) if t.get("title") == "SharedJSContext")
@@ -47,7 +48,7 @@ def main(apps):
         # command (without the program, and without the desktop file's placeholders)
         words = [w for w in shlex.split(e.get("Exec", ""))[1:]
                  if not w.startswith(("%", "@@")) and w != "--file-forwarding"]
-        options = f"{NEEDS[app].format(wayland=wayland)} %command% {shlex.join(words)}"
+        options = f"{NEEDS[app]} %command% {shlex.join(words)}"
         for _, appid, title in found:
             if title == e.get("Name"):
                 theme.evaluate(ws, "SteamClient.Apps.SetShortcutLaunchOptions(%d, %s)" % (appid, json.dumps(options)))
