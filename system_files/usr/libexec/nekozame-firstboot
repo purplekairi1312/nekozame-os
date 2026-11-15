@@ -198,7 +198,7 @@ class Welcome:
             r = look.logo.get_rect(center=(look.w // 2, int(look.h * 0.36)))
             look.screen.blit(look.logo, r)
         look.label("welcome to nekozame os", look.big, PINK, (look.w // 2, int(look.h * 0.56)), center=True)
-        look.label("a few choices, then your games.", look.text, WHITE, (look.w // 2, int(look.h * 0.56) + int(64 * look.s)), center=True)
+        look.label("your games first, then a few choices.", look.text, WHITE, (look.w // 2, int(look.h * 0.56) + int(64 * look.s)), center=True)
         if int(t * 2) % 2 == 0:
             look.label("press A to start", look.mid, SOFT, (look.w // 2, int(look.h * 0.78)), center=True)
         look.hint("A or Enter: next")
@@ -396,79 +396,138 @@ class Connecting:
 
 
 EDITORS = ["Doom Emacs", "Doom Emacs, evil mode (vim keys)", "no editor for now"]
+EMULATORS = ["org.libretro.RetroArch", "net.pcsx2.PCSX2", "org.DolphinEmu.dolphin-emu", "org.ppsspp.PPSSPP",
+             "org.duckstation.DuckStation", "net.kuribo64.melonDS"]
+
+# what the setup offers, page by page: games first (it's a deck), then streaming, then
+# apps. key, name, what it is, on by default, how to tell it's already there, flatpaks
+# to install, whether it goes in steam's library too
+CATALOG = [
+    ("games", "games", [
+        ("heroic", "Heroic", "Epic, GOG and Amazon games, next to Steam", True,
+         lambda: installed("com.heroicgameslauncher.hgl"), ["com.heroicgameslauncher.hgl"], True),
+        ("emulators", "Emulators", "RetroArch, PCSX2, Dolphin, PPSSPP, DuckStation, melonDS", True,
+         lambda: all(installed(a) for a in EMULATORS), EMULATORS, True),
+        ("protonplus", "ProtonPlus", "Proton-GE and others, for Windows games that need them", False,
+         lambda: installed("com.vysp3r.ProtonPlus"), ["com.vysp3r.ProtonPlus"], False),
+    ]),
+    ("network", "network", [
+        ("moonlight", "Moonlight", "play games from your PCs here", True,
+         lambda: installed("com.moonlight_stream.Moonlight"), ["com.moonlight_stream.Moonlight"], True),
+        ("sunshine", "Sunshine", "stream this deck to your other machines", False,
+         lambda: sh("systemctl", "--user", "is-enabled", "sunshine.service")[0], [], False),
+        ("tailscale", "Tailscale", "your machines and this deck, reachable from anywhere", True,
+         lambda: sh("tailscale", "status")[0], [], False),
+    ]),
+    ("apps", "apps", [
+        ("zen", "Zen browser", "private, with the extensions and the nekozame look", True,
+         lambda: installed("app.zen_browser.zen"), ["app.zen_browser.zen"], False),
+        ("discord", "Discord", "Vesktop: Discord in nekozame colours", False,
+         lambda: installed("dev.vencord.Vesktop"), ["dev.vencord.Vesktop"], True),
+        ("bitwarden", "Bitwarden", "your passwords", False,
+         lambda: installed("com.bitwarden.desktop"), ["com.bitwarden.desktop"], False),
+        ("editor", "Editor", "", 0,
+         lambda: os.path.exists(os.path.join(HOME, ".config/emacs/bin/doom")), [], False),
+        ("helium", "Helium", "a second browser, with the same extensions", False,
+         lambda: os.path.exists(os.path.join(HOME, ".local/bin/helium")), [], False),
+    ]),
+]
 
 
-class Choices(Rows):
-    def __init__(self, deck=True):
-        self.items = [
-            ["tailscale", "Tailscale", "your machines and this deck, reachable from anywhere", True],
-            ["moonlight", "Moonlight", "play games from your other machines here", True],
-            ["sunshine", "Sunshine", "stream this deck to your other machines", True],
-            ["zen", "Zen browser", "with the privacy extensions", True],
-            ["editor", "Editor", EDITORS[0], 0],
-            ["helium", "Helium", "a second browser, with the same extensions", False],
-        ]
-        if sh("tailscale", "status")[0]:
-            self.items[0][2], self.items[0][3] = "already signed in", None
+class Page(Rows):
+    """one page of the catalog: a switch per thing, or "installed" when it's there."""
+    def __init__(self, title, items):
+        self.title = title
+        self.items = []
+        for key, name, desc, default, check, _, _ in items:
+            have = check()
+            self.items.append({"key": key, "name": name, "desc": desc, "have": have,
+                               "value": None if have else default})
 
     def rows(self):
-        return self.items + [["go", "start setting up", "", None]]
+        return self.items + [{"key": "go", "name": "next", "desc": "", "have": False, "value": None}]
 
     def layout(self, look, top):
         rects, y = [], top
-        for i, _ in enumerate(self.rows()):
-            rects.append(pygame.Rect(int(look.w * 0.14), y, int(look.w * 0.72), int(60 * look.s)))
-            y += int(66 * look.s)
+        for _ in self.rows():
+            rects.append(pygame.Rect(int(look.w * 0.14), y, int(look.w * 0.72), int(62 * look.s)))
+            y += int(70 * look.s)
         return rects
 
     def draw(self, look, t):
-        look.title("what should be on your deck?")
-        for i, (r, item) in enumerate(zip(self.layout(look, int(140 * look.s)), self.rows())):
-            key, name, desc, val = item
-            on = i == self.focus
-            go = key == "go"
+        everything = all(it["have"] for it in self.items)
+        look.title(self.title, "all here already: this is what nekozame has for you" if everything else
+                   "pick what you want; you can add the rest later")
+        for i, (r, it) in enumerate(zip(self.layout(look, int(160 * look.s)), self.rows())):
+            on, go = i == self.focus, it["key"] == "go"
             look.panel(r, PINK if (on and go) else RAISED if on else PANEL, PINK if on else None)
-            col = DEEP if (on and go) else WHITE
             if go:
-                look.label(name, look.mid, col, (r.centerx, r.y + int(12 * look.s)), center=True)
+                look.label(it["name"], look.mid, DEEP if on else WHITE, (r.centerx, r.y + int(13 * look.s)), center=True)
                 continue
-            look.label(name, look.mid, col, (r.x + int(22 * look.s), r.y + int(5 * look.s)))
-            look.label(EDITORS[val] if key == "editor" else desc, look.small, DIM, (r.x + int(22 * look.s), r.y + int(34 * look.s)))
-            if key == "editor":
-                for k, x in ((-1, r.right - int(84 * look.s)), (1, r.right - int(40 * look.s))):  # little arrows
+            look.label(it["name"], look.mid, WHITE, (r.x + int(22 * look.s), r.y + int(5 * look.s)))
+            desc = EDITORS[it["value"]] if it["key"] == "editor" and not it["have"] else it["desc"] or "Doom Emacs"
+            look.label(desc, look.small, DIM, (r.x + int(22 * look.s), r.y + int(35 * look.s)))
+            if it["have"]:
+                img = look.small.render("installed", True, MINT)
+                look.screen.blit(img, (r.right - img.get_width() - int(24 * look.s), r.y + int(22 * look.s)))
+            elif it["key"] == "editor":
+                for k, x in ((-1, r.right - int(84 * look.s)), (1, r.right - int(40 * look.s))):
                     cy, d = r.centery, int(9 * look.s)
-                    pts = [(x - d, cy), (x + d // 2, cy - d), (x + d // 2, cy + d)] if k < 0 else [(x + d, cy), (x - d // 2, cy - d), (x - d // 2, cy + d)]
+                    pts = [(x - d, cy), (x + d // 2, cy - d), (x + d // 2, cy + d)] if k < 0 else \
+                        [(x + d, cy), (x - d // 2, cy - d), (x - d // 2, cy + d)]
                     pygame.draw.polygon(look.screen, SOFT, pts)
-            elif val is not None:
-                pill = pygame.Rect(r.right - int(96 * look.s), r.y + int(14 * look.s), int(72 * look.s), int(32 * look.s))
-                look.panel(pill, MINT if val else DEEP, None, radius=16)
+            else:
+                pill = pygame.Rect(r.right - int(96 * look.s), r.y + int(15 * look.s), int(72 * look.s), int(32 * look.s))
+                look.panel(pill, MINT if it["value"] else DEEP, None, radius=16)
                 knob = int(13 * look.s)
-                cx = pill.right - knob - int(4 * look.s) if val else pill.x + knob + int(4 * look.s)
-                pygame.draw.circle(look.screen, WHITE if val else DIM, (cx, pill.centery), knob)
-        look.label("music production: later in desktop mode (ujust nekozame-music)", look.small, DIM,
-                   (look.w // 2, look.h - int(78 * look.s)), center=True)
+                cx = pill.right - knob - int(4 * look.s) if it["value"] else pill.x + knob + int(4 * look.s)
+                pygame.draw.circle(look.screen, WHITE if it["value"] else DIM, (cx, pill.centery), knob)
         look.hint("A: switch   left/right: change   B: back")
 
     def handle(self, acts, text, clicks, look):
         rows = self.rows()
         self.move(acts, len(rows))
-        hit = self.clicked(clicks, self.layout(look, int(140 * look.s)))
-        item = rows[self.focus]
-        if item[0] == "go" and (OK in acts or hit or START in acts):
+        hit = self.clicked(clicks, self.layout(look, int(160 * look.s)))
+        it = rows[self.focus]
+        if START in acts or (it["key"] == "go" and (OK in acts or hit)):
             return "next"
-        if START in acts:
-            return "next"
-        if item[0] == "editor" and (LEFT in acts or RIGHT in acts or OK in acts or hit):
-            step = -1 if LEFT in acts else 1
-            item[3] = (item[3] + step) % len(EDITORS)
-        elif item[3] is not None and item[0] != "go" and (OK in acts or hit or LEFT in acts or RIGHT in acts):
-            item[3] = not item[3]
         if BACK in acts:
             return "back"
+        if it["have"] or it["key"] == "go":
+            return None
+        if it["key"] == "editor" and (LEFT in acts or RIGHT in acts or OK in acts or hit):
+            it["value"] = (it["value"] + (-1 if LEFT in acts else 1)) % len(EDITORS)
+        elif OK in acts or hit or LEFT in acts or RIGHT in acts:
+            it["value"] = not it["value"]
         return None
 
     def picked(self):
-        return {k: v for k, _, _, v in self.items}
+        return {it["key"]: it["value"] for it in self.items if not it["have"]}
+
+
+class Tour:
+    """the last page: what nekozame os is, whatever got installed."""
+    LINES = [
+        ("game mode in nekozame", "steam's colours, the catshark boot and the puddle startup"),
+        ("desktop mode in nekozame", "kde with the nekozame look, the moving catshark, round pastel buttons"),
+        ("network", "moonlight and sunshine over tailscale, from and to your other machines"),
+        ("always up to date", "updates in the background; nekozame updater rolls back if one goes wrong"),
+        ("more, any time", "ujust in desktop mode: music production, the niri desktop, the setup again"),
+    ]
+
+    def draw(self, look, t):
+        look.title("nekozame on your deck")
+        look.panel(pygame.Rect(int(look.w * 0.12), int(135 * look.s), int(look.w * 0.76), int(len(self.LINES) * 88 * look.s) + int(20 * look.s)))
+        y = int(150 * look.s)
+        for head, line in self.LINES:
+            pygame.draw.circle(look.screen, PINK, (int(look.w * 0.16), y + int(16 * look.s)), int(6 * look.s))
+            look.label(head, look.mid, WHITE, (int(look.w * 0.16) + int(26 * look.s), y))
+            look.label(line, look.text, DIM, (int(look.w * 0.16) + int(26 * look.s), y + int(36 * look.s)))
+            y += int(88 * look.s)
+        look.hint("A: start game mode")
+
+    def handle(self, acts, text, clicks, look):
+        return "next" if (OK in acts or START in acts or clicks) else None
 
 
 class Tailscale:
@@ -522,20 +581,23 @@ class Working:
     def __init__(self, picked):
         self.tasks = []  # [label, command, status, last line]
         add = lambda label, *cmd: self.tasks.append([label, cmd, "waiting", ""])
-        if picked.get("zen") and not installed("app.zen_browser.zen"):
-            add("Zen browser", "flatpak", "install", "--user", "-y", "--noninteractive", "flathub", "app.zen_browser.zen")
-        if picked.get("moonlight") and not installed("com.moonlight_stream.Moonlight"):
-            add("Moonlight", "flatpak", "install", "--user", "-y", "--noninteractive", "flathub", "com.moonlight_stream.Moonlight")
+        self.to_steam = []
+        for _, _, items in CATALOG:
+            for key, name, _, _, _, flatpaks, steam in items:
+                if not picked.get(key) or not flatpaks:
+                    continue
+                add(name, "flatpak", "install", "--user", "-y", "--noninteractive", "flathub", *flatpaks)
+                if steam:
+                    self.to_steam += [f + ".desktop" for f in flatpaks]
         if picked.get("sunshine"):
             add("Sunshine", "env", "NEKOZAME_SETUP=1", "nekozame-sunshine")
         editor = picked.get("editor")
-        if editor in (0, 1) and not os.path.exists(os.path.join(HOME, ".config/emacs/bin/doom")):
+        if editor in (0, 1):
             add("Doom Emacs (takes a while)", "nekozame-doom", *(["--evil"] if editor == 1 else []))
         if picked.get("helium"):
             add("Helium", "nekozame-helium")
         add("nekozame in your apps", "nekozame-apps-theme")
         add("nekozame in gtk and qt apps", "nekozame-look")
-        self.moonlight = picked.get("moonlight")
         self.finished = False
         threading.Thread(target=self.go, daemon=True).start()
 
@@ -552,12 +614,10 @@ class Working:
                 task[2] = "ok" if p.wait() == 0 else "failed"
             except OSError as e:
                 task[2], task[3] = "failed", str(e)
-        if self.moonlight:
-            # steam isn't running yet: add moonlight to its library once it is
-            os.makedirs(STATE, exist_ok=True)
-            subprocess.Popen(["setsid", "-f", "/usr/libexec/nekozame-add-to-steam",
-                              "com.moonlight_stream.Moonlight.desktop"], stdin=subprocess.DEVNULL,
-                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        if self.to_steam:
+            # steam isn't running yet: add them to its library once it is
+            subprocess.Popen(["setsid", "-f", "/usr/libexec/nekozame-add-to-steam", *self.to_steam],
+                             stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         self.finished = True
 
     def draw(self, look, t):
@@ -583,7 +643,7 @@ class Working:
                 y += int(30 * look.s)
             y += int(52 * look.s)
         if self.finished:
-            look.hint("A: start game mode")
+            look.hint("A: next")
 
     def handle(self, acts, text, clicks, look):
         if self.finished and (OK in acts or START in acts or clicks):
@@ -613,27 +673,36 @@ def main():
     show_in_game_mode()
     pygame.mouse.set_visible(True)
     look, inp, clock = Look(screen), Input(), pygame.time.Clock()
-    order = ["welcome", "wifi", "choices", "tailscale", "working"]
+    pages = [name for name, _, _ in CATALOG]
+    order = ["welcome", "wifi"] + pages + ["tailscale", "working", "tour"]
     screens = {"welcome": Welcome()}
     current = "welcome"
-    choices = None
     t0 = time.time()
 
+    def picked():
+        out = {}
+        for name in pages:
+            if name in screens:
+                out.update(screens[name].picked())
+        return out
+
     def go_to(name):
-        nonlocal current, choices
+        nonlocal current
         if name == "wifi":
             if online():
-                return go_to("choices")
+                return go_to(pages[0])
             screens["wifi"] = Wifi()
-        elif name == "choices":
-            choices = choices or Choices()
-            screens["choices"] = choices
+        elif name in pages and name not in screens:
+            title, items = next((t, it) for n, t, it in CATALOG if n == name)
+            screens[name] = Page(title, items)
         elif name == "tailscale":
-            if not choices.picked().get("tailscale") or not online():
+            if not picked().get("tailscale") or not online():
                 return go_to("working")
             screens["tailscale"] = Tailscale()
         elif name == "working":
-            screens["working"] = Working(choices.picked() if online() else {"editor": 2})
+            screens["working"] = Working(picked() if online() else {})
+        elif name == "tour":
+            screens["tour"] = Tour()
         current = name
 
     while True:
@@ -653,7 +722,8 @@ def main():
                 break
             go_to(order[i + 1])
         elif r == "back":
-            go_to(order[max(0, order.index(current) - 1)] if current != "choices" else "welcome")
+            back = order[max(0, order.index(current) - 1)] if current in order else "welcome"
+            go_to("welcome" if back == "wifi" else back)
         elif r == "wifi":
             go_to("wifi")
         elif isinstance(r, tuple) and r[0] == "password":
@@ -663,7 +733,7 @@ def main():
             screens["connecting"] = Connecting(r[1], r[2])
             current = "connecting"
         if current == "connecting" and screens["connecting"].result == "ok":
-            go_to("choices")
+            go_to(pages[0])
         clock.tick(30)
 
     os.makedirs(STATE, exist_ok=True)
