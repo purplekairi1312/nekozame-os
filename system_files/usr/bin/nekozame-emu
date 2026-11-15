@@ -11,8 +11,9 @@ your saves synced everywhere (nekozame-saves).
   nekozame-emu steam refresh      their art and collections again
   nekozame-emu steam tabs         tabmaster's tabs: Apps (without the games), Emulation
   nekozame-emu esde [on|off]      ES-DE, for browsing your whole library: nekozame's
-                                  launcher first (saves sync), your names kept;
-                                  off takes it away again (lists and art stay)
+                                  launcher first (saves sync), your names kept, its
+                                  magazine theme and music; off takes it away again
+                                  (lists and art stay)
   nekozame-emu systems            what's supported, and what you have
   nekozame-emu art [SYSTEM...]    covers and screenshots for games without (libretro's
                                   thumbnail library, matched by your file names)
@@ -27,6 +28,8 @@ settings (~/.config/nekozame/emulation.json), all optional:
                                               their regions and versions) or "scraped"
             "labels": true}                   the name under each cover, so versions of
                                               a game tell apart in the library
+  "music": true, "musicVolume": 40            es-de's music ("dolphin sanctuary" by
+                                              purplekairi1312, all rights reserved)
 """
 import json
 import urllib.parse
@@ -1365,6 +1368,23 @@ def esde_theme(s, pages=True, again=False):
     return True
 
 
+MUSIC_EVENTS = {"startup": "start", "game-end": "resume", "game-start": "pause", "suspend": "pause", "quit": "stop"}
+
+
+def esde_music(on=True):
+    """es-de's event scripts for the music (nekozame-esde-music): on es-de's start,
+    after a game, before one, on quitting."""
+    for event, cmd in MUSIC_EVENTS.items():
+        path = os.path.join(ESDE_HOME, "scripts", event, "nekozame-music")
+        if on:
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(path, "w") as f:
+                f.write(f"#!/bin/sh\n# nekozame's music in es-de (nekozame-emu esde)\nexec /usr/libexec/nekozame-esde-music {cmd}\n")
+            os.chmod(path, 0o755)
+        elif os.path.exists(path):
+            os.remove(path)
+
+
 def esde(off=False):
     try:
         st = json.load(open(ESDE_STATE))
@@ -1378,6 +1398,8 @@ def esde(off=False):
                 steam_js()("SteamClient.Apps.RemoveShortcut(%d)" % st["appid"])
         except (OSError, StopIteration):
             say("  (steam isn't running: take ES-DE out of it by hand)")
+        esde_music(on=False)
+        subprocess.run(["/usr/libexec/nekozame-esde-music", "stop"], capture_output=True)
         shutil.rmtree(ESDE, ignore_errors=True)
         for f in (desktop, ESDE_STATE, os.path.join(ESDE_HOME, "custom_systems/es_systems.xml")):
             if os.path.exists(f):
@@ -1407,6 +1429,9 @@ def esde(off=False):
         say(f"  {esde_names()} scraped names cleared: es-de shows your file names")
     if esde_theme(s, again="--again" in sys.argv):
         values["Theme"] = ("string", "nekozame")
+    # the music (es-de has none of its own yet): its event scripts, on
+    esde_music(on=s.get("music", True))
+    values["CustomEventScripts"] = ("bool", "true")
     esde_settings(values)
     # in the menu, and in steam with nekozame's art
     icon = os.path.join(ESDE, "es-de.svg")

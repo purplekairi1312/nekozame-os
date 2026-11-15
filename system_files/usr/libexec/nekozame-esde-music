@@ -1,0 +1,147 @@
+#!/usr/bin/python3
+"""nekozame-esde-music start|pause|resume|stop: the music in es-de, while you browse
+your games. es-de runs it on its events (nekozame-emu esde puts the scripts there):
+it starts with es-de, pauses while a game runs, comes back after, stops when es-de
+does (or goes away).
+
+the track is "dolphin sanctuary" by purplekairi1312: © purplekairi1312, all rights
+reserved, not under nekozame-os's licence (see /usr/share/nekozame-os/es-de/music/
+LICENSE). it's kept scrambled and only unscrambled into mpv as it plays, never onto
+the disk. buy it: https://passedrecordings.bandcamp.com/track/dolphin-sanctuary
+
+settings (~/.config/nekozame/emulation.json): "music": false to have none,
+"musicVolume": 0-100 (40 by default).
+"""
+import hashlib
+import json
+import os
+import signal
+import socket
+import subprocess
+import sys
+import threading
+import time
+
+TRACK = "/usr/share/nekozame-os/es-de/music/dolphin-sanctuary.nkz"
+RUN = os.environ.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}"
+SOCK = os.path.join(RUN, "nekozame-esde-music.sock")
+PIDFILE = os.path.join(RUN, "nekozame-esde-music.pid")
+MAGIC = b"NKZ1"
+KEY = b"nekozame / dolphin sanctuary / purplekairi1312"
+
+
+def keystream_xor(data, offset=0):
+    """the scrambling, and its undoing (the same thing): sha-256 in counter mode."""
+    out = bytearray(len(data))
+    block, pos = offset // 32, 0
+    skip = offset % 32
+    while pos < len(data):
+        pad = hashlib.sha256(KEY + block.to_bytes(8, "big")).digest()[skip:]
+        n = min(len(pad), len(data) - pos)
+        out[pos:pos + n] = (int.from_bytes(data[pos:pos + n], "big") ^ int.from_bytes(pad[:n], "big")).to_bytes(n, "big")
+        pos += n
+        block += 1
+        skip = 0
+    return bytes(out)
+
+
+def settings():
+    try:
+        s = json.load(open(os.path.expanduser("~/.config/nekozame/emulation.json")))
+    except (OSError, ValueError):
+        s = {}
+    return s.get("music", True), int(s.get("musicVolume", 40))
+
+
+def mpv(*command):
+    try:
+        with socket.socket(socket.AF_UNIX) as s:
+            s.settimeout(2)
+            s.connect(SOCK)
+            s.sendall((json.dumps({"command": list(command)}) + "\n").encode())
+    except OSError:
+        pass
+
+
+def running():
+    try:
+        pid = int(open(PIDFILE).read())
+        os.kill(pid, 0)
+        return pid
+    except (OSError, ValueError):
+        return None
+
+
+def esde_alive():
+    return subprocess.run(["pgrep", "-x", "es-de"], capture_output=True).returncode == 0
+
+
+def play():
+    """the player, in the background: the track fed to mpv again and again (a chained
+    ogg stream, so it loops without a gap), until es-de is gone."""
+    on, volume = settings()
+    if not on or not os.path.exists(TRACK):
+        return
+    raw = open(TRACK, "rb").read()
+    if not raw.startswith(MAGIC):
+        return
+    body = raw[len(MAGIC):]
+    player = subprocess.Popen(["mpv", "--no-video", "--no-terminal", "--really-quiet", f"--volume={volume}",
+                               f"--input-ipc-server={SOCK}", "--title=nekozame music", "-"],
+                              stdin=subprocess.PIPE)
+
+    def feed():
+        try:
+            while player.poll() is None:
+                for i in range(0, len(body), 1 << 16):
+                    player.stdin.write(keystream_xor(body[i:i + (1 << 16)], i))
+                player.stdin.flush()
+        except (BrokenPipeError, OSError):
+            pass
+    threading.Thread(target=feed, daemon=True).start()
+    open(PIDFILE, "w").write(str(os.getpid()))
+    signal.signal(signal.SIGTERM, lambda *_: (player.terminate(), sys.exit(0)))
+    try:
+        while player.poll() is None:
+            time.sleep(3)
+            if not esde_alive():  # es-de went away without saying so: so does the music
+                break
+    finally:
+        player.terminate()
+        for f in (PIDFILE, SOCK):
+            try:
+                os.remove(f)
+            except OSError:
+                pass
+
+
+def main(cmd):
+    if cmd == "start":
+        if running():
+            return mpv("set_property", "pause", False)
+        if os.fork() == 0:  # off into the background, so es-de doesn't wait for it
+            os.setsid()
+            if os.fork() == 0:
+                devnull = os.open(os.devnull, os.O_RDWR)
+                for fd in (0, 1, 2):
+                    os.dup2(devnull, fd)
+                play()
+            os._exit(0)
+    elif cmd == "pause":
+        mpv("set_property", "pause", True)
+    elif cmd == "resume":
+        mpv("set_property", "pause", False)
+    elif cmd == "stop":
+        pid = running()
+        if pid:
+            os.kill(pid, signal.SIGTERM)
+    elif cmd == "pack" and len(sys.argv) == 4:  # for making the .nkz from the .opus
+        data = open(sys.argv[2], "rb").read()
+        open(sys.argv[3], "wb").write(MAGIC + keystream_xor(data))
+    else:
+        print(__doc__)
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1] if len(sys.argv) > 1 else "") or 0)
