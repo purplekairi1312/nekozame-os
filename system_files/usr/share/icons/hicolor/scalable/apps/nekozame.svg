@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- nekozame os: the bubble, simple enough for a panel button. CC BY-NC-SA 4.0 -->
-<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="4.2 4.2 55.6 55.6">
   <defs>
     <radialGradient id="body" cx="40%" cy="35%" r="70%">
       <stop offset="0" stop-color="#fff4fa"/>
