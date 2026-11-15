@@ -9,3 +9,12 @@ manta-2.jpg: Public domain, National Marine Sanctuaries, https://commons.wikimed
 whale-shark.jpg: Public domain, National Marine Sanctuaries, https://commons.wikimedia.org/wiki/File:FGBNMS_Whale_Shark_(48782973718).jpg
 jellyfish.jpg: Public domain, National Marine Sanctuaries, https://commons.wikimedia.org/wiki/File:Jellyfish_(55064233378).jpg
 fish-school.jpg: Public domain, NOAA Fisheries/Jeff Milisen, https://commons.wikimedia.org/wiki/File:NOAA_diver_bigeye_scad_school_Saipan_2022.png
+blacktip-reef.jpg: Public domain, David Burdick., https://commons.wikimedia.org/wiki/File:Reef0925_-_Flickr_-_NOAA_Photo_Library.jpg
+blacktip.jpg: Public domain, National Marine Sanctuaries, https://commons.wikimedia.org/wiki/File:NMSAS_-_Blacktip_reef_shark_at_Rose_Atoll_(27618415861).jpg
+galapagos-divers.jpg: Public domain, National Marine Sanctuaries, https://commons.wikimedia.org/wiki/File:PMNM_-_Galapagos_shark_approaches_NOAA_scientists_at_Pioneer_Bank_(31892939680).jpg
+galapagos-shark.jpg: Public domain, NOAA, https://commons.wikimedia.org/wiki/File:Galapagos_shark.jpg
+horn-shark-2.jpg: Public domain, NPS, https://commons.wikimedia.org/wiki/File:Horn_shark_catalina_0507_297_(02bb243fd3ca477391f557432e1a8a06).jpg
+horn-shark.jpg: Public domain, Chad King / SIMoN NOAA, https://commons.wikimedia.org/wiki/File:Heterodontus_francisci.jpg
+nekozame-dumeril.jpg: Public domain, (Dumeril), https://commons.wikimedia.org/wiki/File:Heterodontus_japonicus.jpg
+reef-sharks-light.jpg: Public domain, David Burdick., https://commons.wikimedia.org/wiki/File:Reef0923_-_Flickr_-_NOAA_Photo_Library.jpg
+whitetip-cave.jpg: Public domain, David Burdick., https://commons.wikimedia.org/wiki/File:Reef0962_-_Flickr_-_NOAA_Photo_Library.jpg

@@ -1039,6 +1039,16 @@ PHOTOS = "/usr/share/nekozame-os/es-de/photos"
 # multiplied in: only its body darkens the scene), a jellyfish glows in the dark (its
 # light is added). x is where it swims, over the base's open water
 PAIRS = [
+    # sharks, on their own (and ネコザメ's cousins)
+    ("horn-shark", None, 0, "", "▲岩陰にひそむ、ネコザメの仲間。"),
+    ("horn-shark-2", None, 0, "", "▲海藻のあいだで休む、ネコザメの仲間。"),
+    ("galapagos-shark", None, 0, "", "▲青のなかを、ガラパゴスザメがゆっくりと泳いでいく。"),
+    ("galapagos-divers", None, 0, "", "▲ダイバーのそばを、ガラパゴスザメがすり抜ける。"),
+    ("blacktip", None, 0, "", "▲浅瀬の光のなかを、ツマグロが泳ぐ。"),
+    ("reef-sharks-light", None, 0, "", "▲光の差すサンゴ礁を、サメたちがめぐる。"),
+    ("blacktip-reef", None, 0, "", "▲サンゴの上を、ツマグロがすべるように泳ぐ。"),
+    ("whitetip-cave", None, 0, "", "▲岩のくぼみで休む、ネムリブカ。"),
+    # a creature fused into a scene
     ("fish-school", "manta", 980, "multiply", "▲水面の光の下を、マンタがゆっくりと横切る。"),
     ("fish-school", "manta-2", 1060, "multiply", "▲青のなかを、マンタが静かに舞う。"),
     ("whale-shark", "manta", 1080, "multiply", "▲ジンベエザメの上を、マンタが横切っていく。"),
@@ -1101,11 +1111,13 @@ def magazine(system, s, scheme, dest, bare=False):
         page.fill([int(c["sky"][0][i] + (c["sky"][1][i] - c["sky"][0][i]) * t) for i in range(3)], (0, y, W, 1))
     base, feature, fx, mode, caption = PAIRS[rnd.randrange(len(PAIRS))]
     pic = grade(fill(pg.image.load(f"{PHOTOS}/{base}.jpg").convert(), 1800, 760, 0.5, 0.45)).convert_alpha()
-    fe = grade(fill(pg.image.load(f"{PHOTOS}/{feature}.jpg").convert(), 640, 640, 0.5, 0.42), keep=0.2)
+    fe = grade(fill(pg.image.load(f"{PHOTOS}/{feature}.jpg").convert(), 640, 640, 0.5, 0.42), keep=0.2) if feature else None
     mask = pg.Surface((640, 640), pg.SRCALPHA)  # soft all round, so no edge shows
     for r in range(320, 0, -4):
         pg.draw.circle(mask, (255, 255, 255, int(255 * min(1, (1 - r / 320) * 2.4))), (320, 320), r)
-    if mode == "multiply":
+    if not feature:
+        pass
+    elif mode == "multiply":
         # white where the mask fades out (multiplying by white changes nothing), the
         # creature where it's solid; its bright water barely touches the scene
         lift = fe.copy(); lift.fill((95, 95, 95), special_flags=pg.BLEND_ADD)  # its water to white
@@ -1132,6 +1144,18 @@ def magazine(system, s, scheme, dest, bare=False):
     page.blit(dots, (0, 0))
     page.fill(c["spine"], (W - 120, 0, 120, H))  # the spine (its words are es-de's)
     if not bare:
+        # the ネコザメ, as a field guide drew it (duméril): printed onto the sky
+        try:
+            neko = pg.image.load(f"{PHOTOS}/nekozame-dumeril.jpg").convert()
+            iw, ih = neko.get_size(); k = 470 / iw
+            neko = pg.transform.smoothscale(neko, (470, int(ih * k)))
+            neko.fill((24, 24, 24), special_flags=pg.BLEND_ADD)  # its paper to white, so it vanishes
+            page.blit(neko, (880, 10), special_flags=pg.BLEND_MULT)
+            page.blit(pg.font.Font(subprocess.run(["fc-match", "-f", "%{file}", "Noto Sans CJK JP:regular"], capture_output=True,
+                                                  text=True).stdout or None, 18).render(
+                "▲ネコザメ（猫鮫）Heterodontus japonicus　デュメリル画", True, c["body"]), (900, 12 + int(ih * k)))
+        except (pg.error, OSError):
+            pass
         ja, release = POSTER.get(system, (SYSTEMS[system][0] if system in SYSTEMS else system, ""))
         date, _, maker = release.partition("　")
         if not maker:
