@@ -1,7 +1,8 @@
 #!/bin/bash
 # adds apps (by their .desktop file name) to steam's library, once steam is running
 # with someone signed in, with nekozame artwork (nekozame-steam-art) and the launch
-# options some apps need in game mode (nekozame-steam-launch-options). nekozame-firstboot starts it before steam is up; it waits
+# options some apps need in game mode (nekozame-steam-launch-options), and on a
+# deck the trackpads as a mouse (nekozame-steam-controls). nekozame-firstboot starts it before steam is up; it waits
 # (up to two hours), then exits.
 set -uo pipefail
 for _ in $(seq 1 720); do
@@ -16,6 +17,7 @@ for _ in $(seq 1 720); do
         sleep 10  # steam writes them down
         /usr/libexec/nekozame-steam-art "$@"
         /usr/libexec/nekozame-steam-launch-options "$@"  # what some apps need in game mode
+        /usr/libexec/nekozame-steam-controls  # trackpads as a mouse, the rest a gamepad
         exit 0
     fi
     sleep 10

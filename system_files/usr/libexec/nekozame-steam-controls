@@ -1,0 +1,67 @@
+#!/usr/bin/python3
+"""nekozame-steam-controls: on a steam deck, apps added to steam (not steam's own
+games, which come with their developers' layouts) get "gamepad with mouse trackpad":
+the right trackpad is a mouse (press to click), the left one scrolls, and everything
+else is an xbox controller. without this, steam gives them a shooter layout. an app
+that already has a layout, picked by you or another tool, keeps it. steam reads it
+straight away. nekozame-add-to-steam runs it."""
+import glob
+import importlib.machinery
+import importlib.util
+import os
+import re
+
+TEMPLATE = "controller_neptune_gamepad+mouse.vdf"
+CONFIGS = os.path.expanduser("~/.local/share/Steam/steamapps/common/Steam Controller Configs")
+
+
+def load(name, path):
+    """one of nekozame's scripts (they have no .py), as a module."""
+    spec = importlib.util.spec_from_loader(name, importlib.machinery.SourceFileLoader(name, path))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def top_keys(text):
+    """the keys right inside "controller_config" { ... }: the apps with a layout."""
+    keys, depth, pending = set(), 0, None
+    for tok in re.findall(r'"((?:[^"\\]|\\.)*)"|([{}])', text):
+        word, brace = tok
+        if brace == "{":
+            if depth == 1 and pending is not None:
+                keys.add(pending.lower())
+            depth += 1
+        elif brace == "}":
+            depth -= 1
+        else:
+            pending = word
+    return keys
+
+
+def main():
+    art = load("steam_art", "/usr/libexec/nekozame-steam-art")
+    for grid, _, name in art.shortcuts():
+        account = os.path.basename(os.path.dirname(os.path.dirname(grid)))  # userdata/<account>/config/grid
+        path = f"{CONFIGS}/{account}/config/configset_controller_neptune.vdf"
+        try:
+            text = open(path, encoding="utf-8").read()
+        except FileNotFoundError:
+            text = '"controller_config"\n{\n}\n'
+        if name.lower() in top_keys(text):
+            continue
+        key = name.lower().replace("\\", "\\\\").replace('"', '\\"')
+        entry = f'\t"{key}"\n\t{{\n\t\t"template"\t\t"{TEMPLATE}"\n\t}}\n'
+        end = text.rstrip().rfind("}")
+        if end < 0:
+            continue
+        text = text[:end] + entry + text[end:]
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path + ".new", "w", encoding="utf-8") as f:
+            f.write(text)
+        os.replace(path + ".new", path)
+        print(f"{name}: gamepad with mouse trackpad")
+
+
+if __name__ == "__main__":
+    main()
