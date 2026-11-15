@@ -29,7 +29,7 @@ settings (~/.config/nekozame/emulation.json), all optional:
             "labels": true}                   the name under each cover, so versions of
                                               a game tell apart in the library
   "music": true, "musicVolume": 40            es-de's music ("dolphin sanctuary" by
-                                              purplekairi1312, all rights reserved)
+                                              purplekairi1312, © 2026, all rights reserved)
 """
 import json
 import urllib.parse
