@@ -1,10 +1,9 @@
 #!/usr/bin/python3
-"""nekozame-steam-controls: on a steam deck, apps added to steam (not steam's own
-games, which come with their developers' layouts) get "gamepad with mouse trackpad":
-the right trackpad is a mouse (press to click), the left one scrolls, and everything
-else is an xbox controller. without this, steam gives them a shooter layout. an app
-that already has a layout, picked by you or another tool, keeps it. steam reads it
-straight away. nekozame-add-to-steam runs it."""
+"""nekozame-steam-controls: on a steam deck, tauon gets "gamepad with mouse
+trackpad": the right trackpad is a mouse (press to click), the left one scrolls,
+and everything else is an xbox controller. without this, steam gives it a shooter
+layout. a layout you picked yourself stays. steam reads it straight away.
+nekozame-add-to-steam runs it."""
 import glob
 import importlib.machinery
 import importlib.util
@@ -12,6 +11,7 @@ import os
 import re
 
 TEMPLATE = "controller_neptune_gamepad+mouse.vdf"
+APPS = {"Tauon"}  # by their name in steam
 CONFIGS = os.path.expanduser("~/.local/share/Steam/steamapps/common/Steam Controller Configs")
 
 
@@ -42,6 +42,8 @@ def top_keys(text):
 def main():
     art = load("steam_art", "/usr/libexec/nekozame-steam-art")
     for grid, _, name in art.shortcuts():
+        if name not in APPS:
+            continue
         account = os.path.basename(os.path.dirname(os.path.dirname(grid)))  # userdata/<account>/config/grid
         path = f"{CONFIGS}/{account}/config/configset_controller_neptune.vdf"
         try:
