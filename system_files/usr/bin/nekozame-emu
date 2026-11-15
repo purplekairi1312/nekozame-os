@@ -1055,8 +1055,8 @@ PAIRS = [
     ("whale-shark", "manta-2", 1120, "multiply", "▲光の差す水面の下、大きな影がすれ違う。", "▲ Under the sunlit surface, great shadows pass each other."),
     ("diver", "manta-2", 1150, "multiply", "▲ダイバーの頭上を、マンタがゆっくりと舞う。", "▲ A manta dances slowly above a diver."),
 ]
-# 川原慶賀's sharks (photos/kawahara-*.jpg, the paper made white), and what they are;
-# the ネコザメ more often than the others
+# 川原慶賀's sharks and rays (photos/kawahara-*.jpg, the paper made white), and what
+# they are; the ネコザメ more often than the others
 DRAWINGS = [("kawahara-heterodontus", "ネコザメ（猫鮫）Heterodontus japonicus", "Japanese bullhead shark (nekozame)"),
             ("kawahara-heterodontus", "ネコザメ（猫鮫）Heterodontus japonicus", "Japanese bullhead shark (nekozame)"),
             ("kawahara-heterodontus", "ネコザメ（猫鮫）Heterodontus japonicus", "Japanese bullhead shark (nekozame)"),
@@ -1067,7 +1067,18 @@ DRAWINGS = [("kawahara-heterodontus", "ネコザメ（猫鮫）Heterodontus japo
             ("kawahara-squalus", "ツノザメの仲間　Squalus", "Dogfish"),
             ("kawahara-squatina", "カスザメ　Squatina japonica", "Japanese angelshark"),
             ("kawahara-pristiophorus", "ノコギリザメ　Pristiophorus japonicus", "Japanese sawshark"),
-            ("kawahara-sphyrna", "シロシュモクザメ　Sphyrna zygaena", "Smooth hammerhead")]
+            ("kawahara-sphyrna", "シロシュモクザメ　Sphyrna zygaena", "Smooth hammerhead"),
+            # and the sharks' cousins, the rays
+            ("kawahara-hemitrygon", "アカエイ　Hemitrygon akajei", "Red stingray"),
+            ("kawahara-neotrygon", "ヤッコエイ　Neotrygon kuhlii", "Blue-spotted stingray"),
+            ("kawahara-narke", "シビレエイ　Narke japonica", "Japanese sleeper ray"),
+            ("kawahara-gymnura", "ツバクロエイ　Gymnura japonica", "Japanese butterfly ray"),
+            ("kawahara-myliobatis", "トビエイ　Myliobatis tobijei", "Japanese eagle ray"),
+            ("kawahara-platyrhina", "ウチワザメ　Platyrhina sinensis", "Fanray"),
+            ("kawahara-rhinobatos", "サカタザメ　Rhinobatos schlegelii", "Brown guitarfish"),
+            ("kawahara-rhynchobatus", "トンガリサカタザメ　Rhynchobatus", "Wedgefish"),
+            ("kawahara-urolophus", "ヒラタエイ　Urolophus aurantiacus", "Sepia stingray"),
+            ("kawahara-dasyatis", "ツカエイ　Dasyatis zugei", "Pale-edged stingray")]
 MAKERS_EN = {"任天堂": "Nintendo", "セガ": "Sega", "ソニー・コンピュータエンタテインメント": "Sony Computer Entertainment",
              "NECホームエレクトロニクス": "NEC Home Electronics", "日本電気": "NEC", "NEC": "NEC", "SNK": "SNK",
              "バンダイ": "Bandai", "アタリ": "Atari", "松下電器産業": "Matsushita (Panasonic)", "コレコ": "Coleco",
