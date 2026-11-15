@@ -1,0 +1,504 @@
+#!/usr/bin/python3
+"""nekozame-emu: nekozame's emulation. your games in folders per system (the layout
+es-de, emudeck and most nas setups use: roms/<system>), emulators from flathub,
+your saves synced everywhere (nekozame-saves).
+
+  nekozame-emu setup              the emulators for the systems you have games for,
+                                  pointed at your folders (run again any time)
+  nekozame-emu launch SYSTEM ROM  play: syncs that emulator's saves before and after
+  nekozame-emu steam add          every game as its own entry in steam, with its art
+  nekozame-emu steam remove       take all of them out of steam again
+  nekozame-emu systems            what's supported, and what you have
+
+settings (~/.config/nekozame/emulation.json), all optional:
+  "roms":  ["~/Emulation/roms", "/mnt/nas/Emulation/roms"]   where your games are
+  "bios":  "~/Emulation/bios"                                 bios and firmware
+  "media": ["~/Emulation/tools/downloaded_media"]             es-de's scraped art
+  "steam": {"roms": ["~/Emulation/roms"],     whose games go in steam (big libraries
+                                              on a nas are better browsed in es-de)
+            "names": "file"}                  game names: "file" (your file names, with
+                                              their regions and versions) or "scraped"
+"""
+import json
+import os
+import re
+import shlex
+import shutil
+import subprocess
+import sys
+import urllib.request
+import zipfile
+
+HOME = os.path.expanduser("~")
+CONFIG = os.path.join(HOME, ".config/nekozame/emulation.json")
+STATE = os.path.join(HOME, ".local/state/nekozame/steam-games.json")
+VAR = os.path.join(HOME, ".var/app")
+RA = "org.libretro.RetroArch"
+RA_CORES = os.path.join(VAR, RA, "config/retroarch/cores")
+BUILDBOT = "https://buildbot.libretro.com/nightly/linux/x86_64/latest"
+
+# --- the emulators ---------------------------------------------------------------
+# flatpak: its app id. run: how a game starts ({rom}). saves: its folders in
+# ~/Emulation/saves (synced around each game), and where they really are when the
+# emulator can't be told (a link is made: saves/<emu>/<name> -> there).
+EMULATORS = {
+    "retroarch": {"flatpak": RA, "saves": None},  # retroarch's cloud sync has its saves
+    "pcsx2": {"flatpak": "net.pcsx2.PCSX2", "run": ["-batch", "-fullscreen", "--", "{rom}"],
+              "saves": {"saves": None, "states": None}},  # told through its settings (setup)
+    "dolphin": {"flatpak": "org.DolphinEmu.dolphin-emu", "run": ["-b", "-e", "{rom}"],
+                "saves": {"GC": "org.DolphinEmu.dolphin-emu/data/dolphin-emu/GC",
+                          "Wii": "org.DolphinEmu.dolphin-emu/data/dolphin-emu/Wii",
+                          "StateSaves": "org.DolphinEmu.dolphin-emu/data/dolphin-emu/StateSaves"}},
+    "ppsspp": {"flatpak": "org.ppsspp.PPSSPP", "run": ["--fullscreen", "{rom}"],
+               "saves": {"saves": "org.ppsspp.PPSSPP/config/ppsspp/PSP/SAVEDATA",
+                         "states": "org.ppsspp.PPSSPP/config/ppsspp/PSP/PPSSPP_STATE"}},
+    "rpcs3": {"flatpak": "net.rpcs3.RPCS3", "run": ["--no-gui", "{rom}"],
+              "saves": {"saves": "net.rpcs3.RPCS3/config/rpcs3/dev_hdd0/home/00000001/savedata"}},
+    "ryujinx": {"flatpak": "io.github.ryubing.Ryujinx", "run": ["--fullscreen", "{rom}"],
+                "saves": {"saves": "io.github.ryubing.Ryujinx/config/Ryujinx/bis/user/save"}},
+    "shadps4": {"flatpak": "net.shadps4.shadPS4", "run": ["-g", "{rom}"],
+                "saves": {"saves": "net.shadps4.shadPS4/data/shadPS4/savedata"}},
+    "azahar": {"flatpak": "org.azahar_emu.Azahar", "run": ["{rom}"],
+               "saves": {"saves": "org.azahar_emu.Azahar/data/azahar-emu/sdmc"}},
+    "cemu": {"flatpak": "info.cemu.Cemu", "run": ["-f", "-g", "{rom}"],
+             "saves": {"saves": "info.cemu.Cemu/data/Cemu/mlc01/usr/save"}},
+    "xemu": {"flatpak": "app.xemu.xemu", "run": ["-dvd_path", "{rom}"], "saves": None},
+    "scummvm": {"flatpak": "org.scummvm.ScummVM", "run": ["--path={rom}", "--auto-detect"],
+                "saves": {"saves": "org.scummvm.ScummVM/data/scummvm/saves"}},
+}
+
+# --- the systems (es-de's folder names) ------------------------------------------
+# emulator, or a retroarch core; the file types it plays (first ones win when a game
+# comes in several: a playlist over its discs, a cue over its bins)
+DISC = ["m3u", "chd", "cue", "iso", "pbp", "ccd", "mds", "toc", "img", "bin"]
+CART_ZIP = ["zip", "7z"]
+SYSTEMS = {
+    # nintendo
+    "nes": ("NES", "core:mesen", ["nes", "unf", "unif", "fds"] + CART_ZIP),
+    "fds": ("Famicom Disk System", "core:mesen", ["fds"] + CART_ZIP),
+    "snes": ("Super Nintendo", "core:snes9x", ["sfc", "smc", "fig", "swc", "bs"] + CART_ZIP),
+    "sfc": ("Super Famicom", "core:snes9x", ["sfc", "smc", "fig", "swc", "bs"] + CART_ZIP),
+    "n64": ("Nintendo 64", "core:mupen64plus_next", ["z64", "n64", "v64", "ndd"] + CART_ZIP),
+    "gb": ("Game Boy", "core:gambatte", ["gb", "dmg"] + CART_ZIP),
+    "gbc": ("Game Boy Color", "core:gambatte", ["gbc", "gb"] + CART_ZIP),
+    "gba": ("Game Boy Advance", "core:mgba", ["gba"] + CART_ZIP),
+    "nds": ("Nintendo DS", "core:melondsds", ["nds", "dsi"] + CART_ZIP),
+    "virtualboy": ("Virtual Boy", "core:mednafen_vb", ["vb", "vboy"] + CART_ZIP),
+    "pokemini": ("Pokémon Mini", "core:pokemini", ["min"] + CART_ZIP),
+    "gc": ("GameCube", "dolphin", ["rvz", "iso", "gcm", "gcz", "ciso", "wbfs", "dol", "elf", "m3u"]),
+    "wii": ("Wii", "dolphin", ["rvz", "wbfs", "iso", "gcz", "ciso", "wad", "dol", "elf"]),
+    "wiiu": ("Wii U", "cemu", ["wua", "wux", "wud", "rpx", "elf"]),
+    "n3ds": ("Nintendo 3DS", "azahar", ["3ds", "cci", "cxi", "cia", "3dsx", "app"]),
+    "switch": ("Nintendo Switch", "ryujinx", ["nsp", "xci", "nca", "nro"]),
+    # sony
+    "psx": ("PlayStation", "core:mednafen_psx_hw", ["m3u", "chd", "cue", "pbp", "ccd", "iso", "img", "exe", "toc"]),
+    "ps2": ("PlayStation 2", "pcsx2", ["chd", "iso", "cso", "zso", "gz", "m3u", "cue", "bin", "elf"]),
+    "ps3": ("PlayStation 3", "rpcs3", ["ps3", "pkg", "iso", "bin"]),
+    "ps4": ("PlayStation 4", "shadps4", ["bin", "ps4"]),
+    "psp": ("PSP", "ppsspp", ["iso", "cso", "chd", "pbp", "elf"]),
+    # sega
+    "sg-1000": ("SG-1000", "core:genesis_plus_gx", ["sg"] + CART_ZIP),
+    "mastersystem": ("Master System", "core:genesis_plus_gx", ["sms"] + CART_ZIP),
+    "gamegear": ("Game Gear", "core:genesis_plus_gx", ["gg"] + CART_ZIP),
+    "megadrive": ("Mega Drive", "core:genesis_plus_gx", ["md", "gen", "smd", "bin"] + CART_ZIP),
+    "megadrivejp": ("Mega Drive (Japan)", "core:genesis_plus_gx", ["md", "gen", "smd", "bin"] + CART_ZIP),
+    "genesis": ("Genesis", "core:genesis_plus_gx", ["md", "gen", "smd", "bin"] + CART_ZIP),
+    "segacd": ("Sega CD", "core:genesis_plus_gx", DISC),
+    "megacd": ("Mega-CD", "core:genesis_plus_gx", DISC),
+    "megacdjp": ("Mega-CD (Japan)", "core:genesis_plus_gx", DISC),
+    "sega32x": ("32X", "core:picodrive", ["32x", "bin"] + CART_ZIP),
+    "sega32xjp": ("Super 32X (Japan)", "core:picodrive", ["32x", "bin"] + CART_ZIP),
+    "sega32xna": ("Genesis 32X", "core:picodrive", ["32x", "bin"] + CART_ZIP),
+    "saturn": ("Saturn", "core:mednafen_saturn", DISC),
+    "saturnjp": ("Saturn (Japan)", "core:mednafen_saturn", DISC),
+    "dreamcast": ("Dreamcast", "core:flycast", ["chd", "cdi", "gdi", "m3u", "cue"]),
+    "naomi": ("NAOMI", "core:flycast", ["zip", "7z", "dat"]),
+    "atomiswave": ("Atomiswave", "core:flycast", ["zip", "7z"]),
+    # nec, snk, bandai, atari, others
+    "pcengine": ("PC Engine", "core:mednafen_pce", ["pce", "m3u", "chd", "cue"] + CART_ZIP),
+    "pcenginecd": ("PC Engine CD", "core:mednafen_pce", DISC),
+    "tg16": ("TurboGrafx-16", "core:mednafen_pce", ["pce"] + CART_ZIP),
+    "tg-cd": ("TurboGrafx-CD", "core:mednafen_pce", DISC),
+    "pcfx": ("PC-FX", "core:mednafen_pcfx", DISC),
+    "pc88": ("PC-8800", "core:quasi88", ["d88", "u88", "m3u"] + CART_ZIP),
+    "pc98": ("PC-9800", "core:np2kai", ["d98", "zip", "98d", "fdi", "fdd", "2hd", "tfd", "d88", "88d", "hdm", "xdf", "dup", "cmd", "hdi", "thd", "nhd", "hdd", "hdn", "m3u"]),
+    "ngp": ("Neo Geo Pocket", "core:mednafen_ngp", ["ngp"] + CART_ZIP),
+    "ngpc": ("Neo Geo Pocket Color", "core:mednafen_ngp", ["ngc", "ngp"] + CART_ZIP),
+    "neogeo": ("Neo Geo", "core:fbneo", ["zip", "7z"]),
+    "neogeocd": ("Neo Geo CD", "core:neocd", ["chd", "cue"]),
+    "wonderswan": ("WonderSwan", "core:mednafen_wswan", ["ws"] + CART_ZIP),
+    "wonderswancolor": ("WonderSwan Color", "core:mednafen_wswan", ["wsc", "ws"] + CART_ZIP),
+    "atari2600": ("Atari 2600", "core:stella", ["a26", "bin"] + CART_ZIP),
+    "atari5200": ("Atari 5200", "core:a5200", ["a52", "bin"] + CART_ZIP),
+    "atari7800": ("Atari 7800", "core:prosystem", ["a78", "bin"] + CART_ZIP),
+    "atarilynx": ("Atari Lynx", "core:handy", ["lnx", "o"] + CART_ZIP),
+    "atarijaguar": ("Atari Jaguar", "core:virtualjaguar", ["j64", "jag", "rom", "abs", "cof", "bin"] + CART_ZIP),
+    "3do": ("3DO", "core:opera", ["iso", "chd", "cue"]),
+    "colecovision": ("ColecoVision", "core:gearcoleco", ["col", "rom"] + CART_ZIP),
+    "intellivision": ("Intellivision", "core:freeintv", ["int", "bin", "rom"] + CART_ZIP),
+    "vectrex": ("Vectrex", "core:vecx", ["vec", "bin"] + CART_ZIP),
+    "odyssey2": ("Odyssey 2", "core:o2em", ["bin"] + CART_ZIP),
+    "msx": ("MSX", "core:bluemsx", ["rom", "mx1", "mx2", "dsk", "cas", "m3u"] + CART_ZIP),
+    "msx2": ("MSX2", "core:bluemsx", ["rom", "mx1", "mx2", "dsk", "cas", "m3u"] + CART_ZIP),
+    "c64": ("Commodore 64", "core:vice_x64sc", ["d64", "t64", "prg", "crt", "tap", "m3u"] + CART_ZIP),
+    "amiga": ("Amiga", "core:puae", ["adf", "hdf", "lha", "ipf", "m3u"] + CART_ZIP),
+    "zxspectrum": ("ZX Spectrum", "core:fuse", ["tzx", "tap", "z80", "sna", "dsk", "scl", "trd"] + CART_ZIP),
+    "amstradcpc": ("Amstrad CPC", "core:cap32", ["dsk", "sna", "cdt", "m3u"] + CART_ZIP),
+    "apple2": ("Apple II", "core:applewin", ["dsk", "do", "po", "nib", "woz", "2mg"] + CART_ZIP),
+    "dos": ("DOS", "core:dosbox_pure", ["zip", "dosz", "exe", "com", "bat", "iso", "cue", "conf"]),
+    "uzebox": ("Uzebox", "core:uzem", ["uze"] + CART_ZIP),
+    "arcade": ("Arcade", "core:mame", ["zip", "7z", "chd"]),
+    "mame": ("MAME", "core:mame", ["zip", "7z", "chd"]),
+    "fbneo": ("FinalBurn Neo", "core:fbneo", ["zip", "7z"]),
+    "cps1": ("CPS-1", "core:fbneo", ["zip", "7z"]),
+    "cps2": ("CPS-2", "core:fbneo", ["zip", "7z"]),
+    "cps3": ("CPS-3", "core:fbneo", ["zip", "7z"]),
+    "xbox": ("Xbox", "xemu", ["iso", "xiso"]),
+    "scummvm": ("ScummVM", "scummvm", ["scummvm", "svm"]),
+}
+
+
+def say(*a):
+    print(*a, flush=True)
+
+
+def settings():
+    s = {"roms": ["~/Emulation/roms"], "bios": "~/Emulation/bios",
+         "media": ["~/Emulation/tools/downloaded_media", "~/ES-DE/downloaded_media"],
+         "steam": {"roms": None, "names": "file"}}
+    try:
+        user = json.load(open(CONFIG))
+        steam = {**s["steam"], **user.pop("steam", {})}
+        s.update(user)
+        s["steam"] = steam
+    except (OSError, ValueError):
+        pass
+    ex = lambda p: os.path.expanduser(p)
+    s["roms"] = [ex(p) for p in s["roms"]]
+    s["bios"] = ex(s["bios"])
+    s["media"] = [ex(p) for p in s["media"]]
+    s["steam"]["roms"] = [ex(p) for p in (s["steam"]["roms"] or s["roms"][:1])]
+    return s
+
+
+def emulator_of(system):
+    emu = SYSTEMS[system][1]
+    return ("retroarch", emu[5:]) if emu.startswith("core:") else (emu, None)
+
+
+def installed(app):
+    return subprocess.run(["flatpak", "info", app], capture_output=True).returncode == 0
+
+
+# --- games -----------------------------------------------------------------------
+
+def games(root, system):
+    """the games in root/system: one file each (a disc playlist, not its discs; a cue,
+    not its bins)."""
+    folder = os.path.join(root, system)
+    exts = SYSTEMS[system][2]
+    found, parts = [], set()
+    for d, dirs, names in os.walk(folder, followlinks=True):
+        dirs[:] = [x for x in dirs if not x.startswith(".") and x not in ("media", "images", "videos", "manuals")]
+        for n in names:
+            ext = n.rsplit(".", 1)[-1].lower() if "." in n else ""
+            if ext not in exts:
+                continue
+            path = os.path.join(d, n)
+            if ext in ("m3u", "cue", "gdi", "ccd"):  # the files they point at aren't games
+                try:
+                    for line in open(path, errors="replace"):
+                        line = line.strip()
+                        m = re.match(r'FILE\s+"?(.+?)"?\s+\w+$', line, re.I) if ext == "cue" else None
+                        ref = m.group(1) if m else (line if ext == "m3u" and line and not line.startswith("#") else None)
+                        if ext == "gdi":
+                            ref = (line.split() + [""] * 5)[4].strip('"') or None
+                        if ref:
+                            parts.add(os.path.normpath(os.path.join(d, ref)))
+                except OSError:
+                    pass
+            found.append(path)
+    games = [p for p in found if os.path.normpath(p) not in parts]
+    # a game in several formats side by side: the format earliest in the list wins
+    best = {}
+    for p in games:
+        key = os.path.splitext(p)[0]
+        rank = exts.index(p.rsplit(".", 1)[-1].lower())
+        if key not in best or rank < best[key][0]:
+            best[key] = (rank, p)
+    return sorted(p for _, p in best.values())
+
+
+def name_of(rom, system, s):
+    """your file name (regions and versions included), or es-de's scraped name."""
+    name = os.path.splitext(os.path.basename(rom))[0]
+    if s["steam"].get("names") == "scraped":
+        for gl in (os.path.join(HOME, "ES-DE/gamelists", system, "gamelist.xml"),):
+            try:
+                xml = open(gl, errors="replace").read()
+                for g in re.finditer(r"<game>(.*?)</game>", xml, re.S):
+                    path = re.search(r"<path>(.*?)</path>", g.group(1))
+                    if path and os.path.basename(path.group(1)) == os.path.basename(rom):
+                        scraped = re.search(r"<name>(.*?)</name>", g.group(1))
+                        if scraped:
+                            return scraped.group(1)
+            except OSError:
+                pass
+    return name
+
+
+# --- playing -----------------------------------------------------------------------
+
+def core(name):
+    """a retroarch core, downloaded from libretro's buildbot the first time."""
+    path = os.path.join(RA_CORES, f"{name}_libretro.so")
+    if not os.path.exists(path):
+        os.makedirs(RA_CORES, exist_ok=True)
+        say(f"getting retroarch's {name} core")
+        tmp = path + ".zip"
+        urllib.request.urlretrieve(f"{BUILDBOT}/{name}_libretro.so.zip", tmp)
+        with zipfile.ZipFile(tmp) as z:
+            z.extract(f"{name}_libretro.so", RA_CORES)
+        os.remove(tmp)
+    return path
+
+
+def sync_saves(emu):
+    folders = EMULATORS[emu].get("saves")
+    if folders and shutil.which("nekozame-saves"):
+        subprocess.run(["nekozame-saves", "sync", emu], timeout=600)
+
+
+def launch(system, rom):
+    emu, core_name = emulator_of(system)
+    e = EMULATORS[emu]
+    if emu == "retroarch":
+        cmd = ["flatpak", "run", RA, "-f", "-L", core(core_name), rom]
+    else:
+        cmd = ["flatpak", "run", e["flatpak"]] + [a.replace("{rom}", rom) for a in e["run"]]
+    try:
+        sync_saves(emu)
+    except (OSError, subprocess.SubprocessError) as err:
+        say(f"saves didn't sync before playing: {err}")
+    code = subprocess.call(cmd)
+    try:
+        sync_saves(emu)
+    except (OSError, subprocess.SubprocessError) as err:
+        say(f"saves didn't sync after playing: {err}")
+    return code
+
+
+# --- setup -------------------------------------------------------------------------
+
+def set_ini(path, section, values):
+    """key = value lines in an ini section, the rest of the file as it was."""
+    lines = open(path, errors="replace").read().splitlines() if os.path.exists(path) else []
+    out, in_section, done = [], False, set()
+    for line in lines:
+        m = re.match(r"\s*\[(.+)\]\s*$", line)
+        if m:
+            if in_section:
+                out += [f"{k} = {v}" for k, v in values.items() if k not in done]
+            in_section = m.group(1) == section
+        elif in_section:
+            k = line.split("=", 1)[0].strip()
+            if k in values:
+                out.append(f"{k} = {values[k]}")
+                done.add(k)
+                continue
+        out.append(line)
+    if in_section:
+        out += [f"{k} = {v}" for k, v in values.items() if k not in done]
+    elif section not in [re.sub(r"[\[\]\s]", "", l) for l in lines]:
+        out += ["", f"[{section}]"] + [f"{k} = {v}" for k, v in values.items()]
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path + ".new", "w") as f:
+        f.write("\n".join(out) + "\n")
+    os.replace(path + ".new", path)
+
+
+def link_saves(emu):
+    """saves/<emu>/<name> -> where the emulator keeps them, unless something's there."""
+    for name, there in (EMULATORS[emu].get("saves") or {}).items():
+        if not there:
+            continue
+        here = os.path.join(HOME, "Emulation/saves", emu, name)
+        target = os.path.join(VAR, there)
+        if os.path.lexists(here):
+            continue  # yours (or emudeck's): kept as it is
+        os.makedirs(target, exist_ok=True)
+        os.makedirs(os.path.dirname(here), exist_ok=True)
+        os.symlink(target, here)
+
+
+def configure(emu, s):
+    saves = os.path.join(HOME, "Emulation/saves")
+    if emu == "pcsx2":
+        ini = os.path.join(VAR, "net.pcsx2.PCSX2/config/PCSX2/inis/PCSX2.ini")
+        for d in ("saves", "states"):
+            os.makedirs(os.path.join(saves, "pcsx2", d), exist_ok=True)
+        set_ini(ini, "Folders", {"Bios": s["bios"], "MemoryCards": f"{saves}/pcsx2/saves",
+                                 "SaveStates": f"{saves}/pcsx2/states"})
+        set_ini(ini, "UI", {"SetupWizardIncomplete": "false", "StartFullscreen": "true"})
+    elif emu == "retroarch":
+        cfg = os.path.join(VAR, RA, "config/retroarch/retroarch.cfg")
+        if os.path.exists(cfg):
+            text = open(cfg, errors="replace").read()
+            if 'system_directory = "default"' in text or "system_directory" not in text:
+                text = re.sub(r'^system_directory = .*$', "", text, flags=re.M).rstrip("\n")
+                open(cfg, "w").write(text + f'\nsystem_directory = "{s["bios"]}"\n')
+    link_saves(emu)
+
+
+def setup(everything=False):
+    s = settings()
+    for d in ("roms", "bios", "saves"):
+        os.makedirs(os.path.join(HOME, "Emulation", d), exist_ok=True)
+    have = {}
+    for system in SYSTEMS:
+        os.makedirs(os.path.join(HOME, "Emulation/roms", system), exist_ok=True)
+        n = sum(len(games(r, system)) for r in s["roms"])
+        if n or everything:
+            have[system] = n
+    emus = sorted({emulator_of(x)[0] for x in have})
+    for emu in emus:
+        app = EMULATORS[emu]["flatpak"]
+        if not installed(app):
+            say(f"installing {app}")
+            subprocess.run(["flatpak", "install", "--user", "-y", "--noninteractive", "flathub", app])
+        configure(emu, s)
+        say(f"  ✓ {emu}")
+    for system in have:
+        emu, core_name = emulator_of(system)
+        if core_name:
+            try:
+                core(core_name)
+            except OSError as e:
+                say(f"  ! {SYSTEMS[system][0]}: couldn't get the {core_name} core ({e})")
+    say(f"ready: {', '.join(SYSTEMS[x][0] for x in have) or 'no games found yet'}")
+
+
+# --- steam -------------------------------------------------------------------------
+
+def steam_js():
+    import importlib.machinery
+    import importlib.util
+    path = "/usr/libexec/nekozame-steam-theme"
+    spec = importlib.util.spec_from_loader("steam_theme", importlib.machinery.SourceFileLoader("steam_theme", path))
+    theme = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(theme)
+    with urllib.request.urlopen(f"http://127.0.0.1:{theme.PORT}/json", timeout=3) as r:
+        ws = next(t["webSocketDebuggerUrl"] for t in json.load(r) if t.get("title") == "SharedJSContext")
+    return lambda js, wait=False: theme.evaluate(ws, js, answer=True, wait=wait)
+
+
+def grids():
+    import glob
+    return glob.glob(os.path.join(HOME, ".local/share/Steam/userdata/[1-9]*/config/grid"))
+
+
+def art(system, rom, s):
+    """es-de's scraped art for a game: cover, banner, logo, wide."""
+    base = os.path.splitext(os.path.basename(rom))[0]
+    found = {}
+    for media in s["media"]:
+        for kind, folders in (("p", ["covers", "3dboxes"]), ("_hero", ["fanart", "screenshots", "titlescreens"]),
+                              ("_logo", ["marquees"]), ("", ["screenshots", "titlescreens", "fanart"])):
+            if kind in found:
+                continue
+            for folder in folders:
+                for ext in ("png", "jpg"):
+                    p = os.path.join(media, system, folder, f"{base}.{ext}")
+                    if os.path.exists(p):
+                        found[kind] = p
+                        break
+                if kind in found:
+                    break
+    return found
+
+
+def steam_add(systems=None):
+    s = settings()
+    js = steam_js()
+    try:
+        added = json.load(open(STATE))
+    except (OSError, ValueError):
+        added = {}
+    exe = shutil.which("nekozame-emu") or "/usr/bin/nekozame-emu"
+    count = 0
+    for root in s["steam"]["roms"]:
+        for system in SYSTEMS:
+            if systems and system not in systems:
+                continue
+            for rom in games(root, system):
+                if rom in added:
+                    continue
+                name = name_of(rom, system, s)
+                options = shlex.join(["launch", system, rom])
+                appid = js("SteamClient.Apps.AddShortcut(%s, %s, %s, %s)" % (
+                    json.dumps(name), json.dumps(exe), json.dumps(os.path.dirname(exe)), json.dumps(options)), wait=True)
+                if not appid:
+                    say(f"  ! {name}: steam didn't add it")
+                    continue
+                js("SteamClient.Apps.SetShortcutName(%d, %s)" % (appid, json.dumps(name)))
+                js("SteamClient.Apps.SetShortcutLaunchOptions(%d, %s)" % (appid, json.dumps(options)))
+                for grid in grids():
+                    for kind, path in art(system, rom, s).items():
+                        shutil.copyfile(path, os.path.join(grid, f"{appid}{kind}.{path.rsplit('.', 1)[-1]}"))
+                added[rom] = {"appid": appid, "system": system}
+                count += 1
+                if count % 20 == 0:
+                    say(f"  {count} added")
+                    save_state(added)
+    save_state(added)
+    say(f"{count} games added to steam ({len(added)} in all). restart steam to see all their art.")
+
+
+def save_state(added):
+    os.makedirs(os.path.dirname(STATE), exist_ok=True)
+    with open(STATE + ".new", "w") as f:
+        json.dump(added, f, indent=1)
+    os.replace(STATE + ".new", STATE)
+
+
+def steam_remove():
+    js = steam_js()
+    try:
+        added = json.load(open(STATE))
+    except (OSError, ValueError):
+        added = {}
+    for rom, a in added.items():
+        js("SteamClient.Apps.RemoveShortcut(%d)" % a["appid"])
+        for grid in grids():
+            for f in os.listdir(grid):
+                if f.startswith(str(a["appid"])):
+                    os.remove(os.path.join(grid, f))
+    save_state({})
+    say(f"{len(added)} games taken out of steam (your games and saves are untouched)")
+
+
+def systems_list():
+    s = settings()
+    for system, (name, emu, _) in SYSTEMS.items():
+        n = sum(len(games(r, system)) for r in s["roms"])
+        say(f"  {'●' if n else '○'} {system:16} {name:24} {emu.replace('core:', 'retroarch: '):28} {n or ''}")
+
+
+def main(argv):
+    cmd = argv[0] if argv else ""
+    if cmd == "launch" and len(argv) == 3:
+        return launch(argv[1], argv[2])
+    if cmd == "setup":
+        return setup("--all" in argv)
+    if cmd == "steam" and argv[1:2] == ["add"]:
+        return steam_add(argv[2:] or None)
+    if cmd == "steam" and argv[1:2] == ["remove"]:
+        return steam_remove()
+    if cmd == "systems":
+        return systems_list()
+    say(__doc__)
+    return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]) or 0)

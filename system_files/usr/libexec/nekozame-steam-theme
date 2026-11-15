@@ -22,9 +22,9 @@ STYLE = ("(function(css){var s=document.getElementById('nekozame-theme');"
       "if(s.textContent!==css){s.textContent=css;}})(%s)")
 
 
-def evaluate(ws_url, expression, answer=False):
+def evaluate(ws_url, expression, answer=False, wait=False):
     """one devtools call over a bare websocket (the standard library has none). with
-    answer, it returns the expression's value."""
+    answer, it returns the expression's value; with wait, a promise's value."""
     rest = ws_url.split("://", 1)[1]
     hostport, path = rest.split("/", 1)
     host, port = hostport.split(":")
@@ -34,7 +34,11 @@ def evaluate(ws_url, expression, answer=False):
                    f"Sec-WebSocket-Key: {key}\r\nSec-WebSocket-Version: 13\r\n\r\n").encode())
         if b" 101 " not in s.recv(1024):
             return
-        payload = json.dumps({"id": 1, "method": "Runtime.evaluate", "params": {"expression": expression}}).encode()
+        params = {"expression": expression}
+        if wait:
+            params.update(awaitPromise=True, returnByValue=True)
+            answer = True
+        payload = json.dumps({"id": 1, "method": "Runtime.evaluate", "params": params}).encode()
         n = len(payload)
         head = bytes([0x81]) + (bytes([0x80 | n]) if n < 126 else
                                 bytes([0x80 | 126]) + struct.pack(">H", n) if n < 65536 else
