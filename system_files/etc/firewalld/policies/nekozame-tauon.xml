@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<policy target="CONTINUE" priority="-10">
+  <short>nekozame: tauon's remote only from tailscale</short>
+  <description>Tauon's remote control (port 7814) isn't hardened and listens on every network. This keeps it to this machine and your Tailscale network (Tauon's phone remote), and away from public wi-fi.</description>
+  <ingress-zone name="ANY"/>
+  <egress-zone name="HOST"/>
+  <rule priority="-1" family="ipv4">
+    <source address="100.64.0.0/10"/>
+    <port protocol="tcp" port="7814"/>
+    <accept/>
+  </rule>
+  <rule priority="-1" family="ipv6">
+    <source address="fd7a:115c:a1e0::/48"/>
+    <port protocol="tcp" port="7814"/>
+    <accept/>
+  </rule>
+  <rule priority="0">
+    <port protocol="tcp" port="7814"/>
+    <reject/>
+  </rule>
+</policy>
