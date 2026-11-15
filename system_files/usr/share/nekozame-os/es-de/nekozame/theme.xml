@@ -1,277 +1,356 @@
-<!-- nekozame for ES-DE, by purplekairi1312. license: the same as nekozame-os (GPL-3.0).
+<!-- nekozame for ES-DE, by purplekairi1312 (GPL-3.0, like nekozame-os).
      the fonts (@FONT_*@) are filled in by nekozame-emu esde from the machine's own. -->
 <theme>
     <variables>
-        <bold>@FONT_BOLD@</bold>
+        <light>@FONT_LIGHT@</light>
         <regular>@FONT_REGULAR@</regular>
-        <japanese>@FONT_JP@</japanese>
-        <pink>ffc0e5</pink>
-        <soft>ffd4ee</soft>
-        <lilac>e8def5</lilac>
-        <dim>b3a7cb</dim>
-        <deep>2a2338</deep>
-        <!-- each system's name, katakana, maker and year, and its collage: set in
-             ./systems/<system>.xml (nekozame-emu esde writes them) -->
-        <nkName>${system.fullName}</nkName>
-        <!-- es-de's collections (all games, favorites...) have no file: these show -->
-        <nkKana>コ
-レ
-ク
-シ
-ョ
-ン</nkKana>
-        <nkMaker>nekozame</nkMaker>
-        <nkYear></nkYear>
+        <italic>@FONT_ITALIC@</italic>
+        <jaLight>@FONT_JA_LIGHT@</jaLight>
+        <jaBold>@FONT_JA_BOLD@</jaBold>
+        <jaSerif>@FONT_JA_SERIF@</jaSerif>
+        <!-- each system: its japanese name and its release (./systems/<system>.xml) -->
+        <nkJa>${system.fullName}</nkJa>
+        <nkRelease>nekozame</nkRelease>
         <nkSystemFile>./systems/${system.theme}.xml</nkSystemFile>
         <nkCollage>./collages/${system.theme}.jpg</nkCollage>
         <nkLogo>./logos/${system.theme}.svg</nkLogo>
     </variables>
+
+    <colorScheme name="nekozame">
+        <variables>
+            <sea>./core/nekozame/sea.svg</sea>
+            <creatures>./core/nekozame/creatures.svg</creatures>
+            <panel>./core/nekozame/panel.svg</panel>
+            <ink>ffffff</ink>
+            <inkSoft>ffffffcc</inkSoft>
+            <inkQuiet>ffffff99</inkQuiet>
+            <accent>ffc0e5</accent>
+            <onAccent>2a2238</onAccent>
+        </variables>
+    </colorScheme>
+    <colorScheme name="ocean">
+        <variables>
+            <sea>./core/ocean/sea.svg</sea>
+            <creatures>./core/ocean/creatures.svg</creatures>
+            <panel>./core/ocean/panel.svg</panel>
+            <ink>ffffff</ink>
+            <inkSoft>ffffffcc</inkSoft>
+            <inkQuiet>ffffff99</inkQuiet>
+            <accent>ffc0e5</accent>
+            <onAccent>08305e</onAccent>
+        </variables>
+    </colorScheme>
+
     <include>${nkSystemFile}</include>
 
-    <!-- the water, the light, the bubbles and the crt, under everything -->
-    <view name="system, gamelist">
-        <image name="water">
-            <pos>0 0</pos>
-            <size>1 1</size>
-            <path>./core/water.svg</path>
-            <zIndex>0</zIndex>
-        </image>
-        <image name="collage">
-            <pos>0 0</pos>
-            <size>1 1</size>
-            <path>${nkCollage}</path>
-            <opacity>0.55</opacity>
-            <zIndex>1</zIndex>
-        </image>
-        <image name="light">
-            <pos>0 0</pos>
-            <size>1 1</size>
-            <path>./core/light.svg</path>
-            <zIndex>2</zIndex>
-        </image>
-        <image name="halftone">
-            <pos>0 0</pos>
-            <size>1 1</size>
-            <path>./core/halftone.svg</path>
-            <tile>true</tile>
-            <tileSize>0.0065 0</tileSize>
-            <zIndex>3</zIndex>
-        </image>
-        <image name="bubbles">
-            <pos>0 0</pos>
-            <size>1 1</size>
-            <path>./core/bubbles.svg</path>
-            <zIndex>4</zIndex>
-        </image>
-        <image name="markTop">
-            <pos>0.018 0.028</pos>
-            <size>0.031 0</size>
-            <path>./core/mark.svg</path>
-            <zIndex>6</zIndex>
-        </image>
-        <image name="markBottom">
-            <pos>0.835 0.925</pos>
-            <size>0.031 0</size>
-            <path>./core/mark.svg</path>
-            <zIndex>6</zIndex>
-        </image>
-        <image name="scanlines">
-            <pos>0 0</pos>
-            <size>1 1</size>
-            <path>./core/scanlines.svg</path>
-            <tile>true</tile>
-            <tileSize>0 0.004</tileSize>
-            <opacity>0.7</opacity>
-            <zIndex>90</zIndex>
-        </image>
-        <!-- the poster's side: the system's name in katakana, top to bottom -->
-        <image name="kanaPanel">
-            <pos>0.885 0</pos>
-            <size>0.115 1</size>
-            <path>./core/panel.svg</path>
-            <zIndex>20</zIndex>
-        </image>
-        <text name="kana">
-            <pos>0.885 0.08</pos>
-            <size>0.115 0.84</size>
-            <text>${nkKana}</text>
-            <fontPath>${japanese}</fontPath>
-            <fontSize>0.072</fontSize>
-            <color>${pink}</color>
-            <horizontalAlignment>center</horizontalAlignment>
-            <verticalAlignment>top</verticalAlignment>
-            <lineSpacing>1.05</lineSpacing>
-            <zIndex>21</zIndex>
-        </text>
-        <helpsystem name="help">
-            <pos>0.025 0.955</pos>
-            <origin>0 0.5</origin>
-            <textColor>${lilac}</textColor>
-            <iconColor>${pink}</iconColor>
-            <textColorDimmed>${dim}</textColorDimmed>
-            <iconColorDimmed>${dim}</iconColorDimmed>
-            <fontPath>${regular}</fontPath>
-            <fontSize>0.026</fontSize>
-            <letterCase>uppercase</letterCase>
-        </helpsystem>
-        <clock name="clock">
-            <pos>0.865 0.03</pos>
-            <origin>1 0</origin>
-            <fontPath>${regular}</fontPath>
-            <fontSize>0.03</fontSize>
-            <color>${lilac}</color>
-            <format>%H:%M</format>
-        </clock>
-        <systemstatus name="systemStatus">
-            <pos>0.765 0.03</pos>
-            <origin>1 0</origin>
-            <height>0.03</height>
-            <color>${lilac}</color>
-        </systemstatus>
-    </view>
+    <variant name="all">
+        <!-- the sea, its creatures and bubbles, under everything -->
+        <view name="system, gamelist">
+            <image name="sea">
+                <pos>0 0</pos>
+                <size>1 1</size>
+                <path>${sea}</path>
+                <zIndex>0</zIndex>
+            </image>
+            <image name="creatures">
+                <pos>0 0</pos>
+                <size>1 1</size>
+                <path>${creatures}</path>
+                <zIndex>3</zIndex>
+            </image>
+            <image name="bubbles">
+                <pos>0 0</pos>
+                <size>1 1</size>
+                <path>./core/bubbles.svg</path>
+                <zIndex>4</zIndex>
+            </image>
+            <image name="scanlines">
+                <pos>0 0</pos>
+                <size>1 1</size>
+                <path>./core/scanlines.svg</path>
+                <tile>true</tile>
+                <tileSize>0 0.004</tileSize>
+                <zIndex>90</zIndex>
+            </image>
+            <text name="presents">
+                <pos>0.047 0.06</pos>
+                <size>0.4 0.03</size>
+                <text>NEKOZAME PRESENTS</text>
+                <fontPath>${regular}</fontPath>
+                <fontSize>0.02</fontSize>
+                <color>${inkSoft}</color>
+                <zIndex>30</zIndex>
+            </text>
+            <helpsystem name="help">
+                <pos>0.6 0.965</pos>
+                <origin>0 0.5</origin>
+                <textColor>${inkSoft}</textColor>
+                <iconColor>${ink}</iconColor>
+                <textColorDimmed>${inkQuiet}</textColorDimmed>
+                <iconColorDimmed>${inkQuiet}</iconColorDimmed>
+                <fontPath>${regular}</fontPath>
+                <fontSize>0.022</fontSize>
+                <letterCase>uppercase</letterCase>
+            </helpsystem>
+            <clock name="clock">
+                <pos>0.953 0.045</pos>
+                <origin>1 0</origin>
+                <fontPath>${light}</fontPath>
+                <fontSize>0.028</fontSize>
+                <color>${inkSoft}</color>
+                <format>%H:%M</format>
+            </clock>
+            <systemstatus name="systemStatus">
+                <pos>0.88 0.047</pos>
+                <origin>1 0</origin>
+                <height>0.026</height>
+                <color>${inkSoft}</color>
+            </systemstatus>
+        </view>
 
-    <!-- systems: a poster each. the title over a pink sun, the maker and the year, the
-         other systems along the bottom -->
-    <view name="system">
-        <image name="sun">
-            <pos>0.1 0.29</pos>
-            <maxSize>0.3 0.48</maxSize>
-            <path>./core/sun.svg</path>
-            <zIndex>7</zIndex>
-        </image>
-        <text name="titleShadow">
-            <pos>0.074 0.488</pos>
-            <size>0.8 0.17</size>
-            <text>${nkName}</text>
-            <fontPath>${bold}</fontPath>
-            <fontSize>0.13</fontSize>
-            <color>${deep}B0</color>
-            <letterCase>uppercase</letterCase>
-            <verticalAlignment>bottom</verticalAlignment>
-            <zIndex>8</zIndex>
-        </text>
-        <text name="title">
-            <pos>0.07 0.48</pos>
-            <size>0.8 0.17</size>
-            <text>${nkName}</text>
-            <fontPath>${bold}</fontPath>
-            <fontSize>0.13</fontSize>
-            <color>${soft}</color>
-            <letterCase>uppercase</letterCase>
-            <verticalAlignment>bottom</verticalAlignment>
-            <zIndex>9</zIndex>
-        </text>
-        <text name="maker">
-            <pos>0.074 0.66</pos>
-            <size>0.4 0.05</size>
-            <text>${nkMaker}${nkYear}</text>
-            <fontPath>${regular}</fontPath>
-            <fontSize>0.032</fontSize>
-            <color>${lilac}</color>
-            <letterCase>uppercase</letterCase>
-            <zIndex>9</zIndex>
-        </text>
-        <text name="gameCount">
-            <pos>0.48 0.66</pos>
-            <size>0.39 0.05</size>
-            <systemdata>gamecount</systemdata>
-            <fontPath>${regular}</fontPath>
-            <fontSize>0.032</fontSize>
-            <color>${pink}</color>
-            <horizontalAlignment>right</horizontalAlignment>
-            <letterCase>uppercase</letterCase>
-            <zIndex>9</zIndex>
-        </text>
-        <image name="rule">
-            <pos>0.074 0.72</pos>
-            <size>0.796 0.004</size>
-            <path>./core/rule.svg</path>
-            <zIndex>9</zIndex>
-        </image>
-        <carousel name="systemCarousel">
-            <type>horizontal</type>
-            <pos>0.074 0.735</pos>
-            <size>0.796 0.13</size>
-            <staticImage>${nkLogo}</staticImage>
-            <text>${nkName}</text>
-            <color>00000000</color>
-            <textColor>${lilac}</textColor>
-            <textBackgroundColor>00000000</textBackgroundColor>
-            <fontPath>${bold}</fontPath>
-            <fontSize>0.036</fontSize>
-            <letterCase>uppercase</letterCase>
-            <maxItemCount>5</maxItemCount>
-            <itemSize>0.2 0.1</itemSize>
-            <itemScale>1.25</itemScale>
-            <unfocusedItemOpacity>0.35</unfocusedItemOpacity>
-            <zIndex>30</zIndex>
-        </carousel>
-    </view>
+        <!-- systems: the poster. its copy down the right, the title bottom left, the
+             system and its release in small print -->
+        <view name="system">
+            <text name="copyMain">
+                <pos>0.885 0.11</pos>
+                <size>0.07 0.6</size>
+                <text>深
+く
+︑
+青
+く
+︒</text>
+                <fontPath>${jaSerif}</fontPath>
+                <fontSize>0.052</fontSize>
+                <color>${ink}</color>
+                <horizontalAlignment>center</horizontalAlignment>
+                <verticalAlignment>top</verticalAlignment>
+                <lineSpacing>1.15</lineSpacing>
+                <zIndex>20</zIndex>
+            </text>
+            <text name="copySub">
+                <pos>0.835 0.18</pos>
+                <size>0.05 0.75</size>
+                <text>あ
+の
+夏
+の
+海
+へ
+︑
+も
+う
+一
+度
+︒</text>
+                <fontPath>${jaSerif}</fontPath>
+                <fontSize>0.032</fontSize>
+                <color>${inkSoft}</color>
+                <horizontalAlignment>center</horizontalAlignment>
+                <verticalAlignment>top</verticalAlignment>
+                <lineSpacing>1.18</lineSpacing>
+                <zIndex>20</zIndex>
+            </text>
+            <text name="title">
+                <pos>0.044 0.66</pos>
+                <size>0.7 0.13</size>
+                <text>n.e.k.o.z.a.m.e.</text>
+                <fontPath>${light}</fontPath>
+                <fontSize>0.11</fontSize>
+                <color>${ink}</color>
+                <verticalAlignment>bottom</verticalAlignment>
+                <zIndex>20</zIndex>
+            </text>
+            <text name="subtitle">
+                <pos>0.048 0.795</pos>
+                <size>0.5 0.05</size>
+                <text>memories of the deep</text>
+                <fontPath>${italic}</fontPath>
+                <fontSize>0.04</fontSize>
+                <color>${inkSoft}</color>
+                <zIndex>20</zIndex>
+            </text>
+            <carousel name="systemCarousel">
+                <type>horizontal</type>
+                <pos>0.048 0.86</pos>
+                <size>0.55 0.06</size>
+                <staticImage>${nkLogo}</staticImage>
+                <text>${nkJa}</text>
+                <color>00000000</color>
+                <textColor>${ink}</textColor>
+                <textBackgroundColor>00000000</textBackgroundColor>
+                <fontPath>${jaLight}</fontPath>
+                <fontSize>0.034</fontSize>
+                <itemHorizontalAlignment>left</itemHorizontalAlignment>
+                <maxItemCount>3</maxItemCount>
+                <itemSize>0.2 0.05</itemSize>
+                <itemScale>1.2</itemScale>
+                <unfocusedItemOpacity>0.4</unfocusedItemOpacity>
+                <zIndex>30</zIndex>
+            </carousel>
+            <text name="release">
+                <pos>0.6 0.77</pos>
+                <size>0.355 0.04</size>
+                <text>${nkRelease}</text>
+                <fontPath>${jaLight}</fontPath>
+                <fontSize>0.026</fontSize>
+                <color>${inkSoft}</color>
+                <horizontalAlignment>right</horizontalAlignment>
+                <zIndex>20</zIndex>
+            </text>
+            <text name="countLabel">
+                <pos>0.6 0.815</pos>
+                <size>0.355 0.03</size>
+                <text>収録タイトル数</text>
+                <fontPath>${jaLight}</fontPath>
+                <fontSize>0.022</fontSize>
+                <color>${accent}</color>
+                <horizontalAlignment>right</horizontalAlignment>
+                <zIndex>20</zIndex>
+            </text>
+            <text name="count">
+                <pos>0.6 0.845</pos>
+                <size>0.355 0.07</size>
+                <systemdata>gamecountGamesNoText</systemdata>
+                <fontPath>${light}</fontPath>
+                <fontSize>0.06</fontSize>
+                <color>${accent}</color>
+                <horizontalAlignment>right</horizontalAlignment>
+                <zIndex>20</zIndex>
+            </text>
+        </view>
 
-    <!-- a system's games: your names on the left (with their versions), the cover and a
-         screenshot on the right -->
-    <view name="gamelist">
-        <text name="listTitle">
-            <pos>0.045 0.03</pos>
-            <size>0.6 0.07</size>
-            <text>${nkName}</text>
-            <fontPath>${bold}</fontPath>
-            <fontSize>0.055</fontSize>
-            <color>${soft}</color>
-            <letterCase>uppercase</letterCase>
-            <zIndex>30</zIndex>
-        </text>
-        <gamelistinfo name="gamelistInfo">
-            <pos>0.045 0.095</pos>
-            <size>0.4 0.035</size>
-            <fontPath>${regular}</fontPath>
-            <fontSize>0.026</fontSize>
-            <color>${dim}</color>
-            <zIndex>30</zIndex>
-        </gamelistinfo>
-        <image name="listPanel">
-            <pos>0.03 0.14</pos>
-            <size>0.53 0.78</size>
-            <path>./core/panel.svg</path>
-            <cornerRadius>0.012</cornerRadius>
-            <zIndex>10</zIndex>
-        </image>
-        <textlist name="gamelist">
-            <pos>0.045 0.155</pos>
-            <size>0.505 0.75</size>
-            <fontPath>${regular}</fontPath>
-            <fontSize>0.03</fontSize>
-            <lineSpacing>1.65</lineSpacing>
-            <primaryColor>${lilac}</primaryColor>
-            <secondaryColor>${pink}</secondaryColor>
-            <selectedColor>${deep}</selectedColor>
-            <selectedSecondaryColor>${deep}</selectedSecondaryColor>
-            <selectedBackgroundColor>${pink}</selectedBackgroundColor>
-            <selectedSecondaryBackgroundColor>${pink}</selectedSecondaryBackgroundColor>
-            <selectedBackgroundCornerRadius>0.012</selectedBackgroundCornerRadius>
-            <selectedBackgroundMargins>0.006 0.006</selectedBackgroundMargins>
-            <horizontalMargin>0.012</horizontalMargin>
-            <letterCase>none</letterCase>
-            <zIndex>20</zIndex>
-        </textlist>
-        <image name="cover">
-            <pos>0.72 0.42</pos>
-            <origin>0.5 0.5</origin>
-            <maxSize>0.27 0.5</maxSize>
-            <imageType>cover, miximage, screenshot</imageType>
-            <default>./core/default-cover.svg</default>
-            <cornerRadius>0.012</cornerRadius>
-            <scrollFadeIn>true</scrollFadeIn>
-            <zIndex>25</zIndex>
-        </image>
-        <image name="screenshot">
-            <pos>0.72 0.81</pos>
-            <origin>0.5 0.5</origin>
-            <maxSize>0.26 0.2</maxSize>
-            <imageType>titlescreen, screenshot</imageType>
-            <cornerRadius>0.008</cornerRadius>
-            <scrollFadeIn>true</scrollFadeIn>
-            <zIndex>25</zIndex>
-        </image>
-    </view>
+        <!-- a system's games: its name up top, its copy down the right -->
+        <view name="gamelist">
+            <text name="listTitle">
+                <pos>0.047 0.095</pos>
+                <size>0.7 0.06</size>
+                <text>${nkJa}</text>
+                <fontPath>${jaLight}</fontPath>
+                <fontSize>0.045</fontSize>
+                <color>${ink}</color>
+                <zIndex>30</zIndex>
+            </text>
+            <gamelistinfo name="gamelistInfo">
+                <pos>0.047 0.155</pos>
+                <size>0.4 0.03</size>
+                <fontPath>${light}</fontPath>
+                <fontSize>0.022</fontSize>
+                <color>${inkQuiet}</color>
+                <zIndex>30</zIndex>
+            </gamelistinfo>
+            <text name="copyMain">
+                <pos>0.9 0.13</pos>
+                <size>0.07 0.6</size>
+                <text>深
+く
+︑
+青
+く
+︒</text>
+                <fontPath>${jaSerif}</fontPath>
+                <fontSize>0.045</fontSize>
+                <color>${inkSoft}</color>
+                <horizontalAlignment>center</horizontalAlignment>
+                <verticalAlignment>top</verticalAlignment>
+                <lineSpacing>1.15</lineSpacing>
+                <zIndex>20</zIndex>
+            </text>
+        </view>
+    </variant>
+
+    <!-- your art behind, quietly -->
+    <variant name="listCollage, gridCollage">
+        <view name="system, gamelist">
+            <image name="collage">
+                <pos>0 0</pos>
+                <size>1 1</size>
+                <path>${nkCollage}</path>
+                <opacity>0.4</opacity>
+                <zIndex>1</zIndex>
+            </image>
+        </view>
+    </variant>
+
+    <!-- a list: your names whole (with their versions), the cover and a screenshot -->
+    <variant name="list, listCollage">
+        <view name="gamelist">
+            <image name="listPanel">
+                <pos>0.035 0.2</pos>
+                <size>0.5 0.72</size>
+                <path>${panel}</path>
+                <cornerRadius>0.014</cornerRadius>
+                <zIndex>10</zIndex>
+            </image>
+            <textlist name="gamelist">
+                <pos>0.045 0.215</pos>
+                <size>0.48 0.69</size>
+                <fontPath>${light}</fontPath>
+                <fontSize>0.03</fontSize>
+                <lineSpacing>1.7</lineSpacing>
+                <primaryColor>${ink}</primaryColor>
+                <secondaryColor>${accent}</secondaryColor>
+                <selectedColor>${onAccent}</selectedColor>
+                <selectedSecondaryColor>${onAccent}</selectedSecondaryColor>
+                <selectedBackgroundColor>${accent}</selectedBackgroundColor>
+                <selectedSecondaryBackgroundColor>${accent}</selectedSecondaryBackgroundColor>
+                <selectedBackgroundCornerRadius>0.012</selectedBackgroundCornerRadius>
+                <selectedBackgroundMargins>0.006 0.006</selectedBackgroundMargins>
+                <horizontalMargin>0.012</horizontalMargin>
+                <letterCase>none</letterCase>
+                <zIndex>20</zIndex>
+            </textlist>
+            <image name="cover">
+                <pos>0.68 0.47</pos>
+                <origin>0.5 0.5</origin>
+                <maxSize>0.24 0.46</maxSize>
+                <imageType>cover, miximage, screenshot</imageType>
+                <default>./core/default-cover.svg</default>
+                <cornerRadius>0.01</cornerRadius>
+                <scrollFadeIn>true</scrollFadeIn>
+                <zIndex>25</zIndex>
+            </image>
+            <image name="screenshot">
+                <pos>0.68 0.83</pos>
+                <origin>0.5 0.5</origin>
+                <maxSize>0.24 0.17</maxSize>
+                <imageType>titlescreen, screenshot</imageType>
+                <cornerRadius>0.008</cornerRadius>
+                <scrollFadeIn>true</scrollFadeIn>
+                <zIndex>25</zIndex>
+            </image>
+        </view>
+    </variant>
+
+    <!-- a grid of covers, the selected game's name (with its version) under it -->
+    <variant name="grid, gridCollage">
+        <view name="gamelist">
+            <grid name="gamelist">
+                <pos>0.04 0.2</pos>
+                <size>0.8 0.68</size>
+                <itemSize>0.12 0.29</itemSize>
+                <itemScale>1.08</itemScale>
+                <itemSpacing>0.022 0.04</itemSpacing>
+                <fractionalRows>false</fractionalRows>
+                <imageType>cover</imageType>
+                <defaultImage>./core/default-cover.svg</defaultImage>
+                <imageFit>contain</imageFit>
+                <imageCornerRadius>0.008</imageCornerRadius>
+                <unfocusedItemOpacity>0.7</unfocusedItemOpacity>
+                <textColor>${ink}</textColor>
+                <fontPath>${light}</fontPath>
+                <fontSize>0.02</fontSize>
+                <zIndex>20</zIndex>
+            </grid>
+            <text name="gameName">
+                <pos>0.047 0.885</pos>
+                <size>0.79 0.045</size>
+                <metadata>name</metadata>
+                <fontPath>${light}</fontPath>
+                <fontSize>0.03</fontSize>
+                <color>${ink}</color>
+                <zIndex>30</zIndex>
+            </text>
+        </view>
+    </variant>
 </theme>

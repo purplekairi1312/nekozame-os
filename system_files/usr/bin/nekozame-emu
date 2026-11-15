@@ -948,54 +948,89 @@ def esde_names():
 
 
 THEME_SRC = "/usr/share/nekozame-os/es-de/nekozame"
-# the poster's side text and small print: katakana (as it's said in japan), maker, year
+# each system's small print on the poster: its name as it's known in japan, and its
+# release (稼働 for arcade boards, 北米 for the ones that were america's)
+SCE, NEC = "ソニー・コンピュータエンタテインメント", "NECホームエレクトロニクス"
 POSTER = {
-    "nes": ("ファミコン", "Nintendo", 1983), "fds": ("ディスクシステム", "Nintendo", 1986),
-    "snes": ("スーパーファミコン", "Nintendo", 1990), "sfc": ("スーパーファミコン", "Nintendo", 1990),
-    "n64": ("ニンテンドウ64", "Nintendo", 1996), "gb": ("ゲームボーイ", "Nintendo", 1989),
-    "gbc": ("ゲームボーイカラー", "Nintendo", 1998), "gba": ("ゲームボーイアドバンス", "Nintendo", 2001),
-    "nds": ("ニンテンドーDS", "Nintendo", 2004), "virtualboy": ("バーチャルボーイ", "Nintendo", 1995),
-    "pokemini": ("ポケモンミニ", "Nintendo", 2001), "gc": ("ゲームキューブ", "Nintendo", 2001),
-    "wii": ("ウィー", "Nintendo", 2006), "wiiu": ("ウィーユー", "Nintendo", 2012),
-    "n3ds": ("ニンテンドー3DS", "Nintendo", 2011), "switch": ("ニンテンドースイッチ", "Nintendo", 2017),
-    "psx": ("プレイステーション", "Sony", 1994), "ps2": ("プレイステーション2", "Sony", 2000),
-    "ps3": ("プレイステーション3", "Sony", 2006), "ps4": ("プレイステーション4", "Sony", 2013),
-    "psp": ("プレイステーションポータブル", "Sony", 2004),
-    "sg-1000": ("エスジーセン", "Sega", 1983), "mastersystem": ("マスターシステム", "Sega", 1987),
-    "gamegear": ("ゲームギア", "Sega", 1990), "megadrive": ("メガドライブ", "Sega", 1988),
-    "megadrivejp": ("メガドライブ", "Sega", 1988), "genesis": ("ジェネシス", "Sega", 1989),
-    "segacd": ("メガシーディー", "Sega", 1991), "megacd": ("メガシーディー", "Sega", 1991),
-    "megacdjp": ("メガシーディー", "Sega", 1991), "sega32x": ("スーパー32X", "Sega", 1994),
-    "sega32xjp": ("スーパー32X", "Sega", 1994), "sega32xna": ("ジェネシス32X", "Sega", 1994),
-    "saturn": ("セガサターン", "Sega", 1994), "saturnjp": ("セガサターン", "Sega", 1994),
-    "dreamcast": ("ドリームキャスト", "Sega", 1998), "naomi": ("ナオミ", "Sega", 1998),
-    "atomiswave": ("アトミスウェイブ", "Sammy", 2003),
-    "pcengine": ("ピーシーエンジン", "NEC", 1987), "pcenginecd": ("シーディーロムロム", "NEC", 1988),
-    "tg16": ("ピーシーエンジン", "NEC", 1989), "tg-cd": ("シーディーロムロム", "NEC", 1989),
-    "pcfx": ("ピーシーエフエックス", "NEC", 1994), "pc88": ("パソコン8801", "NEC", 1981),
-    "pc98": ("キュウハチ", "NEC", 1982), "ngp": ("ネオジオポケット", "SNK", 1998),
-    "ngpc": ("ネオジオポケットカラー", "SNK", 1999), "neogeo": ("ネオジオ", "SNK", 1990),
-    "neogeocd": ("ネオジオシーディー", "SNK", 1994), "wonderswan": ("ワンダースワン", "Bandai", 1999),
-    "wonderswancolor": ("ワンダースワンカラー", "Bandai", 2000), "atari2600": ("アタリ2600", "Atari", 1977),
-    "atari5200": ("アタリ5200", "Atari", 1982), "atari7800": ("アタリ7800", "Atari", 1986),
-    "atarilynx": ("リンクス", "Atari", 1989), "atarijaguar": ("ジャガー", "Atari", 1993),
-    "3do": ("スリーディーオー", "Panasonic", 1993), "colecovision": ("コレコビジョン", "Coleco", 1982),
-    "intellivision": ("インテレビジョン", "Mattel", 1979), "vectrex": ("ベクトレックス", "GCE", 1982),
-    "odyssey2": ("オデッセイ2", "Magnavox", 1978), "msx": ("エムエスエックス", "ASCII", 1983),
-    "msx2": ("エムエスエックス2", "ASCII", 1985), "c64": ("コモドール64", "Commodore", 1982),
-    "amiga": ("アミーガ", "Commodore", 1985), "zxspectrum": ("スペクトラム", "Sinclair", 1982),
-    "amstradcpc": ("アムストラッド", "Amstrad", 1984), "apple2": ("アップル2", "Apple", 1977),
-    "dos": ("ドス", "IBM PC", 1981), "uzebox": ("ユーズボックス", "Belogic", 2008),
-    "arcade": ("アーケード", "Arcade", ""), "mame": ("アーケード", "MAME", ""),
-    "fbneo": ("アーケード", "FinalBurn Neo", ""), "cps1": ("シーピーエス", "Capcom", 1988),
-    "cps2": ("シーピーエス2", "Capcom", 1993), "cps3": ("シーピーエス3", "Capcom", 1996),
-    "xbox": ("エックスボックス", "Microsoft", 2001), "scummvm": ("スカムブイエム", "ScummVM", ""),
+    "nes": ("ファミリーコンピュータ", "1983年7月15日発売　任天堂"),
+    "fds": ("ディスクシステム", "1986年2月21日発売　任天堂"),
+    "snes": ("スーパーファミコン", "1990年11月21日発売　任天堂"),
+    "sfc": ("スーパーファミコン", "1990年11月21日発売　任天堂"),
+    "n64": ("NINTENDO64", "1996年6月23日発売　任天堂"),
+    "gb": ("ゲームボーイ", "1989年4月21日発売　任天堂"),
+    "gbc": ("ゲームボーイカラー", "1998年10月21日発売　任天堂"),
+    "gba": ("ゲームボーイアドバンス", "2001年3月21日発売　任天堂"),
+    "nds": ("ニンテンドーDS", "2004年12月2日発売　任天堂"),
+    "virtualboy": ("バーチャルボーイ", "1995年7月21日発売　任天堂"),
+    "pokemini": ("ポケモンミニ", "2001年12月14日発売　任天堂"),
+    "gc": ("ニンテンドーゲームキューブ", "2001年9月14日発売　任天堂"),
+    "wii": ("Wii", "2006年12月2日発売　任天堂"),
+    "wiiu": ("Wii U", "2012年12月8日発売　任天堂"),
+    "n3ds": ("ニンテンドー3DS", "2011年2月26日発売　任天堂"),
+    "switch": ("Nintendo Switch", "2017年3月3日発売　任天堂"),
+    "psx": ("プレイステーション", f"1994年12月3日発売　{SCE}"),
+    "ps2": ("プレイステーション2", f"2000年3月4日発売　{SCE}"),
+    "ps3": ("プレイステーション3", f"2006年11月11日発売　{SCE}"),
+    "ps4": ("プレイステーション4", f"2014年2月22日発売　{SCE}"),
+    "psp": ("プレイステーション・ポータブル", f"2004年12月12日発売　{SCE}"),
+    "sg-1000": ("SG-1000", "1983年7月15日発売　セガ"),
+    "mastersystem": ("マスターシステム", "1987年10月発売　セガ"),
+    "gamegear": ("ゲームギア", "1990年10月6日発売　セガ"),
+    "megadrive": ("メガドライブ", "1988年10月29日発売　セガ"),
+    "megadrivejp": ("メガドライブ", "1988年10月29日発売　セガ"),
+    "genesis": ("ジェネシス", "1989年8月14日発売（北米）　セガ"),
+    "segacd": ("SEGA CD", "1992年10月15日発売（北米）　セガ"),
+    "megacd": ("メガCD", "1991年12月12日発売　セガ"),
+    "megacdjp": ("メガCD", "1991年12月12日発売　セガ"),
+    "sega32x": ("スーパー32X", "1994年12月3日発売　セガ"),
+    "sega32xjp": ("スーパー32X", "1994年12月3日発売　セガ"),
+    "sega32xna": ("GENESIS 32X", "1994年11月21日発売（北米）　セガ"),
+    "saturn": ("セガサターン", "1994年11月22日発売　セガ"),
+    "saturnjp": ("セガサターン", "1994年11月22日発売　セガ"),
+    "dreamcast": ("ドリームキャスト", "1998年11月27日発売　セガ"),
+    "naomi": ("NAOMI", "1998年稼働　セガ"),
+    "atomiswave": ("アトミスウェイブ", "2003年稼働　サミー"),
+    "pcengine": ("PCエンジン", f"1987年10月30日発売　{NEC}"),
+    "pcenginecd": ("CD-ROM²", f"1988年12月4日発売　{NEC}"),
+    "tg16": ("TurboGrafx-16", "1989年8月29日発売（北米）　NEC"),
+    "tg-cd": ("TurboGrafx-CD", "1989年発売（北米）　NEC"),
+    "pcfx": ("PC-FX", f"1994年12月23日発売　{NEC}"),
+    "pc88": ("PC-8801", "1981年12月発売　日本電気"),
+    "pc98": ("PC-9801", "1982年10月発売　日本電気"),
+    "ngp": ("ネオジオポケット", "1998年10月28日発売　SNK"),
+    "ngpc": ("ネオジオポケットカラー", "1999年3月16日発売　SNK"),
+    "neogeo": ("ネオジオ", "1990年稼働　SNK"),
+    "neogeocd": ("ネオジオCD", "1994年9月9日発売　SNK"),
+    "wonderswan": ("ワンダースワン", "1999年3月4日発売　バンダイ"),
+    "wonderswancolor": ("ワンダースワンカラー", "2000年12月9日発売　バンダイ"),
+    "atari2600": ("Atari 2600", "1977年発売　アタリ"),
+    "atari5200": ("Atari 5200", "1982年発売　アタリ"),
+    "atari7800": ("Atari 7800", "1986年発売　アタリ"),
+    "atarilynx": ("Atari Lynx", "1989年発売　アタリ"),
+    "atarijaguar": ("Atari Jaguar", "1993年発売　アタリ"),
+    "3do": ("3DO", "1994年3月20日発売　松下電器産業"),
+    "colecovision": ("ColecoVision", "1982年発売　コレコ"),
+    "intellivision": ("Intellivision", "1979年発売　マテル"),
+    "vectrex": ("Vectrex", "1982年発売　GCE"),
+    "odyssey2": ("Odyssey²", "1978年発売　マグナボックス"),
+    "msx": ("MSX", "1983年　アスキー・マイクロソフト"),
+    "msx2": ("MSX2", "1985年　アスキー・マイクロソフト"),
+    "c64": ("コモドール64", "1982年発売　コモドール"),
+    "amiga": ("Amiga", "1985年発売　コモドール"),
+    "zxspectrum": ("ZX Spectrum", "1982年発売　シンクレア"),
+    "amstradcpc": ("Amstrad CPC", "1984年発売　アムストラッド"),
+    "apple2": ("Apple II", "1977年発売　アップル"),
+    "dos": ("MS-DOS", "1981年　マイクロソフト"),
+    "uzebox": ("Uzebox", "2008年"),
+    "arcade": ("アーケードゲーム", "ゲームセンター"),
+    "mame": ("アーケードゲーム", "MAME"),
+    "fbneo": ("アーケードゲーム", "FinalBurn Neo"),
+    "cps1": ("CPシステム", "1988年稼働　カプコン"),
+    "cps2": ("CPシステムII", "1993年稼働　カプコン"),
+    "cps3": ("CPシステムIII", "1996年稼働　カプコン"),
+    "xbox": ("Xbox", "2002年2月22日発売　マイクロソフト"),
+    "scummvm": ("ScummVM", "アドベンチャーゲーム"),
 }
-
-
-def tategaki(kana):
-    """written top to bottom: a character a line, the long vowel standing up."""
-    return "\n".join("丨" if c in "ーｰ" else c for c in kana)
 
 
 def collage(system, s, dest):
@@ -1063,24 +1098,26 @@ def esde_theme(s, collages=True):
         return False
     dest = os.path.join(ESDE_HOME, "themes/nekozame")
     os.makedirs(dest, exist_ok=True)
-    shutil.copytree(os.path.join(THEME_SRC, "core"), os.path.join(dest, "core"), dirs_exist_ok=True)
+    shutil.rmtree(os.path.join(dest, "core"), ignore_errors=True)
+    shutil.copytree(os.path.join(THEME_SRC, "core"), os.path.join(dest, "core"))
     shutil.copyfile(os.path.join(THEME_SRC, "capabilities.xml"), os.path.join(dest, "capabilities.xml"))
 
     def font(pattern):
         return subprocess.run(["fc-match", "-f", "%{file}", pattern], capture_output=True, text=True).stdout
     xml = open(os.path.join(THEME_SRC, "theme.xml")).read()
-    xml = xml.replace("@FONT_BOLD@", font("Noto Sans:bold")).replace("@FONT_REGULAR@", font("Noto Sans"))
-    xml = xml.replace("@FONT_JP@", font("Noto Sans CJK JP:bold"))
+    for key, pattern in (("LIGHT", "Noto Sans:light"), ("REGULAR", "Noto Sans"), ("ITALIC", "Noto Serif:italic"),
+                         ("JA_LIGHT", "Noto Sans CJK JP:light"), ("JA_BOLD", "Noto Sans CJK JP:bold"),
+                         ("JA_SERIF", "Noto Serif CJK JP")):
+        xml = xml.replace(f"@FONT_{key}@", font(pattern))
     open(os.path.join(dest, "theme.xml"), "w").write(xml)
     from xml.sax.saxutils import escape
+    shutil.rmtree(os.path.join(dest, "systems"), ignore_errors=True)
     os.makedirs(os.path.join(dest, "systems"), exist_ok=True)
     for system, (name, _, _) in SYSTEMS.items():
-        kana, maker, year = POSTER.get(system, ("ゲーム", "", ""))  # es-de won't take empty text
-        maker, year = maker or name, f"  ·  {year}" if year else ""
+        ja, release = POSTER.get(system, (name, "nekozame"))  # es-de won't take empty text
         open(os.path.join(dest, "systems", f"{system}.xml"), "w").write(
-            f"<theme>\n    <variables>\n        <nkName>{escape(name)}</nkName>\n"
-            f"        <nkKana>{escape(tategaki(kana))}</nkKana>\n        <nkMaker>{escape(maker)}</nkMaker>\n"
-            f"        <nkYear>{year}</nkYear>\n    </variables>\n</theme>\n")
+            f"<theme>\n    <variables>\n        <nkJa>{escape(ja)}</nkJa>\n"
+            f"        <nkRelease>{escape(release)}</nkRelease>\n    </variables>\n</theme>\n")
     made = 0
     if collages:
         for system in SYSTEMS:

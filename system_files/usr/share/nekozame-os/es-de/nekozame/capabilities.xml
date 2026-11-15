@@ -1,6 +1,30 @@
-<!-- nekozame for ES-DE: underwater, like a japanese game poster from the 90s.
-     everything here is drawn by hand (svg); each system's collage is made from your
-     own game art on your machine (nekozame-emu esde). -->
+<!-- nekozame for ES-DE: an underwater game poster from the 90s. everything here is
+     drawn by hand (svg); the optional collage is made on your machine from your own
+     games' art (nekozame-emu esde). -->
 <themeCapabilities>
     <themeName>nekozame</themeName>
+
+    <colorScheme name="nekozame">
+        <label>nekozame</label>
+    </colorScheme>
+    <colorScheme name="ocean">
+        <label>ocean</label>
+    </colorScheme>
+
+    <variant name="list">
+        <label>list with art</label>
+        <selectable>true</selectable>
+    </variant>
+    <variant name="grid">
+        <label>cover grid</label>
+        <selectable>true</selectable>
+    </variant>
+    <variant name="listCollage">
+        <label>list with art, your art behind</label>
+        <selectable>true</selectable>
+    </variant>
+    <variant name="gridCollage">
+        <label>cover grid, your art behind</label>
+        <selectable>true</selectable>
+    </variant>
 </themeCapabilities>
