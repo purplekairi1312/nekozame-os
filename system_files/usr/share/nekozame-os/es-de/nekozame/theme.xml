@@ -275,7 +275,7 @@
             </video>
             <image name="dataBox">
                 <pos>0.557 0.47</pos>
-                <size>0.356 0.33</size>
+                <size>0.356 0.46</size>
                 <path>./core/block.svg</path>
                 <color>${paper}</color>
                 <zIndex>10</zIndex>
@@ -375,16 +375,51 @@
                 <color>${body}</color>
                 <zIndex>12</zIndex>
             </text>
+            <!-- the game's description (from scraping), scrolling slowly when it's long -->
+            <text name="description">
+                <pos>0.567 0.79</pos>
+                <size>0.336 0.125</size>
+                <metadata>description</metadata>
+                <container>true</container>
+                <containerType>vertical</containerType>
+                <containerStartDelay>4.5</containerStartDelay>
+                <containerResetDelay>7</containerResetDelay>
+                <fontPath>${jaRegular}</fontPath>
+                <fontSize>0.02</fontSize>
+                <lineSpacing>1.4</lineSpacing>
+                <color>${body}</color>
+                <zIndex>12</zIndex>
+            </text>
+            <!-- with a cover, box or disc: it on the left, a screenshot on the right -->
+            <image name="boxArt">
+                <pos>0.6407 0.249</pos>
+                <origin>0.5 0.5</origin>
+                <maxSize>0.1566 0.3515</maxSize>
+                <imageType>cover</imageType>
+                <default>./core/default-cover.svg</default>
+                <scrollFadeIn>true</scrollFadeIn>
+                <visible>false</visible>
+                <zIndex>11</zIndex>
+            </image>
+            <image name="boxShot">
+                <pos>0.8151 0.249</pos>
+                <origin>0.5 0.5</origin>
+                <maxSize>0.1851 0.3515</maxSize>
+                <imageType>screenshot, titlescreen</imageType>
+                <scrollFadeIn>true</scrollFadeIn>
+                <visible>false</visible>
+                <zIndex>11</zIndex>
+            </image>
             <!-- the game's region (from its file name), its flags stamped in the data box's corner -->
             <image name="flag">
-                <pos>0.903 0.79</pos>
+                <pos>0.903 0.775</pos>
                 <origin>1 1</origin>
                 <maxSize>0.04 0.034</maxSize>
                 <imageType>flag</imageType>
                 <zIndex>13</zIndex>
             </image>
             <image name="flag2">
-                <pos>0.856 0.79</pos>
+                <pos>0.856 0.775</pos>
                 <origin>1 1</origin>
                 <maxSize>0.04 0.034</maxSize>
                 <imageType>flag2</imageType>
@@ -479,6 +514,25 @@
                 <pos>0.6 0.064</pos>
                 <size>0.313 0.33</size>
             </image>
+            <image name="descBox">
+                <pos>0.045 0.79</pos>
+                <size>0.52 0.14</size>
+                <path>./core/block.svg</path>
+                <color>${paper}</color>
+                <zIndex>10</zIndex>
+            </image>
+            <text name="description">
+                <pos>0.055 0.8</pos>
+                <size>0.5 0.12</size>
+            </text>
+            <image name="boxArt">
+                <pos>0.1672 0.4700</pos>
+                <maxSize>0.2288 0.5700</maxSize>
+            </image>
+            <image name="boxShot">
+                <pos>0.4220 0.4700</pos>
+                <maxSize>0.2704 0.5700</maxSize>
+            </image>
             <image name="dataRule">
                 <pos>0.61 0.174</pos>
                 <size>0.293 0.004</size>
@@ -567,6 +621,25 @@
                 <pos>0.53 0.17</pos>
                 <size>0.383 0.33</size>
             </image>
+            <image name="descBox">
+                <pos>0.53 0.515</pos>
+                <size>0.383 0.135</size>
+                <path>./core/block.svg</path>
+                <color>${paper}</color>
+                <zIndex>10</zIndex>
+            </image>
+            <text name="description">
+                <pos>0.54 0.523</pos>
+                <size>0.363 0.12</size>
+            </text>
+            <image name="boxArt">
+                <pos>0.1507 0.4100</pos>
+                <maxSize>0.1980 0.4560</maxSize>
+            </image>
+            <image name="boxShot">
+                <pos>0.3712 0.4100</pos>
+                <maxSize>0.2340 0.4560</maxSize>
+            </image>
             <image name="dataRule">
                 <pos>0.54 0.28</pos>
                 <size>0.363 0.004</size>
@@ -634,10 +707,10 @@
     <variant name="index, index-title, index-cover, index-box, index-media, index-video">
         <view name="gamelist">
             <image name="flag">
-                <pos>0.903 0.92</pos>
+                <pos>0.903 0.775</pos>
             </image>
             <image name="flag2">
-                <pos>0.856 0.92</pos>
+                <pos>0.856 0.775</pos>
             </image>
             <text name="headline">
                 <size>0.33 0.09</size>
@@ -672,55 +745,67 @@
             </textlist>
             <image name="screenFrame">
                 <pos>0.39 0.064</pos>
-                <size>0.523 0.5</size>
+                <size>0.523 0.376</size>
             </image>
             <image name="screen">
-                <pos>0.6515 0.314</pos>
-                <maxSize>0.515 0.486</maxSize>
+                <pos>0.6515 0.252</pos>
+                <maxSize>0.515 0.362</maxSize>
             </image>
             <video name="screenVideo">
-                <pos>0.6515 0.314</pos>
-                <maxSize>0.515 0.486</maxSize>
+                <pos>0.6515 0.252</pos>
+                <maxSize>0.515 0.362</maxSize>
             </video>
+            <image name="boxArt">
+                <pos>0.5129 0.2520</pos>
+                <maxSize>0.2301 0.3572</maxSize>
+            </image>
+            <image name="boxShot">
+                <pos>0.7692 0.2520</pos>
+                <maxSize>0.2720 0.3572</maxSize>
+            </image>
             <image name="dataBox">
-                <pos>0.39 0.6</pos>
-                <size>0.523 0.33</size>
+                <pos>0.39 0.47</pos>
+                <size>0.523 0.46</size>
             </image>
             <image name="dataRule">
-                <pos>0.4 0.71</pos>
+                <pos>0.4 0.58</pos>
                 <size>0.503 0.004</size>
             </image>
             <text name="gameName">
-                <pos>0.4 0.61</pos>
+                <pos>0.4 0.48</pos>
                 <size>0.503 0.095</size>
             </text>
             <text name="labelDate">
-                <pos>0.4 0.73</pos>
+                <pos>0.4 0.6</pos>
             </text>
             <datetime name="date">
-                <pos>0.5 0.73</pos>
+                <pos>0.5 0.6</pos>
                 <size>0.403 0.04</size>
             </datetime>
             <text name="labelMaker">
-                <pos>0.4 0.775</pos>
+                <pos>0.4 0.645</pos>
             </text>
             <text name="maker">
-                <pos>0.5 0.775</pos>
+                <pos>0.5 0.645</pos>
                 <size>0.403 0.04</size>
             </text>
             <text name="labelGenre">
-                <pos>0.4 0.82</pos>
+                <pos>0.4 0.69</pos>
             </text>
             <text name="genre">
-                <pos>0.5 0.82</pos>
+                <pos>0.5 0.69</pos>
                 <size>0.403 0.04</size>
             </text>
             <text name="labelPlayers">
-                <pos>0.4 0.865</pos>
+                <pos>0.4 0.735</pos>
             </text>
             <text name="players">
-                <pos>0.5 0.865</pos>
+                <pos>0.5 0.735</pos>
                 <size>0.403 0.04</size>
+            </text>
+            <text name="description">
+                <pos>0.4 0.79</pos>
+                <size>0.503 0.125</size>
             </text>
         </view>
     </variant>
@@ -734,29 +819,50 @@
         </view>
     </variant>
 
-    <!-- cover: in every layout -->
+    <!-- cover: in every layout, with a screenshot beside it -->
     <variant name="list-cover, grid-cover, review-cover, filmstrip-cover, index-cover">
         <view name="gamelist">
             <image name="screen">
-                <imageType>cover, screenshot</imageType>
+                <visible>false</visible>
+            </image>
+            <image name="boxArt">
+                <imageType>cover</imageType>
+                <visible>true</visible>
+            </image>
+            <image name="boxShot">
+                <visible>true</visible>
             </image>
         </view>
     </variant>
 
-    <!-- 3D box: in every layout -->
+    <!-- 3D box: in every layout, with a screenshot beside it -->
     <variant name="list-box, grid-box, review-box, filmstrip-box, index-box">
         <view name="gamelist">
             <image name="screen">
-                <imageType>3dbox, cover, screenshot</imageType>
+                <visible>false</visible>
+            </image>
+            <image name="boxArt">
+                <imageType>3dbox, cover</imageType>
+                <visible>true</visible>
+            </image>
+            <image name="boxShot">
+                <visible>true</visible>
             </image>
         </view>
     </variant>
 
-    <!-- disc or cartridge: in every layout -->
+    <!-- disc or cartridge: in every layout, with a screenshot beside it -->
     <variant name="list-media, grid-media, review-media, filmstrip-media, index-media">
         <view name="gamelist">
             <image name="screen">
-                <imageType>physicalmedia, cover, screenshot</imageType>
+                <visible>false</visible>
+            </image>
+            <image name="boxArt">
+                <imageType>physicalmedia, cover</imageType>
+                <visible>true</visible>
+            </image>
+            <image name="boxShot">
+                <visible>true</visible>
             </image>
         </view>
     </variant>
