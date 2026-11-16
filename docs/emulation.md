@@ -196,7 +196,7 @@ Puts every game in Steam as its own entry, with its art and launch command. With
 - Steam forgets big collections when it restarts, because its cloud won't store thousands of games in one. The `nekozame-emu-collections` service puts them back a few seconds after Steam starts, and removes stray copies of games. It's on by default.
 - `nekozame-emu steam refresh` redoes the art and collections. `nekozame-emu steam remove` takes all the games out of Steam.
 - Games without a cover: `nekozame-emu art` gets covers and screenshots from libretro's thumbnail library, matched by your file names.
-- 3D boxes: `nekozame-emu boxes` makes a 3D box from the cover of each game that doesn't have one, for the frontend's 3D box layouts. The case follows the system (cardboard for NES or SNES, a clamshell for the Mega Drive, a jewel case for PS1 or Saturn, a keep case in the console's color for PS2, GameCube, Wii or Switch). Scraped boxes stay as they are. `nekozame-emu boxes psx saturn` does only those systems; `--again` redoes the ones nekozame made.
+- 3D boxes: made from each game's cover, for the frontend's 3D box layouts. They're made on their own after `nekozame-emu art`, and for covers from scraping within 10 minutes (the `nekozame-emu-collections` service looks for new ones). `nekozame-emu boxes` makes them right away. The case follows the system (cardboard for NES or SNES, a clamshell for the Mega Drive, a jewel case for PS1 or Saturn, a keep case in the console's color for PS2, GameCube, Wii or Switch). Scraped boxes stay as they are. `nekozame-emu boxes psx saturn` does only those systems; `--again` redoes the ones nekozame made.
 
 ---
 
@@ -213,12 +213,12 @@ What it sets up:
 - Systems by maker and year, each console's regional versions together in the order they came out, with the region next to the name. Under Sega: Mega Drive | Japan (1988), Genesis | North America (1989), Mega Drive | Europe (1990), then the Game Gear, then the Mega-CD family.
 - Your file names as the game names, also after scraping.
 - nekozame's launcher as each system's first emulator, so saves sync. ES-DE's other emulators are still available per game.
-- The nekozame theme: each system is a page in the style of a 90s Japanese game magazine, printed on your machine from public-domain photos and your games' screenshots. Each page has a text about the console in English or Japanese (UI Settings → Theme language).
+- The nekozame theme: each system is a page in the style of an ocean-themed 90s Japanese magazine, printed on your machine from public-domain photos and your games' screenshots. Each page has a text about the console in English or Japanese (UI Settings → Theme language).
 - Color schemes (UI Settings → Color scheme): nekozame, lilac, sakura, ocean, sunset.
 - Layouts (UI Settings → Theme variant): game list, cover grid, review page, filmstrip, contents, each with screenshot, title screen, cover, 3D box, disc or cartridge, or video.
 - The drawings on top, set with `"drawings"`.
 - Menu colors: nekozame and nekozame light (UI Settings → Menu color scheme).
-- Music: "dolphin sanctuary" by purplekairi1312 plays while you browse and pauses during games and the screensaver. `"music": false` turns it off. © 2026 purplekairi1312, all rights reserved; it isn't under nekozame os's license (see its `LICENSE`).
+- Music: "dolphin sanctuary" by [purplekairi1312](https://passedrecordings.bandcamp.com/track/dolphin-sanctuary), an ocean-themed ambient track released by Passed Recordings, plays while you browse and pauses during games and the screensaver. `"music": false` turns it off. Buy it on [Bandcamp](https://passedrecordings.bandcamp.com/track/dolphin-sanctuary) or [Ampwall](https://ampwall.com/a/passedrecordings/album/passed-oceans), or listen on [YouTube](https://www.youtube.com/watch?v=-QDAa7hzcGU&t=7730s). © 2026 purplekairi1312, all rights reserved; it isn't under nekozame os's license (see its `LICENSE`).
 - The screensaver is a slideshow of screenshots, since the video one can freeze the frontend on a network share.
 
 After adding games or changing `"drawings"`, print the pages again:

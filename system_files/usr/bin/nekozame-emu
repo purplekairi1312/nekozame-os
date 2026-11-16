@@ -536,6 +536,7 @@ def art(system, rom, s):
 # glossy, a keep case's plastic rim); its shape follows the cover, so a super famicom's
 # box stays wide and a snes's tall.
 BOXES = os.path.join(HOME, ".local/state/nekozame/boxes.json")  # the boxes nekozame made
+COVERS_SEEN = os.path.join(HOME, ".local/state/nekozame/covers-seen.json")  # each covers folder's time, last look
 BOX_CASES = {"cardboard": dict(depth=0.22, gloss=0.0), "clamshell": dict(depth=0.14, gloss=0.35),
              "jewel": dict(depth=0.09, gloss=0.55), "keep": dict(depth=0.11, gloss=0.4)}
 BOX_CASE = {
@@ -664,6 +665,31 @@ def make_boxes(systems=None, again=False):
     say(f"{count} 3d boxes made (the layouts' 3d box pictures show them)")
 
 
+def new_boxes():
+    """3d boxes for covers that came since the last look (from scraping in the frontend,
+    say): only the systems whose covers folder changed are gone through."""
+    s = settings()
+    try:
+        seen = json.load(open(COVERS_SEEN))
+    except (OSError, ValueError):
+        seen = {}
+    changed = []
+    for system in SYSTEMS:
+        times = []
+        for m in s["media"]:
+            try:
+                times.append(os.stat(os.path.join(m, system, "covers")).st_mtime)
+            except OSError:
+                pass
+        if times and max(times) != seen.get(system):
+            changed.append(system)
+            seen[system] = max(times)
+    if changed:
+        make_boxes(changed)
+        os.makedirs(os.path.dirname(COVERS_SEEN), exist_ok=True)
+        json.dump(seen, open(COVERS_SEEN, "w"))
+
+
 _pygame = None
 
 
@@ -673,6 +699,7 @@ def pygame_ready():
     if _pygame is None:
         try:
             os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
+            os.environ.setdefault("PYGAME_HIDE_SUPPORT_PROMPT", "1")
             import pygame
             pygame.display.init()
             pygame.display.set_mode((1, 1))
@@ -833,9 +860,16 @@ def port_apps(js):
 def steam_watch():
     """steam keeps big collections only while it runs (its cloud won't store thousands of
     games in one), so each time steam starts, once your library is in: the emulation
-    collections again (a couple of seconds). runs as nekozame-emu-collections.service."""
+    collections again (a couple of seconds). also makes 3d boxes for new covers, every
+    10 minutes. runs as nekozame-emu-collections.service."""
+    import threading
     import time
+    boxes, last = None, 0
     while True:
+        if (boxes is None or not boxes.is_alive()) and time.time() - last > 600:
+            # every 10 minutes, apart from steam: boxes for new covers
+            boxes, last = threading.Thread(target=new_boxes, daemon=True), time.time()
+            boxes.start()
         try:
             added = load_state()
             if added:
@@ -1123,11 +1157,12 @@ def fetch_art(systems=None):
                 break
         return job, got
 
-    found = 0
+    found, got_systems = 0, set()
     with ThreadPoolExecutor(6) as pool:
         for i, ((system, base), got) in enumerate(pool.map(one, todo), 1):
             if got:
                 found += 1
+                got_systems.add(system)
             else:
                 misses.add(f"{system}/{base}")
             if i % 200 == 0:
@@ -1137,6 +1172,8 @@ def fetch_art(systems=None):
     os.makedirs(os.path.dirname(MISSES), exist_ok=True)
     json.dump(sorted(misses), open(MISSES, "w"))
     say(f"  art for {found} of {len(todo)} (nekozame-emu steam refresh puts it in steam)")
+    if got_systems:
+        make_boxes(sorted(got_systems))  # 3d boxes from the new covers
 
 
 # --- es-de ---------------------------------------------------------------------------
