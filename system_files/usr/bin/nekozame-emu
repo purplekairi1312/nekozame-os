@@ -34,7 +34,8 @@ settings (~/.config/nekozame/emulation.json), all optional:
                                               purplekairi1312, © 2026, all rights reserved)
   "drawings": "sharks"                        what's printed on each page's sky: 川原慶賀's
                                               "sharks", the "machines" themselves (museum
-                                              photos, patent drawings), or "both"
+                                              photos, patent drawings), or "both" (the
+                                              machine, a smaller shark below it)
   "loadToRam": true                           discs read into memory before a game starts
                                               (ps1, saturn, pc engine cd, ps2, psp), so
                                               one on a network share never stalls
@@ -1481,13 +1482,13 @@ def date_en(date):
 SCHEMES = {
     # sky top and bottom, the headline's two inks, the spine and its block, the body's
     # ink, the data box's paper and ink, the screens' frames, and the gradient map the
-    # photos are printed through; plate: a light card the drawing is printed on (a
-    # dark page would swallow it), dots: the halftone's ink
+    # photos are printed through; dark: a dark page (the drawing's paper is taken out
+    # rather than multiplied away), dots: the halftone's ink
     # nekozame: nekozame-theme's own colours (its palette.toml): violet-gray paper,
     # pastel pink, arctic blue and lilac
     "nekozame": dict(sky=((67, 58, 85), (104, 92, 127)), ink1=(255, 192, 229), ink2=(184, 228, 255),
                      spine=(255, 192, 229), block=(67, 58, 85), body=(232, 222, 245), paper=(79, 69, 98),
-                     boxink=(255, 209, 236), frame=(255, 212, 238), plate=(241, 230, 255), dots=(255, 244, 250, 9),
+                     boxink=(255, 209, 236), frame=(255, 212, 238), dark=True, dots=(255, 244, 250, 9),
                      map=[(0.0, (34, 30, 52)), (0.25, (68, 70, 112)), (0.45, (96, 124, 178)), (0.62, (150, 196, 238)),
                           (0.8, (214, 214, 250)), (0.9, (255, 200, 232)), (1.0, (255, 244, 250))]),
     "lilac": dict(sky=((255, 244, 250), (227, 204, 255)), ink1=(124, 106, 154), ink2=(90, 79, 110),
@@ -1588,41 +1589,68 @@ def magazine(system, s, scheme, dest, bare=False, lang="en"):
     page.blit(dots, (0, 0))
     page.fill(c["spine"], (W - 120, 0, 120, H))  # the spine (its words are es-de's)
     if not bare:
-        # a shark as 川原慶賀 painted it for siebold (1820s): printed onto the sky, a
-        # different one now and then; the ネコザメ most often
+        # on the sky: a shark as 川原慶賀 painted it for siebold (1820s), a different one
+        # now and then, the ネコザメ most often; or the machine itself; or the machine
+        # with a smaller shark below it ("drawings": "sharks", "machines", "both")
         drawings = [d for d in DRAWINGS if os.path.exists(f"{PHOTOS}/{d[0]}.jpg")] or DRAWINGS
-        name_, ja_cap, en_cap = drawings[rnd.randrange(len(drawings))]
-        credit = ("　川原慶賀画", " · painted by Kawahara Keiga")
-        # or the machine itself ("drawings": "machines", or "both" for either)
+        shark_name, shark_ja, shark_en = drawings[rnd.randrange(len(drawings))]
+        shark = (shark_name, f"▲{shark_ja}　川原慶賀画", f"▲ {shark_en} · painted by Kawahara Keiga", "paint")
         machines = [m for m in MACHINES.get(system, []) if os.path.exists(f"{PHOTOS}/{m[0]}.jpg")]
+        machine = None
+        if machines:
+            m_name, m_en, m_ja = machines[rnd.randrange(len(machines))]
+            m_cap = POSTER.get(system, (SYSTEMS[system][0] if system in SYSTEMS else system, ""))[0]
+            machine = (m_name, f"▲{m_cap}　{m_ja}", f"▲ {SYSTEMS[system][0] if system in SYSTEMS else system} · {m_en}",
+                       "line" if m_name.startswith("patent-") else "photo")
         mode = s.get("drawings", "sharks")
-        if machines and (mode == "machines" or (mode == "both" and rnd.random() < 0.5)):
-            name_, en_credit, ja_credit = machines[rnd.randrange(len(machines))]
-            ja_cap = POSTER.get(system, (SYSTEMS[system][0] if system in SYSTEMS else system, ""))[0]
-            en_cap = SYSTEMS[system][0] if system in SYSTEMS else system
-            credit = ("　" + ja_credit, " · " + en_credit)
-        try:
-            art = pg.image.load(f"{PHOTOS}/{name_}.jpg").convert()
-            iw, ih = art.get_size(); k = min(470 / iw, 230 / ih)
+        if mode == "machines" and machine:
+            arts = [(machine, (880, 30, 470, 230))]
+        elif mode == "both" and machine:
+            arts = [(machine, (880, 30, 470, 230)), (shark, (930, 330, 370, 150))]
+        else:
+            arts = [(shark, (880, 30, 470, 230))]
+        cf = pg.font.Font(subprocess.run(["fc-match", "-f", "%{file}", "Noto Sans CJK JP:regular"], capture_output=True,
+                                         text=True).stdout or None, 18)
+        for (name_, cap_ja, cap_en, kind), (bx0, by0, bw0, bh0) in arts:
+            try:
+                art = pg.image.load(f"{PHOTOS}/{name_}.jpg").convert()
+            except (pg.error, OSError):
+                continue
+            iw, ih = art.get_size(); k = min(bw0 / iw, bh0 / ih)
             art = pg.transform.smoothscale(art, (int(iw * k), int(ih * k)))
             art.fill((14, 14, 14), special_flags=pg.BLEND_ADD)  # its paper to white, so it vanishes
-            if c.get("plate"):  # on a dark page: printed on a light plate, the plate on the page
-                pw, ph = art.get_width() + 36, art.get_height() + 28
-                plate = (880 + (470 - pw) // 2, 30 + (230 - ph) // 2, pw, ph)
-                page.fill(c["plate"], plate)
-                pg.draw.rect(page, c["boxink"], pg.Rect(plate).inflate(-10, -10), 1)  # mounted, like a specimen card
-            page.blit(art, (880 + (470 - art.get_width()) // 2, 30 + (230 - art.get_height()) // 2), special_flags=pg.BLEND_MULT)
-            cap = (f"▲{ja_cap}{credit[0]}" if lang == "ja" else f"▲ {en_cap}{credit[1]}")
-            cf = pg.font.Font(subprocess.run(["fc-match", "-f", "%{file}", "Noto Sans CJK JP:regular"], capture_output=True,
-                                             text=True).stdout or None, 18)
+            at = (bx0 + (bw0 - art.get_width()) // 2, by0 + (bh0 - art.get_height()) // 2)
+            if c.get("dark"):
+                # a dark page would swallow it multiplied, so its white is taken out: a
+                # painting's paper made transparent (only the paint and ink left, lifted a
+                # little to read), a photo's backdrop cut away (the machine kept solid), a
+                # patent's lines drawn in the page's light ink
+                ink = pg.Surface(art.get_size(), pg.SRCALPHA)
+                src, dst = pg.PixelArray(art), pg.PixelArray(ink)
+                for y in range(art.get_height()):
+                    for x in range(art.get_width()):
+                        r, g, b, _ = art.unmap_rgb(src[x, y])
+                        a = max(255 - r, 255 - g, 255 - b) / 255
+                        if a < 0.04:
+                            continue
+                        if kind == "photo":
+                            dst[x, y] = (r, g, b, int(min(1, a * 255 / 40) * 255))
+                        elif kind == "line":
+                            dst[x, y] = (*c["body"], int(min(1, a * 1.4) * 255))
+                        else:
+                            col = [min(255, max(0, (v - 255 * (1 - a)) / a)) for v in (r, g, b)]
+                            dst[x, y] = (*(int(255 - (255 - v) * 0.72) for v in col), int(min(1, a * 1.25) * 255))
+                del src, dst
+                page.blit(ink, at)
+            else:
+                page.blit(art, at, special_flags=pg.BLEND_MULT)
+            cap = cap_ja if lang == "ja" else cap_en
             parts = [cap]
-            if cf.size(cap)[0] > 470:  # two lines, split where it reads well
+            if cf.size(cap)[0] > bw0:  # two lines, split where it reads well
                 cut = cap.rfind("　") if lang == "ja" else cap.rfind(" · ")
                 parts = [cap[:cut], "　" + cap[cut:].strip(" ·　")] if cut > 0 else [cap]
             for i, part in enumerate(parts):
-                page.blit(cf.render(part, True, c["body"]), (930, 268 + i * 24))
-        except (pg.error, OSError):
-            pass
+                page.blit(cf.render(part, True, c["body"]), (bx0 + 50 if bw0 >= 470 else bx0, by0 + bh0 + 8 + i * 24))
         ja, release = POSTER.get(system, (SYSTEMS[system][0] if system in SYSTEMS else system, ""))
         date, _, maker = release.partition("　")
         if not maker:
