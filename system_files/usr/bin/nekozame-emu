@@ -1374,7 +1374,7 @@ def esde_theme(s, pages=True, again=False):
         ja, release = POSTER.get(system, (name, ""))
         year = re.match(r"\d{4}", release)
         # down the spine: the name, a gap, the page's little line, again and again
-        spine = "\n".join(vertical.get(ch, ch) for ch in f"{ja}　●深い青への誘い　") * 3
+        spine = "\n".join(vertical.get(ch, ch) for ch in f"{ja}　●深い青への誘い　" * 3)
         en = f"{name}  ·  {year.group(0) if year else 'nekozame'}  ·  memories of the deep  ·  " * 3
         open(os.path.join(dest, "systems", f"{system}.xml"), "w").write(
             f"<theme>\n    <variables>\n        <nkJa>{escape(ja)}</nkJa>\n        <nkEn>{escape(name)}</nkEn>\n"
