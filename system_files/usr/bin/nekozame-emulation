@@ -1,0 +1,127 @@
+#!/bin/bash
+# nekozame-emulation: setting up nekozame's emulation, step by step (ujust
+# nekozame-emulation, and a step of nekozame-setup): where your games are (this machine
+# or a network share, mounted for good), the emulators, your saves, steam, the frontend,
+# covers and 3d boxes. run it again any time: what's done stays done.
+# the whole story: https://github.com/purplekairi1312/nekozame-os/blob/main/docs/emulation.md
+set -uo pipefail
+CONF="$HOME/.config/nekozame/emulation.json"
+
+pink() { gum style --foreground "#ffc0e5" --bold "$*"; }
+step() { echo; pink "▸ $*"; }
+ask() { gum confirm --default="${2:-true}" "$1"; }  # ask QUESTION [false]
+ok() { echo "  ✓ $*"; }
+
+# the settings file: these keys set, the rest kept
+setting() {
+    python3 - "$CONF" "$@" <<'EOF'
+import json, os, sys
+path, pairs = sys.argv[1], sys.argv[2:]
+try:
+    s = json.load(open(path))
+except (OSError, ValueError):
+    s = {}
+for pair in pairs:
+    key, value = pair.split("=", 1)
+    s[key] = json.loads(value)
+os.makedirs(os.path.dirname(path), exist_ok=True)
+json.dump(s, open(path, "w"), indent=2)
+EOF
+}
+current_roms() {
+    python3 -c 'import json,sys; print((json.load(open(sys.argv[1])).get("roms") or [""])[0])' "$CONF" 2>/dev/null
+}
+
+# a network share mounted for good: its login readable only by root, and the options
+# that keep a big library quick and come back after sleep (the guide says why)
+mount_share() {
+    local server share user pass mnt creds line
+    server=$(gum input --header "The NAS (its name or address, e.g. nas.local, or its Tailscale name to play from anywhere):") || return 1
+    share=$(gum input --header "The shared folder with your games (e.g. Emulation):" --value Emulation) || return 1
+    user=$(gum input --header "Your user on the NAS:") || return 1
+    pass=$(gum input --password --header "Its password (kept in a file only root can read):") || return 1
+    [ -n "$server" ] && [ -n "$share" ] || return 1
+    mnt="/mnt/nas/$share"
+    creds="/etc/nekozame/smb-$share-credentials"
+    sudo mkdir -p /etc/nekozame "$mnt"
+    printf 'username=%s\npassword=%s\n' "$user" "$pass" | sudo tee "$creds" >/dev/null
+    sudo chmod 600 "$creds"
+    line="//$server/$share $mnt cifs credentials=$creds,iocharset=utf8,actimeo=600,echo_interval=10,uid=$(id -u),gid=$(id -g),_netdev,nofail,x-systemd.automount,x-systemd.mount-timeout=20 0 0"
+    if ! grep -q " $mnt cifs " /etc/fstab; then
+        echo "$line" | sudo tee -a /etc/fstab >/dev/null
+    fi
+    sudo systemctl daemon-reload
+    sudo systemctl restart "$(systemd-escape -p --suffix=automount "$mnt")" 2>/dev/null
+    if ls "$mnt" >/dev/null 2>&1; then
+        ok "mounted at $mnt, and every time this machine starts"
+        ROOT="$mnt"
+    else
+        echo "  the share didn't answer: check the name, the folder and the login, then run this again"
+        return 1
+    fi
+}
+
+gum style --border rounded --border-foreground "#ffc0e5" --padding "0 2" \
+    "nekozame emulation 🦈" "" "your whole library, from one place, on every machine." \
+    "the defaults are already picked: press enter to keep them."
+
+step "Your games"
+ROOT=$(current_roms)
+ROOT=${ROOT%/roms}
+if [ -n "$ROOT" ] && [ -d "$ROOT" ] && ! ask "They're in $ROOT. Change that?" false; then
+    ok "$ROOT"
+else
+    HERE="On this machine (~/Emulation)"; SHARE="On a network share (a NAS)"; ELSE="In another folder"
+    case "$(gum choose --header "Where are your games?" --selected="$HERE" "$HERE" "$SHARE" "$ELSE")" in
+        "$HERE") ROOT="$HOME/Emulation" ;;
+        "$SHARE") mount_share || exit 1 ;;
+        "$ELSE") ROOT=$(gum input --header "The folder that holds roms/, bios/... (the layout ES-DE and EmuDeck use):") || exit 1 ;;
+        *) exit 0 ;;
+    esac
+    mkdir -p "$ROOT/roms" "$ROOT/bios" "$ROOT/saves" "$ROOT/tools/downloaded_media" 2>/dev/null
+    setting "roms=[\"$ROOT/roms\"]" "bios=\"$ROOT/bios\"" "media=[\"$ROOT/tools/downloaded_media\"]" \
+        "steam={\"roms\": [\"$ROOT/roms\"], \"names\": \"file\"}"
+    ok "$ROOT: one folder per system in roms/ (psx, snes, megadrivejp...), your file names kept as the games' names"
+fi
+
+step "Emulators"
+nekozame-emu setup
+
+step "Saves"
+if [ -s "$HOME/.config/nekozame/saves.json" ]; then
+    ok "syncing (where to: nekozame-saves setup)"
+elif ask "Sync your saves with one place every machine reaches (the newest wins, nothing thrown away)?"; then
+    nekozame-saves setup
+fi
+
+step "Steam"
+if ! pgrep -x steam >/dev/null; then
+    echo "  open Steam first, then run this again (ujust nekozame-emulation) to put your games in it"
+elif [ -s "$HOME/.local/state/nekozame/steam-games.json" ]; then
+    nekozame-emu steam add  # only the new games
+else
+    if ask "Put every game in Steam, each with its own art and a collection per system?"; then
+        nekozame-emu steam add
+    fi
+fi
+if pgrep -x steam >/dev/null && [ -d "$HOME/homebrew/plugins/TabMaster" ]; then
+    nekozame-emu steam tabs
+    echo "  Steam's tabs: Apps (your other apps) and Emulation (the games and emulators)"
+fi
+
+step "The frontend (browse the whole library, in nekozame's magazine theme)"
+if [ -s "$HOME/.local/state/nekozame/es-de.json" ]; then
+    nekozame-emu esde on
+elif ask "Install nekozame-emu-frontend? (in Steam's Apps tab and your apps menu)"; then
+    nekozame-emu esde on
+fi
+
+step "Covers and 3D boxes"
+if ask "Fetch covers for games without, and make 3D boxes from them? (a while, for a big library)" false; then
+    nekozame-emu art
+    nekozame-emu boxes
+fi
+
+echo; pink "all set <3"
+echo "  more: ujust nekozame-emulation again, nekozame-emu, and the guide:"
+echo "  https://github.com/purplekairi1312/nekozame-os/blob/main/docs/emulation.md"

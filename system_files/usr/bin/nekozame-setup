@@ -3,7 +3,7 @@
 # login; run it again any time with ujust nekozame-setup. what's done stays done.
 #   on for everyone: zen with the privacy extensions, tailscale, sunshine,
 #   doom emacs, the theme and wallpaper, and the theme in zen, discord and bitwig
-#   asked: logging in automatically, evil mode or another editor, music
+#   asked: logging in automatically, emulation, evil mode or another editor, music
 #   production, helium
 set -uo pipefail
 STATE="${XDG_STATE_HOME:-$HOME/.local/state}/nekozame"
@@ -102,6 +102,13 @@ if [ -f /etc/greetd/config.toml ]; then  # the deck starts in game mode by itsel
             nekozame-autologin on
         fi
     fi
+fi
+
+step "Emulation: your whole game library, from a folder or a NAS, on every machine"
+if [ -s "$HOME/.config/nekozame/emulation.json" ]; then
+    ok "set up (more: ujust nekozame-emulation)"
+elif ask "Set up emulation? (where your games are, the emulators, saves synced, Steam, the frontend)" false; then
+    nekozame-emulation
 fi
 
 step "Editor"

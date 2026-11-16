@@ -13,6 +13,8 @@ It's made of a few parts:
 
 This guide sets up the whole thing the way nekozame is meant to be used. Every step is optional: with no NAS, everything works from local folders too.
 
+**The quick way:** `ujust nekozame-emulation` (also a step of nekozame's first setup) walks through all of it: where your games are, mounting a NAS share for good, the emulators, save sync, Steam and the frontend. The sections below explain each step, and how to do it by hand.
+
 ---
 
 ## 1. Your library

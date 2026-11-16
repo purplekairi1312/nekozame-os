@@ -5,6 +5,11 @@
 nekozame-setup:
     /usr/bin/nekozame-setup
 
+# Emulation: where your games are (this machine or a NAS), emulators, saves, Steam, the frontend
+[group('nekozame')]
+nekozame-emulation:
+    /usr/bin/nekozame-emulation
+
 # Audio latency: low (default), normal (for crackles) or status
 [group('nekozame')]
 nekozame-audio LATENCY="status":

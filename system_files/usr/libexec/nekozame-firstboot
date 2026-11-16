@@ -396,8 +396,9 @@ class Connecting:
 
 
 EDITORS = ["Doom Emacs", "Doom Emacs, evil mode (vim keys)", "no editor for now"]
-EMULATORS = ["org.libretro.RetroArch", "net.pcsx2.PCSX2", "org.DolphinEmu.dolphin-emu", "org.ppsspp.PPSSPP",
-             "org.duckstation.DuckStation", "net.kuribo64.melonDS"]
+# the emulators nekozame-emu plays most with (the rest come with ujust nekozame-emulation,
+# for the systems you have games for)
+EMULATORS = ["org.libretro.RetroArch", "net.pcsx2.PCSX2", "org.DolphinEmu.dolphin-emu", "org.ppsspp.PPSSPP"]
 
 # what the setup offers, page by page: games first (it's a deck), then streaming, then
 # apps. key, name, what it is, on by default, how to tell it's already there, flatpaks
@@ -406,7 +407,7 @@ CATALOG = [
     ("games", "games", [
         ("heroic", "Heroic", "Epic, GOG and Amazon games, next to Steam", True,
          lambda: installed("com.heroicgameslauncher.hgl"), ["com.heroicgameslauncher.hgl"], True),
-        ("emulators", "Emulators", "RetroArch, PCSX2, Dolphin, PPSSPP, DuckStation, melonDS", True,
+        ("emulators", "Emulators", "RetroArch, PCSX2, Dolphin, PPSSPP; your library: ujust nekozame-emulation", True,
          lambda: all(installed(a) for a in EMULATORS), EMULATORS, True),
         ("protonplus", "ProtonPlus", "Proton-GE and others, for Windows games that need them", False,
          lambda: installed("com.vysp3r.ProtonPlus"), ["com.vysp3r.ProtonPlus"], False),
