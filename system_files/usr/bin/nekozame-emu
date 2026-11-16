@@ -1105,6 +1105,7 @@ def fetch_art(systems=None):
 
 ESDE = os.path.join(HOME, ".local/share/nekozame/es-de")
 ESDE_HOME = os.path.join(HOME, "ES-DE")
+ESDE_NAME = "nekozame-emu-frontend"
 ESDE_STATE = os.path.join(HOME, ".local/state/nekozame/es-de.json")
 # nekozame-emu-frontend: nekozame's build of es-de (its menu colours, its theme)
 ESDE_RELEASES = "https://api.github.com/repos/purplekairi1312/nekozame-emu-frontend/releases/latest"
@@ -2003,6 +2004,7 @@ def esde(off=False):
         if os.path.exists("/sys/devices/virtual/dmi/id/sys_vendor") else False
     want = f"nekozame-emu-frontend_x64{'_SteamDeck' if deck else ''}.AppImage"
     link = next(a["browser_download_url"] for a in release["assets"] if a["name"] == want)
+    fresh = False
     if st.get("version") != release["tag_name"] or not os.path.exists(appimage):
         say(f"getting nekozame-emu-frontend {release['tag_name']}")
         os.makedirs(ESDE, exist_ok=True)
@@ -2010,6 +2012,7 @@ def esde(off=False):
         os.chmod(appimage + ".part", 0o755)
         os.replace(appimage + ".part", appimage)
         st["version"] = release["tag_name"]
+        fresh = True  # its icon and steam art made again from the new release
     esde_systems(appimage)
     values = {"ROMDirectory": ("string", s["roms"][0]), "MediaDirectory": ("string", s["media"][0]),
               "ApplicationUpdaterFrequency": ("string", "never"),
@@ -2027,6 +2030,8 @@ def esde(off=False):
     esde_settings(values)
     # in the menu, and in steam with nekozame's art
     icon = os.path.join(ESDE, "es-de.svg")
+    if fresh and os.path.exists(icon):
+        os.remove(icon)
     if not os.path.exists(icon):
         import tempfile
         with tempfile.TemporaryDirectory() as tmp:
@@ -2037,22 +2042,28 @@ def esde(off=False):
                 shutil.copyfile(found[0], icon)
     os.makedirs(os.path.dirname(desktop), exist_ok=True)
     with open(desktop, "w") as f:
-        f.write(f"[Desktop Entry]\nType=Application\nName=ES-DE\nComment=Your whole game library\n"
+        f.write(f"[Desktop Entry]\nType=Application\nName={ESDE_NAME}\nComment=Your whole game library\n"
                 f"Exec={appimage}\nIcon={icon}\nCategories=Game;Emulator;\nTerminal=false\n")
     try:
         js = steam_js()
         if not st.get("appid") or not js("appStore.GetAppOverviewByAppID(%d)?.appid" % st["appid"]):
             st["appid"] = js("SteamClient.Apps.AddShortcut(%s, %s, %s, %s)" % (
-                json.dumps("ES-DE"), json.dumps(appimage), json.dumps(ESDE), json.dumps("")), wait=True)
-            js("SteamClient.Apps.SetShortcutName(%d, %s)" % (st["appid"], json.dumps("ES-DE")))
+                json.dumps(ESDE_NAME), json.dumps(appimage), json.dumps(ESDE), json.dumps("")), wait=True)
             import time
             time.sleep(10)  # steam writes the shortcut down; then its art
+        elif fresh:  # nekozame's art from the last release's icon: made again
+            for grid in grids():
+                for suffix in ("p.png", "_hero.png", "_logo.png", ".png", "_icon.png"):
+                    old = os.path.join(grid, f"{st['appid']}{suffix}")
+                    if os.path.exists(old):
+                        os.remove(old)
+        js("SteamClient.Apps.SetShortcutName(%d, %s)" % (st["appid"], json.dumps(ESDE_NAME)))
         subprocess.run(["/usr/libexec/nekozame-steam-art", desktop], capture_output=True)
     except (OSError, StopIteration):
-        say("  (steam isn't running: ES-DE goes in its library next time)")
+        say(f"  (steam isn't running: {ESDE_NAME} goes in its library next time)")
     os.makedirs(os.path.dirname(ESDE_STATE), exist_ok=True)
     json.dump(st, open(ESDE_STATE, "w"))
-    say(f"ES-DE {st['version']} is ready: in steam, and in your apps menu")
+    say(f"{ESDE_NAME} {st['version']} is ready: in steam, and in your apps menu")
     return 0
 
 
