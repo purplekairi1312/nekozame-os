@@ -96,7 +96,8 @@
             <lblMaker>● Publisher</lblMaker>
             <lblGenre>● Genre</lblGenre>
             <lblPlayers>● Players</lblPlayers>
-            <dateFormat>%B %d, %Y</dateFormat>
+            <!-- numbers only: the frontend has no month names (%B) -->
+            <dateFormat>%Y-%m-%d</dateFormat>
         </variables>
     </language>
     <language name="ja_JP">
