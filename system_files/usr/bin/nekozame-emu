@@ -32,6 +32,9 @@ settings (~/.config/nekozame/emulation.json), all optional:
                                               a game tell apart in the library
   "music": true, "musicVolume": 40            es-de's music ("dolphin sanctuary" by
                                               purplekairi1312, © 2026, all rights reserved)
+  "drawings": "sharks"                        what's printed on each page's sky: 川原慶賀's
+                                              "sharks", the "machines" themselves (museum
+                                              photos, patent drawings), or "both"
   "loadToRam": true                           discs read into memory before a game starts
                                               (ps1, saturn, pc engine cd, ps2, psp), so
                                               one on a network share never stalls
@@ -1016,7 +1019,7 @@ SCE, NEC = "ソニー・コンピュータエンタテインメント", "NECホ�
 POSTER = {
     "nes": ("NES", "1985年10月18日発売（北米）　任天堂"),
     "fds": ("ディスクシステム", "1986年2月21日発売　任天堂"),
-    "snes": ("スーパーファミコン", "1990年11月21日発売　任天堂"),
+    "snes": ("Super NES", "1991年8月23日発売（北米）　任天堂"),
     "sfc": ("スーパーファミコン", "1990年11月21日発売　任天堂"),
     "n64": ("NINTENDO64", "1996年6月23日発売　任天堂"),
     "gb": ("ゲームボーイ", "1989年4月21日発売　任天堂"),
@@ -1362,6 +1365,75 @@ PAIRS = [
     ("whale-shark", "manta-2", 1120, "multiply", "▲光の差す水面の下、大きな影がすれ違う。", "▲ Under the sunlit surface, great shadows pass each other."),
     ("diver", "manta-2", 1150, "multiply", "▲ダイバーの頭上を、マンタがゆっくりと舞う。", "▲ A manta dances slowly above a diver."),
 ]
+# the machines themselves, for "drawings": "machines" or "both": a museum photo of each
+# system as its own region knew it (most by evan-amos, public domain; the others' licences
+# in photos/CREDITS.txt), and a u.s. patent's drawing where one is public; each with
+# its credit
+MACHINES = {
+    '3do': [('machine-3do', 'photo: Evan-Amos', '写真：Evan-Amos')],
+    'amiga': [('machine-amiga', 'photo: Sernot', '写真：Sernot')],
+    'arcade': [('patent-arcade', 'Atari, U.S. patent 4,084,194, 1978', 'アタリ\u3000米国特許4,084,194（1978年）')],
+    'atari2600': [('machine-atari2600', 'photo: Evan-Amos', '写真：Evan-Amos'), ('patent-atari2600', 'U.S. design patent D251,143, 1979', '米国意匠特許D251,143（1979年）')],
+    'atari5200': [('machine-atari5200', 'photo: Evan-Amos', '写真：Evan-Amos'), ('patent-atari5200', 'U.S. design patent D271,311, 1983', '米国意匠特許D271,311（1983年）')],
+    'atari7800': [('machine-atari7800', 'photo: Evan-Amos', '写真：Evan-Amos')],
+    'atarijaguar': [('machine-atarijaguar', 'photo: Evan-Amos', '写真：Evan-Amos')],
+    'atarilynx': [('machine-atarilynx', 'photo: Evan-Amos', '写真：Evan-Amos')],
+    'c64': [('machine-c64', 'photo: Evan-Amos', '写真：Evan-Amos')],
+    'colecovision': [('machine-colecovision', 'photo: OliverGalvin', '写真：OliverGalvin')],
+    'dreamcast': [('machine-dreamcast', 'photo: Evan-Amos', '写真：Evan-Amos')],
+    'fbneo': [('patent-arcade', 'Atari, U.S. patent 4,084,194, 1978', 'アタリ\u3000米国特許4,084,194（1978年）')],
+    'fds': [('machine-fds', 'photo: Evan-Amos', '写真：Evan-Amos')],
+    'gamegear': [('machine-gamegear', 'photo: Evan-Amos', '写真：Evan-Amos')],
+    'gb': [('machine-gb', 'photo: Evan-Amos', '写真：Evan-Amos')],
+    'gba': [('machine-gba', 'photo: Evan-Amos', '写真：Evan-Amos')],
+    'gbc': [('machine-gbc', 'photo: Evan-Amos', '写真：Evan-Amos')],
+    'gc': [('machine-gc', 'photo: Evan-Amos', '写真：Evan-Amos')],
+    'genesis': [('machine-genesis', 'photo: Evan-Amos', '写真：Evan-Amos')],
+    'intellivision': [('machine-intellivision', 'photo: Evan-Amos', '写真：Evan-Amos')],
+    'mame': [('patent-arcade', 'Atari, U.S. patent 4,084,194, 1978', 'アタリ\u3000米国特許4,084,194（1978年）')],
+    'mastersystem': [('machine-mastersystem', 'photo: Evan-Amos', '写真：Evan-Amos')],
+    'megacd': [('machine-megacd', 'photo: X201, Alphathon', '写真：X201, Alphathon')],
+    'megacdjp': [('machine-megacdjp', 'photo: X201, Alphathon', '写真：X201, Alphathon')],
+    'megadrive': [('machine-megadrive', 'photo: Evan-Amos', '写真：Evan-Amos')],
+    'megadrivejp': [('machine-megadrivejp', 'photo: Evan-Amos', '写真：Evan-Amos')],
+    'msx': [('machine-msx', 'photo: SanderK', '写真：SanderK')],
+    'n3ds': [('machine-n3ds', 'photo: Evan-Amos', '写真：Evan-Amos')],
+    'n64': [('machine-n64', 'photo: Evan-Amos', '写真：Evan-Amos')],
+    'nds': [('machine-nds', 'photo: Evan-Amos', '写真：Evan-Amos')],
+    'neogeo': [('machine-neogeo', 'photo: Evan-Amos', '写真：Evan-Amos')],
+    'neogeocd': [('machine-neogeocd', 'photo: Evan-Amos', '写真：Evan-Amos')],
+    'nes': [('machine-nes', 'photo: Evan-Amos', '写真：Evan-Amos')],
+    'ngp': [('machine-ngp', 'photo: Evan-Amos', '写真：Evan-Amos')],
+    'ngpc': [('machine-ngpc', 'photo: Evan-Amos', '写真：Evan-Amos')],
+    'odyssey2': [('machine-odyssey2', 'photo: Evan-Amos', '写真：Evan-Amos'), ('patent-odyssey2', 'U.S. patent 4,579,338, 1986', '米国特許4,579,338（1986年）')],
+    'pcengine': [('machine-pcengine', 'photo: Evan-Amos', '写真：Evan-Amos')],
+    'pcfx': [('machine-pcfx', 'photo: Evan-Amos', '写真：Evan-Amos')],
+    'pokemini': [('machine-pokemini', 'photo: Sesu Prime', '写真：Sesu Prime')],
+    'ps2': [('machine-ps2', 'photo: Evan-Amos', '写真：Evan-Amos')],
+    'ps3': [('machine-ps3', 'photo: Evan-Amos', '写真：Evan-Amos')],
+    'ps4': [('machine-ps4', 'photo: Evan-Amos', '写真：Evan-Amos')],
+    'psp': [('machine-psp', 'photo: Evan-Amos', '写真：Evan-Amos')],
+    'psx': [('machine-psx', 'photo: Evan-Amos', '写真：Evan-Amos')],
+    'saturn': [('machine-saturn', 'photo: Evan-Amos', '写真：Evan-Amos')],
+    'saturnjp': [('machine-saturnjp', 'photo: Evan-Amos', '写真：Evan-Amos')],
+    'sega32x': [('machine-sega32x', 'photo: Thee Computer Guy', '写真：Thee Computer Guy')],
+    'sega32xjp': [('machine-sega32xjp', 'photo: Thee Computer Guy', '写真：Thee Computer Guy')],
+    'sega32xna': [('machine-sega32xna', 'photo: Evan-Amos', '写真：Evan-Amos')],
+    'segacd': [('machine-segacd', 'photo: Evan-Amos', '写真：Evan-Amos')],
+    'sfc': [('machine-sfc', 'photo: Evan-Amos', '写真：Evan-Amos')],
+    'sg-1000': [('machine-sg-1000', 'photo: Evan-Amos', '写真：Evan-Amos')],
+    'snes': [('machine-snes', 'photo: Evan-Amos', '写真：Evan-Amos')],
+    'switch': [('machine-switch', 'photo: Evan-Amos', '写真：Evan-Amos')],
+    'tg16': [('machine-tg16', 'photo: Evan-Amos', '写真：Evan-Amos')],
+    'vectrex': [('machine-vectrex', 'photo: Evan-Amos', '写真：Evan-Amos'), ('patent-vectrex', 'U.S. design patent D276,539, 1984', '米国意匠特許D276,539（1984年）')],
+    'virtualboy': [('machine-virtualboy', 'photo: Evan-Amos', '写真：Evan-Amos')],
+    'wii': [('machine-wii', 'photo: Evan-Amos', '写真：Evan-Amos')],
+    'wiiu': [('machine-wiiu', 'photo: Evan-Amos', '写真：Evan-Amos')],
+    'wonderswan': [('machine-wonderswan', 'photo: Evan-Amos', '写真：Evan-Amos')],
+    'wonderswancolor': [('machine-wonderswancolor', 'photo: Evan-Amos', '写真：Evan-Amos')],
+    'xbox': [('machine-xbox', 'photo: Evan-Amos', '写真：Evan-Amos')],
+}
+
 # 川原慶賀's sharks and rays (photos/kawahara-*.jpg, the paper made white), and what
 # they are; the ネコザメ more often than the others
 DRAWINGS = [("kawahara-heterodontus", "ネコザメ（猫鮫）Heterodontus japonicus", "Japanese bullhead shark (nekozame)"),
@@ -1520,6 +1592,15 @@ def magazine(system, s, scheme, dest, bare=False, lang="en"):
         # different one now and then; the ネコザメ most often
         drawings = [d for d in DRAWINGS if os.path.exists(f"{PHOTOS}/{d[0]}.jpg")] or DRAWINGS
         name_, ja_cap, en_cap = drawings[rnd.randrange(len(drawings))]
+        credit = ("　川原慶賀画", " · painted by Kawahara Keiga")
+        # or the machine itself ("drawings": "machines", or "both" for either)
+        machines = [m for m in MACHINES.get(system, []) if os.path.exists(f"{PHOTOS}/{m[0]}.jpg")]
+        mode = s.get("drawings", "sharks")
+        if machines and (mode == "machines" or (mode == "both" and rnd.random() < 0.5)):
+            name_, en_credit, ja_credit = machines[rnd.randrange(len(machines))]
+            ja_cap = POSTER.get(system, (SYSTEMS[system][0] if system in SYSTEMS else system, ""))[0]
+            en_cap = SYSTEMS[system][0] if system in SYSTEMS else system
+            credit = ("　" + ja_credit, " · " + en_credit)
         try:
             art = pg.image.load(f"{PHOTOS}/{name_}.jpg").convert()
             iw, ih = art.get_size(); k = min(470 / iw, 230 / ih)
@@ -1531,7 +1612,7 @@ def magazine(system, s, scheme, dest, bare=False, lang="en"):
                 page.fill(c["plate"], plate)
                 pg.draw.rect(page, c["boxink"], pg.Rect(plate).inflate(-10, -10), 1)  # mounted, like a specimen card
             page.blit(art, (880 + (470 - art.get_width()) // 2, 30 + (230 - art.get_height()) // 2), special_flags=pg.BLEND_MULT)
-            cap = (f"▲{ja_cap}　川原慶賀画" if lang == "ja" else f"▲ {en_cap} · painted by Kawahara Keiga")
+            cap = (f"▲{ja_cap}{credit[0]}" if lang == "ja" else f"▲ {en_cap}{credit[1]}")
             cf = pg.font.Font(subprocess.run(["fc-match", "-f", "%{file}", "Noto Sans CJK JP:regular"], capture_output=True,
                                              text=True).stdout or None, 18)
             parts = [cap]
