@@ -4,6 +4,7 @@ otherwise shows them as grey tiles): the app's own icon and name on the nekozame
 colours, in every size steam uses (cover, wide, banner, logo and icon). art that's
 already there (from steam, another tool or you) is kept. steam shows it after it
 restarts. nekozame-add-to-steam runs it for what it adds."""
+import base64
 import glob
 import io
 import os
@@ -63,17 +64,25 @@ def icon(name, size):
         files += glob.glob(f"/usr/share/pixmaps/{name}.*")
     for f in files:
         try:
+            pixels = False
             if f.endswith(".svg"):
                 svg = open(f, encoding="utf-8", errors="replace").read()
-                # tell it it's big (keeping its shape), so it's drawn sharp at that size
-                tag = re.search(r"<svg\b[^>]*>", svg)
-                vb = re.search(r'viewBox="\s*[-\d.]+[\s,]+[-\d.]+[\s,]+([\d.]+)[\s,]+([\d.]+)', tag.group(0))
-                vw, vh = (float(vb.group(1)), float(vb.group(2))) if vb else (1.0, 1.0)
-                k = size * 2 / max(vw, vh)
-                new = re.sub(r'\s(width|height)="[^"]*"', "", tag.group(0))
-                new = new.replace("<svg", f'<svg width="{round(vw * k)}" height="{round(vh * k)}"', 1)
-                svg = svg[:tag.start()] + new + svg[tag.end():]
-                img = pygame.image.load(io.BytesIO(svg.encode()), "icon.svg")
+                # an svg that's only a picture inside (like nekozame-emu-frontend's pixel
+                # bubble): pygame doesn't draw those, so the picture itself
+                inner = re.search(r'<image\b[^>]*href="data:image/(?:png|jpeg);base64,([^"]+)"', svg)
+                if inner and not re.search(r"<(?:path|rect|circle|ellipse|polygon)\b", svg):
+                    img = pygame.image.load(io.BytesIO(base64.b64decode(inner.group(1))))
+                    pixels = "pixelated" in svg
+                else:
+                    # tell it it's big (keeping its shape), so it's drawn sharp at that size
+                    tag = re.search(r"<svg\b[^>]*>", svg)
+                    vb = re.search(r'viewBox="\s*[-\d.]+[\s,]+[-\d.]+[\s,]+([\d.]+)[\s,]+([\d.]+)', tag.group(0))
+                    vw, vh = (float(vb.group(1)), float(vb.group(2))) if vb else (1.0, 1.0)
+                    k = size * 2 / max(vw, vh)
+                    new = re.sub(r'\s(width|height)="[^"]*"', "", tag.group(0))
+                    new = new.replace("<svg", f'<svg width="{round(vw * k)}" height="{round(vh * k)}"', 1)
+                    svg = svg[:tag.start()] + new + svg[tag.end():]
+                    img = pygame.image.load(io.BytesIO(svg.encode()), "icon.svg")
             else:
                 img = pygame.image.load(f)
             # some icons sit small in a big empty canvas: just the visible part, made SIZE
@@ -82,7 +91,9 @@ def icon(name, size):
             if box.w and box.h:
                 img = img.subsurface(box).copy()
             k = size / max(img.get_width(), img.get_height())
-            img = pygame.transform.smoothscale(img, (max(1, round(img.get_width() * k)), max(1, round(img.get_height() * k))))
+            new_size = (max(1, round(img.get_width() * k)), max(1, round(img.get_height() * k)))
+            # pixel art stays sharp: scaled without smoothing
+            img = pygame.transform.scale(img, new_size) if pixels else pygame.transform.smoothscale(img, new_size)
             out = pygame.Surface((size, size), pygame.SRCALPHA)
             out.blit(img, ((size - img.get_width()) // 2, (size - img.get_height()) // 2))
             return out
