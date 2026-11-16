@@ -20,15 +20,15 @@
     <colorScheme name="nekozame">
         <variables>
             <nkScheme>nekozame</nkScheme>
-            <ink1>ffc0e5</ink1>
-            <ink2>b8e4ff</ink2>
+            <ink1>5a4f6e</ink1>
+            <ink2>8a76a8</ink2>
             <block>433a55</block>
-            <paper>4f4562</paper>
-            <body>e8def5</body>
-            <frame>ffd4ee</frame>
-            <boxInk>ffd1ec</boxInk>
+            <paper>fff4fa</paper>
+            <body>433a55</body>
+            <frame>433a55</frame>
+            <boxInk>433a55</boxInk>
             <spineInk>433a55</spineInk>
-            <selText>433a55</selText>
+            <selText>ffffff</selText>
         </variables>
     </colorScheme>
     <colorScheme name="lilac">

@@ -1506,13 +1506,12 @@ def date_en(date):
 SCHEMES = {
     # sky top and bottom, the headline's two inks, the spine and its block, the body's
     # ink, the data box's paper and ink, the screens' frames, and the gradient map the
-    # photos are printed through; dark: a dark page (the drawing's paper is taken out
-    # rather than multiplied away), dots: the halftone's ink
-    # nekozame: nekozame-theme's own colours (its palette.toml): violet-gray paper,
-    # pastel pink, arctic blue and lilac
-    "nekozame": dict(sky=((67, 58, 85), (104, 92, 127)), ink1=(255, 192, 229), ink2=(184, 228, 255),
-                     spine=(255, 192, 229), block=(67, 58, 85), body=(232, 222, 245), paper=(79, 69, 98),
-                     boxink=(255, 209, 236), frame=(255, 212, 238), dark=True, dots=(255, 244, 250, 9),
+    # photos are printed through; dots: the halftone's ink
+    # nekozame: nekozame-theme's own colours (its palette.toml): a soft white and orchid
+    # sky over a violet-gray sea, violet-gray and grape ink, a pink spine
+    "nekozame": dict(sky=((255, 244, 250), (255, 212, 238)), ink1=(90, 79, 110), ink2=(138, 118, 168),
+                     spine=(255, 192, 229), block=(67, 58, 85), body=(67, 58, 85), paper=(255, 244, 250),
+                     boxink=(67, 58, 85), frame=(67, 58, 85),
                      map=[(0.0, (34, 30, 52)), (0.25, (68, 70, 112)), (0.45, (96, 124, 178)), (0.62, (150, 196, 238)),
                           (0.8, (214, 214, 250)), (0.9, (255, 200, 232)), (1.0, (255, 244, 250))]),
     "lilac": dict(sky=((255, 244, 250), (227, 204, 255)), ink1=(124, 106, 154), ink2=(90, 79, 110),
@@ -1618,15 +1617,14 @@ def magazine(system, s, scheme, dest, bare=False, lang="en"):
         # with a smaller shark below it ("drawings": "sharks", "machines", "both")
         drawings = [d for d in DRAWINGS if os.path.exists(f"{PHOTOS}/{d[0]}.jpg")] or DRAWINGS
         shark_name, shark_ja, shark_en = drawings[rnd.randrange(len(drawings))]
-        shark = (shark_name, f"▲{shark_ja}　川原慶賀画", f"▲ {shark_en} · painted by Kawahara Keiga", "cut")
+        shark = (shark_name, f"▲{shark_ja}　川原慶賀画", f"▲ {shark_en} · painted by Kawahara Keiga")
         machines = [m for m in MACHINES.get(system, []) if os.path.exists(f"{PHOTOS}/{m[0]}.jpg")]
         machines = [m for m in machines if m[0].startswith("machine-")] or machines  # a photo, if there is one
         machine = None
         if machines:
             m_name, m_en, m_ja = machines[rnd.randrange(len(machines))]
             m_cap = POSTER.get(system, (SYSTEMS[system][0] if system in SYSTEMS else system, ""))[0]
-            machine = (m_name, f"▲{m_cap}　{m_ja}", f"▲ {SYSTEMS[system][0] if system in SYSTEMS else system} · {m_en}",
-                       "line" if m_name.startswith("patent-") else "cut")
+            machine = (m_name, f"▲{m_cap}　{m_ja}", f"▲ {SYSTEMS[system][0] if system in SYSTEMS else system} · {m_en}")
         mode = s.get("drawings", "sharks")
         if mode == "machines" and machine:
             arts = [(machine, (880, 30, 470, 230))]
@@ -1636,7 +1634,7 @@ def magazine(system, s, scheme, dest, bare=False, lang="en"):
             arts = [(shark, (880, 30, 470, 230))]
         cf = pg.font.Font(subprocess.run(["fc-match", "-f", "%{file}", "Noto Sans CJK JP:regular"], capture_output=True,
                                          text=True).stdout or None, 18)
-        for (name_, cap_ja, cap_en, kind), (bx0, by0, bw0, bh0) in arts:
+        for (name_, cap_ja, cap_en), (bx0, by0, bw0, bh0) in arts:
             try:
                 art = pg.image.load(f"{PHOTOS}/{name_}.jpg").convert()
             except (pg.error, OSError):
@@ -1645,30 +1643,7 @@ def magazine(system, s, scheme, dest, bare=False, lang="en"):
             art = pg.transform.smoothscale(art, (int(iw * k), int(ih * k)))
             art.fill((14, 14, 14), special_flags=pg.BLEND_ADD)  # its paper to white, so it vanishes
             at = (bx0 + (bw0 - art.get_width()) // 2, by0 + (bh0 - art.get_height()) // 2)
-            if c.get("dark"):
-                # a dark page would swallow it multiplied, so its white is cut away: the
-                # painting or the machine kept whole in its own colours, its edge cleaned of
-                # white; a patent's lines drawn in the page's light ink
-                ink = pg.Surface(art.get_size(), pg.SRCALPHA)
-                src, dst = pg.PixelArray(art), pg.PixelArray(ink)
-                for y in range(art.get_height()):
-                    for x in range(art.get_width()):
-                        r, g, b, _ = art.unmap_rgb(src[x, y])
-                        d = 255 - min(r, g, b)  # how far from the white paper
-                        if kind == "line":
-                            if d > 10:
-                                dst[x, y] = (*c["body"], int(min(1, d / 180) * 255))
-                            continue
-                        if d <= 6:
-                            continue  # the paper itself: gone
-                        a = min(1.0, (d - 6) / 34)  # solid once clearly off-white; a soft edge before
-                        if a < 1:  # the edge: the white taken out of it, so no light halo
-                            r, g, b = (min(255, max(0, int((v - 255 * (1 - a)) / a))) for v in (r, g, b))
-                        dst[x, y] = (r, g, b, int(a * 255))
-                del src, dst
-                page.blit(ink, at)
-            else:
-                page.blit(art, at, special_flags=pg.BLEND_MULT)
+            page.blit(art, at, special_flags=pg.BLEND_MULT)  # printed into the paper
             cap = cap_ja if lang == "ja" else cap_en
             parts = [cap]
             if cf.size(cap)[0] > bw0:  # two lines, split where it reads well
