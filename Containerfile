@@ -35,12 +35,23 @@ RUN dnf -y install rpm-build git && \
     rpmbuild -bb bazzite-updater.spec && mkdir -p /out && cp /root/rpmbuild/RPMS/*/bazzite-updater-[0-9]*.rpm /out/
 
 # Allow build scripts to be referenced without being copied into the final image
+# nekozame-ports, from its own repo (anyone can use it): the program and its catalog
+FROM registry.fedoraproject.org/fedora:45 AS ports
+# renovate: datasource=git-refs depName=https://github.com/purplekairi1312/nekozame-ports
+ARG PORTS=6d93500bd4d0351607c20f3d208825e4c2565902
+RUN dnf -y install git && \
+    git clone -q https://github.com/purplekairi1312/nekozame-ports /src && cd /src && git checkout -q "${PORTS}" && \
+    install -Dm755 nekozame-ports /out/usr/bin/nekozame-ports && \
+    install -Dm644 catalog.json /out/usr/share/nekozame-ports/catalog.json && \
+    install -Dm644 LICENSE /out/usr/share/licenses/nekozame-ports/LICENSE
+
 FROM scratch AS ctx
 COPY build_files /
 COPY system_files /system_files
 COPY --from=mpvpaper /out /mpvpaper
 COPY --from=audinux /out /audinux
 COPY --from=updater /out /updater
+COPY --from=ports /out /ports
 
 # Base image: one per variant (the workflow builds all three)
 #   nekozame-os         bazzite-dx          amd / intel pcs and laptops

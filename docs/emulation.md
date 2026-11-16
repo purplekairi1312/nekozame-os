@@ -26,7 +26,8 @@ export PATH="$HOME/.local/share/nekozame-os/system_files/usr/bin:$PATH"
 
 - Put the `export` line in your shell's config so it stays.
 - Install Python 3 with pygame, Flatpak with Flathub, Steam, mpv (for the music) and gum (for `nekozame-emulation`).
-- Then use the commands below as written. Where it says `ujust nekozame-emulation`, run `nekozame-emulation`; for `ujust nekozame-ports`, run `nekozame-ports`.
+- Then use the commands below as written. Where it says `ujust nekozame-emulation`, run `nekozame-emulation`.
+- For ports, install [nekozame-ports](https://github.com/purplekairi1312/nekozame-ports#install) on its own: it's one file.
 - To update, run `git pull` in `~/.local/share/nekozame-os`.
 
 ---
@@ -263,7 +264,7 @@ More on how the frontend works: its [guide](https://github.com/purplekairi1312/n
 
 ## 7. Ports, decomps and recomps
 
-Games rebuilt by fans to run natively, without an emulator: decompiled (Ship of Harkinian for Ocarina of Time, the Silent Hill decomp), recompiled (Zelda 64: Recompiled, Unleashed Recompiled), or with their engine rewritten (GZDoom, OpenMW, DevilutionX).
+Games rebuilt by fans to run natively, without an emulator: decompiled (Ship of Harkinian for Ocarina of Time), recompiled (Zelda 64: Recompiled, Unleashed Recompiled), or with their engine rewritten (GZDoom, OpenMW, DevilutionX).
 
 ```sh
 ujust nekozame-ports
@@ -271,12 +272,13 @@ ujust nekozame-ports
 
 Shows them, the newest first, and installs the ones you pick. They go in Steam's Ports tab and the frontend's Ports system.
 
-- Where they come from, safest first: Flathub (sandboxed, checked by Flathub), projects nekozame knows by name (the HarbourMasters ports, the Zelda and Unleashed recomps and more, from their own releases), and new finds on GitHub.
-- New finds need a GNU/Linux build and at least 25 stars, and the list shows their stars, age and page. Nobody checks them and they run unsandboxed like any program you download, so look at the project before installing one.
-- It looks for new ones every week and tells you when there are some. `nekozame-ports check` looks right away.
-- Most ports need your own copy of the game (a ROM, or the game's files) and say what on first start.
-- `nekozame-ports update` updates the installed ones, `nekozame-ports remove NAME` uninstalls one, `nekozame-ports list` shows them all with their pages.
-- GitHub answers about 60 requests an hour without a login, so a big check can stop halfway and carry on next time. With a GitHub token in `GITHUB_TOKEN` it can do more.
+- It's [nekozame-ports](https://github.com/purplekairi1312/nekozame-ports), which has its own repo so it works on any GNU/Linux.
+- The ports come from a [reviewed catalog](https://github.com/purplekairi1312/nekozame-ports/blob/main/docs/catalog.md): each one was looked at before it was added.
+- Flathub's sandboxed version is used whenever a port is there. The others come from the project's own GitHub releases and run unsandboxed, like any program you download.
+- Most ports need your own copy of the game (a ROM, or the game's files). `nekozame-ports info NAME` says what, and the port's first start says it again.
+- It checks for new ports in the catalog every week and tells you. `nekozame-ports check` looks right away.
+- `nekozame-ports update` updates the installed ones, `nekozame-ports remove NAME` uninstalls one, `nekozame-ports list` shows the whole catalog.
+- More: its [guide](https://github.com/purplekairi1312/nekozame-ports/blob/main/docs/guide.md).
 
 ---
 

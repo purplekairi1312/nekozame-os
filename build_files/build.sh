@@ -17,6 +17,7 @@ retry() {
 
 # Theme files, wallpaper and configs from system_files/
 cp -avf "/ctx/system_files"/. /
+cp -avf /ctx/ports/. /  # nekozame-ports, from its own repo (Containerfile)
 
 ### niri + DankMaterialShell (not on the steam deck image: kde there, and
 ### ujust nekozame-niri layers niri for whoever wants it).

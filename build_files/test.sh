@@ -26,7 +26,7 @@ check "kde's nekozame look" 'test -s /usr/share/plasma/desktoptheme/nekozame/wid
 check "the nekozame pointer, the default" 'test -e /usr/share/icons/nekozame-cursors/cursors/left_ptr && test -e /usr/share/icons/nekozame-cursors/cursors/hand2 && grep -q "Inherits=nekozame-cursors" /usr/share/icons/default/index.theme'
 check "nekozame in steam" 'test -s /usr/share/nekozame-os/steam/nekozame.css && test -x /usr/libexec/nekozame-steam-theme && test -L /etc/systemd/user/default.target.wants/nekozame-steam-theme.service'
 check "emulation" 'test -x /usr/bin/nekozame-emu && /usr/bin/nekozame-emu systems >/dev/null'
-check "ports" 'test -x /usr/bin/nekozame-ports && python3 -c "import ast; ast.parse(open(\"/usr/bin/nekozame-ports\").read())" && test -L /etc/systemd/user/timers.target.wants/nekozame-ports-check.timer'
+check "ports" 'test -x /usr/bin/nekozame-ports && python3 -c "import ast, json; ast.parse(open(\"/usr/bin/nekozame-ports\").read()); assert json.load(open(\"/usr/share/nekozame-ports/catalog.json\"))[\"ports\"]" && test -L /etc/systemd/user/timers.target.wants/nekozame-ports-check.timer'
 check "emulation setup" 'test -x /usr/bin/nekozame-emulation && bash -n /usr/bin/nekozame-emulation'
 check "save sync" 'test -x /usr/bin/nekozame-saves && /usr/bin/nekozame-saves help >/dev/null; python3 -c "import ast; ast.parse(open(\"/usr/bin/nekozame-saves\").read())"'
 check "emulation collections kept in steam" 'test -L /etc/systemd/user/default.target.wants/nekozame-emu-collections.service'
