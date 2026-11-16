@@ -1165,6 +1165,59 @@ def esde_settings(values):
     os.replace(path + ".new", path)
 
 
+# one console in its regions, kept together in the frontend's list: maker, the year the
+# family began, the family, then its regions in the order they came out
+REGIONS = {"JP": ("Japan", "日本"), "US": ("North America", "北米"), "EU": ("Europe", "欧州"), "World": ("World", "世界")}
+FAMILIES = {  # maker, the family's first year, the family, region, when that region got it
+    "famicom": ("Nintendo", 1983, "Famicom", "JP", "1983-07-15"), "nes": ("Nintendo", 1983, "Famicom", "US", "1985-10-18"),
+    "sfc": ("Nintendo", 1990, "Super Famicom", "JP", "1990-11-21"),
+    "snesna": ("Nintendo", 1990, "Super Famicom", "US", "1991-08-23"),
+    "snes": ("Nintendo", 1990, "Super Famicom", "World", "1991-08-23"),
+    "megadrivejp": ("Sega", 1988, "Mega Drive", "JP", "1988-10-29"),
+    "genesis": ("Sega", 1988, "Mega Drive", "US", "1989-08-14"),
+    "megadrive": ("Sega", 1988, "Mega Drive", "EU", "1990-11-30"),
+    "megacdjp": ("Sega", 1991, "Mega-CD", "JP", "1991-12-12"), "segacd": ("Sega", 1991, "Mega-CD", "US", "1992-10-15"),
+    "megacd": ("Sega", 1991, "Mega-CD", "EU", "1993-04-02"),
+    "sega32xna": ("Sega", 1994, "32X", "US", "1994-11-21"), "sega32xjp": ("Sega", 1994, "32X", "JP", "1994-12-03"),
+    "sega32x": ("Sega", 1994, "32X", "EU", "1994-12-04"),
+    "saturnjp": ("Sega", 1994, "Saturn", "JP", "1994-11-22"), "saturn": ("Sega", 1994, "Saturn", "World", "1995-05-11"),
+    "pcengine": ("NEC", 1987, "PC Engine", "JP", "1987-10-30"), "tg16": ("NEC", 1987, "PC Engine", "US", "1989-08-29"),
+    "pcenginecd": ("NEC", 1988, "PC Engine CD", "JP", "1988-12-04"), "tg-cd": ("NEC", 1988, "PC Engine CD", "US", "1989-11-01"),
+}
+
+
+def esde_sorting(appimage):
+    """the frontend's systems in order: by maker and year (es-de's own list), a console's
+    regions together (FAMILIES); es-de reads it with its systems sorting on its default"""
+    import tempfile
+    from xml.sax.saxutils import escape
+    with tempfile.TemporaryDirectory() as tmp:
+        subprocess.run([appimage, "--appimage-extract",
+                        "usr/share/es-de/resources/sorting/manufacturer_year/es_systems_sorting.xml"],
+                       cwd=tmp, capture_output=True)
+        found = [os.path.join(d, f) for d, _, fs in os.walk(tmp) for f in fs if f == "es_systems_sorting.xml"]
+        if not found:
+            return False
+        xml = open(found[0], errors="replace").read()
+    rank = {r: i for i, r in enumerate(REGIONS, 1)}
+    began = {}  # each family from its first region's release
+    for maker, _, family, _, released in FAMILIES.values():
+        began[family] = min(began.get(family, released), released)
+    entries = []
+    for name, sortname in re.findall(r"<name>(.*?)</name>\s*<systemsortname>(.*?)</systemsortname>", xml):
+        if name in FAMILIES:
+            maker, _, family, region, released = FAMILIES[name]
+            key = f"{maker} - {began[family]} - {family} - {released} - {rank[region]}"
+        else:
+            key = f"{sortname} - {name}"
+        entries.append(f"    <system>\n        <name>{escape(name)}</name>\n"
+                       f"        <systemsortname>{escape(key)}</systemsortname>\n    </system>")
+    with open(os.path.join(ESDE_HOME, "custom_systems", "es_systems_sorting.xml"), "w") as f:
+        f.write('<?xml version="1.0"?>\n<!-- nekozame: by maker and year, a console\'s regions together '
+                '(nekozame-emu esde) -->\n<systemList>\n' + "\n".join(entries) + "\n</systemList>\n")
+    return True
+
+
 def esde_systems(appimage):
     """es-de's own system list, with nekozame's launcher as each system's first
     emulator (so saves sync); es-de's other emulators stay choosable."""
@@ -1970,6 +2023,11 @@ def esde_theme(s, pages=True, again=False):
     for system, name in [(k, v[0]) for k, v in SYSTEMS.items()] + [("ports", "Ports")]:
         ja, release = POSTER.get(system, (name, ""))
         year = re.match(r"\d{4}", release)
+        if system in FAMILIES:  # its region, beside its name: "メガドライブ｜日本", "Genesis | North America"
+            region_en, region_ja = REGIONS[FAMILIES[system][3]]
+            ja = re.sub(r"[（(].*?[）)]", "", ja).strip()
+            name = re.sub(r"\s*\(.*?\)", "", name).strip()
+            ja, name = f"{ja}｜{region_ja}", f"{name} | {region_en}"
         # down the spine: the name, a gap, the page's little line, again and again
         spine = "\n".join(vertical.get(ch, ch) for ch in f"{ja}　●深い青への誘い　" * 3)
         en = f"{name}  ·  {year.group(0) if year else 'nekozame'}  ·  memories of the deep  ·  " * 3
@@ -2069,11 +2127,13 @@ def esde(off=False):
         st["version"] = release["tag_name"]
         fresh = True  # its icon and steam art made again from the new release
     esde_systems(appimage)
+    esde_sorting(appimage)
     values = {"ROMDirectory": ("string", s["roms"][0]), "MediaDirectory": ("string", s["media"][0]),
               "ApplicationUpdaterFrequency": ("string", "never"),
               # the slideshow: the video screensaver hunts game after game for a video,
               # and most have none (over a network share, it hangs)
-              "ScreensaverType": ("string", "slideshow")}
+              "ScreensaverType": ("string", "slideshow"),
+              "SystemsSorting": ("string", "default")}  # the order esde_sorting wrote
     if s["steam"].get("names") == "file":
         values["ScrapeGameNames"] = ("bool", "false")
         say(f"  {esde_names()} scraped names cleared: es-de shows your file names")
