@@ -1,15 +1,18 @@
 # Emulation on nekozame
 
-Your library lives in one place, and every machine plays from it. Games, BIOS files, art and saves sit on a NAS (or any network share); each nekozame machine reads them from there and only keeps the emulators locally. Start a game on the Deck, keep going on the PC, and the save is already there.
+Your games with their emulators, art and saves, in Steam and in a frontend.
+
+- The library can be in a folder on the machine (`~/Emulation` by default) or on a network share, like a NAS.
+- With a share, every machine plays from the same library, and only the emulators are installed on each one.
+- Saves sync between your machines: start a game on the Deck, keep going on the PC.
 
 | Part | What it does |
 |---|---|
 | `nekozame-emu` | Installs the emulators, launches games, puts the library in Steam, sets up the frontend |
-| `nekozame-saves` | Syncs your saves with the NAS; the newest wins and old ones are kept |
+| `nekozame-saves` | Syncs your saves between machines, through a folder on a share or a WebDAV server; the newest wins and old ones are kept |
 | [nekozame-emu-frontend](https://github.com/purplekairi1312/nekozame-emu-frontend) | The frontend for browsing the library: a fork of ES-DE with nekozame's theme |
 | Steam | Every game as its own entry with its art, in collections and tabs |
 
-- No NAS? Everything works from local folders too.
 - The quick way: `ujust nekozame-emulation` (also a step of nekozame's first setup) goes through all of it. The sections below explain each step and how to do it by hand.
 
 ### Without nekozame os
@@ -87,9 +90,9 @@ What the names do:
 - The art goes in `media` on the share, so every machine gets it.
 - For scraped titles instead: set `"names": "scraped"` in `emulation.json` (Steam then uses the frontend's scraped names where there are some), and turn "Scrape actual game names" back on in the frontend.
 
-### Mounting the share
+### A library on a network share
 
-nekozame reads the library straight from the share; nothing is copied to the machine. Mount it once, for good, with a line in `/etc/fstab`. For an SMB share:
+Skip this with a local library. nekozame reads the library straight from the share; nothing is copied to the machine. Mount it once, for good, with a line in `/etc/fstab`. For an SMB share:
 
 ```
 //nas.example/Emulation  /mnt/nas/Emulation  cifs  credentials=/etc/nekozame/smb-credentials,iocharset=utf8,actimeo=600,echo_interval=10,uid=1000,gid=1000,_netdev,nofail,x-systemd.automount,x-systemd.mount-timeout=20  0 0
@@ -122,7 +125,7 @@ Put the NAS and your machines on [Tailscale](https://tailscale.com) and use the 
 
 ## 2. Settings
 
-The settings are in `~/.config/nekozame/emulation.json`, all of them optional. For a library on a share:
+The settings are in `~/.config/nekozame/emulation.json`, all of them optional. A local library in `~/Emulation` needs none. For a library on a share:
 
 ```json
 {
