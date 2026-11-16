@@ -882,6 +882,7 @@ def steam_watch():
                            % next(iter(added.values()))["appid"])
                 if ready == "in":
                     tidy(js, added)  # stray copies of games, out
+                    repair(js, added)  # names or launch options that didn't stick
                     collect(js, added, quiet=True)
                     emulator_apps(js)
                     port_apps(js)
@@ -971,6 +972,25 @@ def steam_shortcuts():
         if cur.get("appid"):
             out.append(cur)
     return out
+
+
+def repair(js, added):
+    """games whose name or launch options didn't stick when they were added (steam
+    names a new entry after its program, nekozame-emu, until it's renamed): set again."""
+    s = settings()
+    by_id = {a["appid"]: (rom, a["system"]) for rom, a in added.items()}
+    unnamed = js("JSON.stringify(%s.filter(id => appStore.GetAppOverviewByAppID(id)?.display_name === 'nekozame-emu'))"
+                 % json.dumps(sorted(by_id)))
+    unnamed = set(json.loads(unnamed or "[]"))
+    no_options = {sc["appid"] for sc in steam_shortcuts() if sc["appid"] in by_id and not sc.get("launchoptions")}
+    for appid in sorted(unnamed | no_options):
+        rom, system = by_id[appid]
+        if appid in unnamed:
+            js("SteamClient.Apps.SetShortcutName(%d, %s)" % (appid, json.dumps(name_of(rom, system, s))))
+        if appid in no_options:
+            js("SteamClient.Apps.SetShortcutLaunchOptions(%d, %s)" % (appid, json.dumps(shlex.join(["launch", system, rom]))))
+    if unnamed or no_options:
+        say(f"  {len(unnamed)} names and {len(no_options)} launch options set again")
 
 
 def tidy(js, added):
