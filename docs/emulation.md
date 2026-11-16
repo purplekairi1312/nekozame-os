@@ -195,13 +195,14 @@ For browsing a whole library (Steam gets slow with tens of thousands of entries)
 
 It's set up the nekozame way:
 
+- **Systems in order**: by maker, then year, with a console's regional versions kept together in the order they came out, each with its region beside its name. Under Sega: Mega Drive｜日本 (1988), Genesis | North America (1989), Mega Drive | Europe (1990), then the Game Gear, then the Mega-CD family, and so on. (UI Settings → Systems sorting keeps it on "Full names or custom".)
 - **Your file names** stay the game names, also after scraping.
 - **nekozame's launcher** comes first for every system, so saves sync. ES-DE's other emulators stay available per game.
 - **The nekozame theme:** every system is a page from a 90s Japanese game magazine, printed on your machine from public-domain photographs and your own games' screenshots. Each page has the machine's museum placard (what it was, what it did) in English or Japanese (UI Settings → Theme language), and its name running down the spine.
   - **Color schemes** (UI Settings → Color scheme): nekozame, lilac, sakura, ocean, sunset.
   - **Layouts** (UI Settings → Theme variant): game list, cover grid, review page, filmstrip, contents. Each comes in six versions for the picture beside the list: screenshot, title screen, cover, 3D box, disc or cartridge, or video.
   - **Drawings:** set by `"drawings"` above.
-- **Menu colors:** nekozame and nekozame light, beside ES-DE's own (UI Settings → Menu color scheme).
+- **Menu colors:** nekozame and nekozame light, beside ES-DE's own (UI Settings → Menu color scheme). Its loading screen is the nekozame os logo.
 - **Music:** "dolphin sanctuary" by purplekairi1312 plays quietly while you browse. It pauses during games and the screensaver. Turn it off with `"music": false`. The track is © 2026 purplekairi1312, all rights reserved, and is not covered by nekozame-os's license (see its `LICENSE`).
 - **The screensaver** is a slideshow of your games' screenshots. The video screensaver hunts game after game for a video, and over a network share that freezes the frontend.
 
