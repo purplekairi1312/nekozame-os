@@ -70,5 +70,7 @@ See [`MAINTENANCE.md`](MAINTENANCE.md) for when something breaks.
 
 ## License
 
-Code: [GPL-3.0-or-later](LICENSE).
-Art (logo, catshark, boot animation, wallpapers): [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/). See [`LICENSE-ART`](LICENSE-ART).
+- Code: [GPL-3.0-or-later](LICENSE).
+- Art (logo, catshark, boot animation, wallpapers): © 2026 purplekairi1312, [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) ([LICENSE-ART](LICENSE-ART)).
+- The emulation frontend's photos: public domain (NOAA, Kawahara Keiga's paintings from the Naturalis Biodiversity Center, most of Evan-Amos's console photos); a few console photos are CC BY-SA 3.0. Each one's source and license: [CREDITS.txt](system_files/usr/share/nekozame-os/es-de/photos/CREDITS.txt).
+- The music, "dolphin sanctuary": © 2026 purplekairi1312, all rights reserved, not under the GPL ([its license](system_files/usr/share/nekozame-os/es-de/music/LICENSE)). Buy it on [Bandcamp](https://passedrecordings.bandcamp.com/track/dolphin-sanctuary).
