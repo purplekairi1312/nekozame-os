@@ -37,6 +37,9 @@ import urllib.parse
 import urllib.request
 import zipfile
 
+# /usr when installed, system_files/usr in a clone of nekozame-os, so it also runs without nekozame os
+USR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+
 HOME = os.path.expanduser("~")
 STATE = os.path.join(HOME, ".local/state/nekozame/ports.json")
 CONFIG = os.path.join(HOME, ".config/nekozame/emulation.json")
@@ -354,15 +357,15 @@ def to_steam(st, keys):
             names.append(i["desktop"])
         elif i.get("app"):
             names.append(i["app"] + ".desktop")
-    if not names or not os.path.exists("/usr/libexec/nekozame-add-to-steam"):
+    if not names or not os.path.exists(f"{USR}/libexec/nekozame-add-to-steam"):
         return
     if subprocess.run(["pgrep", "-x", "steam"], capture_output=True).returncode == 0:
         # steam's up: in now (half a minute), then into the Ports tab
         say("  adding them to steam…")
-        subprocess.run(["/usr/libexec/nekozame-add-to-steam", *names], capture_output=True)
+        subprocess.run([f"{USR}/libexec/nekozame-add-to-steam", *names], capture_output=True)
         subprocess.run(["nekozame-emu", "steam", "tabs"], capture_output=True)
     else:  # once steam starts (the collections watcher puts them in the Ports tab)
-        subprocess.Popen(["/usr/libexec/nekozame-add-to-steam", *names], start_new_session=True,
+        subprocess.Popen([f"{USR}/libexec/nekozame-add-to-steam", *names], start_new_session=True,
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 

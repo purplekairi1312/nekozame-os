@@ -12,6 +12,20 @@ Your library lives in one place, and every machine plays from it. Games, BIOS fi
 - No NAS? Everything works from local folders too.
 - The quick way: `ujust nekozame-emulation` (also a step of nekozame's first setup) goes through all of it. The sections below explain each step and how to do it by hand.
 
+### Without nekozame os
+
+All of it runs on any Linux from a clone of this repo:
+
+```sh
+git clone https://github.com/purplekairi1312/nekozame-os.git ~/.local/share/nekozame-os
+export PATH="$HOME/.local/share/nekozame-os/system_files/usr/bin:$PATH"
+```
+
+- Put the `export` line in your shell's config so it stays.
+- Install Python 3 with pygame, Flatpak with Flathub, Steam, mpv (for the music) and gum (for `nekozame-emulation`).
+- Then use the commands below as written. Where it says `ujust nekozame-emulation`, run `nekozame-emulation`; for `ujust nekozame-ports`, run `nekozame-ports`.
+- `git pull` in the clone updates it.
+
 ---
 
 ## 1. Your library

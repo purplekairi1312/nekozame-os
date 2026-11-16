@@ -55,6 +55,9 @@ import sys
 import urllib.request
 import zipfile
 
+# /usr when installed, system_files/usr in a clone of nekozame-os, so it also runs without nekozame os
+USR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+
 HOME = os.path.expanduser("~")
 CONFIG = os.path.join(HOME, ".config/nekozame/emulation.json")
 STATE = os.path.join(HOME, ".local/state/nekozame/steam-games.json")
@@ -484,7 +487,7 @@ def setup(everything=False):
 def steam_js():
     import importlib.machinery
     import importlib.util
-    path = "/usr/libexec/nekozame-steam-theme"
+    path = f"{USR}/libexec/nekozame-steam-theme"
     spec = importlib.util.spec_from_loader("steam_theme", importlib.machinery.SourceFileLoader("steam_theme", path))
     theme = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(theme)
@@ -863,7 +866,7 @@ def steam_add(systems=None):
     s = settings()
     js = steam_js()
     added = load_state()
-    exe = shutil.which("nekozame-emu") or "/usr/bin/nekozame-emu"
+    exe = shutil.which("nekozame-emu") or os.path.realpath(__file__)
     count, fresh = 0, {}
     for root in s["steam"]["roms"]:
         for system in SYSTEMS:
@@ -1230,7 +1233,7 @@ def esde_systems(appimage):
         if not found:
             raise OSError("es-de's system list isn't in the appimage")
         xml = open(found[0], errors="replace").read()
-    exe = shutil.which("nekozame-emu") or "/usr/bin/nekozame-emu"
+    exe = shutil.which("nekozame-emu") or os.path.realpath(__file__)
 
     def ours(m):
         block = m.group(0)
@@ -1274,7 +1277,7 @@ def esde_names():
     return cleared
 
 
-THEME_SRC = "/usr/share/nekozame-os/es-de/nekozame"
+THEME_SRC = f"{USR}/share/nekozame-os/es-de/nekozame"
 # each system's small print on the poster: its name as it's known in japan, and its
 # release (稼働 for arcade boards, 北米 for the ones that were america's)
 SCE, NEC = "ソニー・コンピュータエンタテインメント", "NECホームエレクトロニクス"
@@ -1610,7 +1613,7 @@ PLACARD = {
 }
 
 
-PHOTOS = "/usr/share/nekozame-os/es-de/photos"
+PHOTOS = f"{USR}/share/nekozame-os/es-de/photos"
 # each page's picture: a base photo and a creature fused into it, where it belongs and
 # the way it would look there: a manta is a dark shape against bright water (it's
 # multiplied in: only its body darkens the scene), a jellyfish glows in the dark (its
@@ -2075,7 +2078,7 @@ def esde_music(on=True):
                 f.write("#!/bin/sh\n# nekozame's music in es-de (nekozame-emu esde)\n"
                         # a screensaver that ends in a game: the game's own event pauses it
                         + ('[ "$1" = game-start ] && exit 0\n' if event == "screensaver-end" else "")
-                        + f"exec /usr/libexec/nekozame-esde-music {cmd}\n")
+                        + f"exec {shlex.quote(USR)}/libexec/nekozame-esde-music {cmd}\n")
             os.chmod(path, 0o755)
         elif os.path.exists(path):
             os.remove(path)
@@ -2095,7 +2098,7 @@ def esde(off=False):
         except (OSError, StopIteration):
             say("  (steam isn't running: take ES-DE out of it by hand)")
         esde_music(on=False)
-        subprocess.run(["/usr/libexec/nekozame-esde-music", "stop"], capture_output=True)
+        subprocess.run([f"{USR}/libexec/nekozame-esde-music", "stop"], capture_output=True)
         shutil.rmtree(ESDE, ignore_errors=True)
         for f in (desktop, ESDE_STATE, os.path.join(ESDE_HOME, "custom_systems/es_systems.xml")):
             if os.path.exists(f):
@@ -2173,7 +2176,7 @@ def esde(off=False):
                     if os.path.exists(old):
                         os.remove(old)
         js("SteamClient.Apps.SetShortcutName(%d, %s)" % (st["appid"], json.dumps(ESDE_NAME)))
-        subprocess.run(["/usr/libexec/nekozame-steam-art", desktop], capture_output=True)
+        subprocess.run([f"{USR}/libexec/nekozame-steam-art", desktop], capture_output=True)
     except (OSError, StopIteration):
         say(f"  (steam isn't running: {ESDE_NAME} goes in its library next time)")
     os.makedirs(os.path.dirname(ESDE_STATE), exist_ok=True)

@@ -7,6 +7,8 @@ restarts. nekozame-add-to-steam runs it for what it adds."""
 import glob
 import io
 import os
+# /usr when installed, system_files/usr in a clone of nekozame-os, so it also runs without nekozame os
+USR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 import re
 import struct
 import sys
@@ -14,7 +16,7 @@ import sys
 os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 import pygame  # noqa: E402
 
-sys.path.insert(0, "/usr/share/nekozame-os/python")
+sys.path.insert(0, f"{USR}/share/nekozame-os/python")
 from nekoui import DEEP, PINK, PLUM, SOFT, sh  # noqa: E402
 
 HOME = os.path.expanduser("~")

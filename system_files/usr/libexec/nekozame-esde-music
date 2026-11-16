@@ -22,7 +22,10 @@ import sys
 import threading
 import time
 
-TRACK = "/usr/share/nekozame-os/es-de/music/dolphin-sanctuary.nkz"
+# /usr when installed, system_files/usr in a clone of nekozame-os, so it also runs without nekozame os
+USR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+
+TRACK = f"{USR}/share/nekozame-os/es-de/music/dolphin-sanctuary.nkz"
 RUN = os.environ.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}"
 SOCK = os.path.join(RUN, "nekozame-esde-music.sock")
 PIDFILE = os.path.join(RUN, "nekozame-esde-music.pid")

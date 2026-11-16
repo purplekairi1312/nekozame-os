@@ -5,6 +5,7 @@
 # deck tauon's trackpads as a mouse (nekozame-steam-controls). nekozame-firstboot starts it before steam is up; it waits
 # (up to two hours), then exits.
 set -uo pipefail
+USR=$(dirname "$(dirname "$(realpath "$0")")")  # /usr, or system_files/usr in a clone
 for _ in $(seq 1 720); do
     if pgrep -x steam >/dev/null && ls -d "$HOME"/.local/share/Steam/userdata/[1-9]*/config >/dev/null 2>&1; then
         sleep 20  # let steam finish starting
@@ -15,9 +16,9 @@ for _ in $(seq 1 720); do
             done
         done
         sleep 10  # steam writes them down
-        /usr/libexec/nekozame-steam-art "$@"
-        /usr/libexec/nekozame-steam-launch-options "$@"  # what some apps need in game mode
-        /usr/libexec/nekozame-steam-controls  # tauon: trackpads as a mouse, the rest a gamepad
+        "$USR"/libexec/nekozame-steam-art "$@"
+        "$USR"/libexec/nekozame-steam-launch-options "$@"  # what some apps need in game mode
+        "$USR"/libexec/nekozame-steam-controls  # tauon: trackpads as a mouse, the rest a gamepad
         exit 0
     fi
     sleep 10
