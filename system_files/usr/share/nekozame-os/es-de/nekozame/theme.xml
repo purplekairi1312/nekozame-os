@@ -291,8 +291,11 @@
                 <pos>0.567 0.48</pos>
                 <size>0.336 0.095</size>
                 <metadata>name</metadata>
+                <!-- one line, sliding sideways when the name doesn't fit -->
                 <container>true</container>
-                <containerType>vertical</containerType>
+                <containerType>horizontal</containerType>
+                <containerStartDelay>2</containerStartDelay>
+                <containerResetDelay>3</containerResetDelay>
                 <fontPath>${jaBlack}</fontPath>
                 <fontSize>0.034</fontSize>
                 <color>${boxInk}</color>
