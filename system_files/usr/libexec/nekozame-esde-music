@@ -22,7 +22,7 @@ import sys
 import threading
 import time
 
-# /usr when installed, system_files/usr in a clone of nekozame-os, so it also runs without nekozame os
+# /usr when installed, system_files/usr in a copy of the nekozame-os repo, so it also runs without nekozame os
 USR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
 TRACK = f"{USR}/share/nekozame-os/es-de/music/dolphin-sanctuary.nkz"

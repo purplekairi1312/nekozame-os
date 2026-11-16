@@ -37,7 +37,7 @@ import urllib.parse
 import urllib.request
 import zipfile
 
-# /usr when installed, system_files/usr in a clone of nekozame-os, so it also runs without nekozame os
+# /usr when installed, system_files/usr in a copy of the nekozame-os repo, so it also runs without nekozame os
 USR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
 HOME = os.path.expanduser("~")

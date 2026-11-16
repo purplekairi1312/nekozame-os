@@ -17,7 +17,7 @@ Your games with their emulators, art and saves, in Steam and in a frontend.
 
 ### Without nekozame os
 
-All of it runs on any Linux from a clone of this repo:
+All of it runs on any Linux. Download this repo with git, and add its commands to your PATH:
 
 ```sh
 git clone https://github.com/purplekairi1312/nekozame-os.git ~/.local/share/nekozame-os
@@ -27,7 +27,7 @@ export PATH="$HOME/.local/share/nekozame-os/system_files/usr/bin:$PATH"
 - Put the `export` line in your shell's config so it stays.
 - Install Python 3 with pygame, Flatpak with Flathub, Steam, mpv (for the music) and gum (for `nekozame-emulation`).
 - Then use the commands below as written. Where it says `ujust nekozame-emulation`, run `nekozame-emulation`; for `ujust nekozame-ports`, run `nekozame-ports`.
-- `git pull` in the clone updates it.
+- To update, run `git pull` in `~/.local/share/nekozame-os`.
 
 ---
 
