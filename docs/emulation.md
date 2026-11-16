@@ -17,7 +17,7 @@ Your games with their emulators, art and saves, in Steam and in a frontend.
 
 ### Without nekozame os
 
-All of it runs on any Linux. Download this repo with git, and add its commands to your PATH:
+All of it runs on any GNU/Linux. Download this repo with git, and add its commands to your PATH:
 
 ```sh
 git clone https://github.com/purplekairi1312/nekozame-os.git ~/.local/share/nekozame-os
@@ -242,7 +242,7 @@ ujust nekozame-ports
 Shows them, the newest first, and installs the ones you pick. They go in Steam's Ports tab and the frontend's Ports system.
 
 - Where they come from, safest first: Flathub (sandboxed, checked by Flathub), projects nekozame knows by name (the HarbourMasters ports, the Zelda and Unleashed recomps and more, from their own releases), and new finds on GitHub.
-- New finds need a Linux build and at least 25 stars, and the list shows their stars, age and page. Nobody checks them and they run unsandboxed like any program you download, so look at the project before installing one.
+- New finds need a GNU/Linux build and at least 25 stars, and the list shows their stars, age and page. Nobody checks them and they run unsandboxed like any program you download, so look at the project before installing one.
 - It looks for new ones every week and tells you when there are some. `nekozame-ports check` looks right away.
 - Most ports need your own copy of the game (a ROM, or the game's files) and say what on first start.
 - `nekozame-ports update` updates the installed ones, `nekozame-ports remove NAME` uninstalls one, `nekozame-ports list` shows them all with their pages.
