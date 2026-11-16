@@ -1,0 +1,10 @@
+[Unit]
+Description=nekozame's emulation collections in steam, after each steam start
+
+[Service]
+ExecStart=/usr/bin/nekozame-emu steam watch
+Restart=always
+RestartSec=30
+
+[Install]
+WantedBy=default.target

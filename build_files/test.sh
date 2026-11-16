@@ -27,6 +27,7 @@ check "the nekozame pointer, the default" 'test -e /usr/share/icons/nekozame-cur
 check "nekozame in steam" 'test -s /usr/share/nekozame-os/steam/nekozame.css && test -x /usr/libexec/nekozame-steam-theme && test -L /etc/systemd/user/default.target.wants/nekozame-steam-theme.service'
 check "emulation" 'test -x /usr/bin/nekozame-emu && /usr/bin/nekozame-emu systems >/dev/null'
 check "save sync" 'test -x /usr/bin/nekozame-saves && /usr/bin/nekozame-saves help >/dev/null; python3 -c "import ast; ast.parse(open(\"/usr/bin/nekozame-saves\").read())"'
+check "emulation collections kept in steam" 'test -L /etc/systemd/user/default.target.wants/nekozame-emu-collections.service'
 check "sound follows your headphones" 'test -x /usr/libexec/nekozame-audio-follow && test -L /etc/systemd/user/default.target.wants/nekozame-audio-follow.service'
 [ "${VARIANT:-amd}" != deck ] || check "nekozame music (decky) and library art" 'command -v mpv && test -x /usr/libexec/nekozame-steam-launch-options && test -x /usr/libexec/nekozame-steam-controls && test -x /usr/libexec/nekozame-decky && test -s /usr/share/polkit-1/actions/org.nekozame.decky.policy && test -x /usr/libexec/nekozame-steam-art && python3 -c "import sys; sys.path.insert(0, \"/usr/share/nekozame-os/python\"); import nekoui"'
 check "tela icons (pink)" 'test -s /usr/share/icons/Tela-pink-dark/index.theme && test -x /usr/libexec/nekozame-icons && test -L /usr/lib/systemd/user/timers.target.wants/nekozame-icons.timer -o -L /etc/systemd/user/timers.target.wants/nekozame-icons.timer'

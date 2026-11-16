@@ -10,6 +10,8 @@ your saves synced everywhere (nekozame-saves).
   nekozame-emu steam remove       take all of them out of steam again
   nekozame-emu steam refresh      their art and collections again
   nekozame-emu steam tabs         tabmaster's tabs: Apps (without the games), Emulation
+  nekozame-emu steam watch        the collections back each time steam starts (steam
+                                  forgets big ones; nekozame-emu-collections.service)
   nekozame-emu esde [on|off]      ES-DE, for browsing your whole library: nekozame's
                                   launcher first (saves sync), your names kept, its
                                   magazine theme and music; off takes it away again
@@ -635,6 +637,28 @@ def collect(js, added, quiet=False):
         })()""" % (json.dumps(name), json.dumps(ids)), wait=True)
         if not quiet:
             say(f"  {name}: {n} games")
+
+
+def steam_watch():
+    """steam keeps big collections only while it runs (its cloud won't store thousands of
+    games in one), so each time steam starts, once your library is in: the emulation
+    collections again (a couple of seconds). runs as nekozame-emu-collections.service."""
+    import time
+    while True:
+        try:
+            added = load_state()
+            if added:
+                js = steam_js()
+                ready = js("(window.__nekozameCollected ? 'done' : '') + "
+                           "(collectionStore.userCollections.length && appStore.GetAppOverviewByAppID(%d) ? 'in' : '')"
+                           % next(iter(added.values()))["appid"])
+                if ready == "in":
+                    collect(js, added, quiet=True)
+                    js("window.__nekozameCollected = true")
+                    say(f"emulation collections back in steam ({len(added)} games)")
+        except (OSError, ValueError, StopIteration, KeyError):
+            pass  # steam isn't up (yet)
+        time.sleep(10)
 
 
 def load_state():
@@ -1522,6 +1546,8 @@ def main(argv):
         return steam_remove()
     if cmd == "steam" and argv[1:2] == ["refresh"]:
         return steam_refresh()
+    if cmd == "steam" and argv[1:2] == ["watch"]:
+        return steam_watch()
     if cmd == "steam" and argv[1:2] == ["tabs"]:
         return tabs()
     if cmd == "systems":
