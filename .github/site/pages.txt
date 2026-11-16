@@ -2,3 +2,4 @@ README.md nekozame os
 docs/emulation.md Emulation
 PACKAGES.md Packages
 MAINTENANCE.md Maintenance
+docs/credits.md Credits

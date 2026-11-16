@@ -73,11 +73,13 @@ The emulation frontend:
 - Photos of the sea: [NOAA](https://www.noaa.gov/), its [Photo Library](https://www.flickr.com/photos/noaaphotolib/) and [National Marine Sanctuaries](https://sanctuaries.noaa.gov/), and the US National Park Service. Public domain, via [Wikimedia Commons](https://commons.wikimedia.org/).
 - The sharks and rays: painted by Kawahara Keiga (川原慶賀) for Philipp Franz von Siebold, 1823-1829. Scans from the [Naturalis Biodiversity Center](https://www.naturalis.nl/), public domain. The paper of the spines is from one of his sheets.
 - Photos of the consoles: [Evan-Amos](https://commons.wikimedia.org/wiki/User:Evan-Amos), via Wikimedia Commons. Public domain, apart from a few under CC BY-SA 3.0.
+- Patent drawings of the consoles: from US patents, public domain.
 - Flags: Wikimedia Commons, public domain.
+- Fonts: Noto Sans and Noto Sans CJK JP by Google, SIL Open Font License.
 - Music: "dolphin sanctuary" by purplekairi1312, released by [Passed Recordings](https://passedrecordings.co.uk/).
 - The frontend itself: a fork of [ES-DE](https://es-de.org), by Leon Styhre, Northwestern Software and its contributors.
 
-Each image's source and license: [photos/CREDITS.txt](system_files/usr/share/nekozame-os/es-de/photos/CREDITS.txt), [the theme's CREDITS.txt](system_files/usr/share/nekozame-os/es-de/nekozame/core/CREDITS.txt) and [the flags' CREDITS.txt](https://github.com/purplekairi1312/nekozame-emu-frontend/blob/main/resources/flags/CREDITS.txt).
+Every image and drawing, one by one, with its source and license: [Credits](docs/credits.md).
 
 ## License
 
