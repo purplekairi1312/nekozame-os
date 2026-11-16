@@ -56,6 +56,17 @@ def relink(text, src, names, mode):
                   text)
 
 
+def summary(text):
+    """the first paragraph, as plain text, for link previews"""
+    for para in re.split(r"\n\s*\n", text):
+        para = para.strip()
+        if para and not para.startswith(("#", "<", "|", "```", "-", ">", "!")):
+            para = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", para)
+            para = re.sub(r"[`*_]", "", " ".join(para.split()))
+            return para if len(para) <= 200 else para[:para.rfind(" ", 0, 197)] + "..."
+    return ""
+
+
 def build(mode, out):
     os.makedirs(out, exist_ok=True)
     items = pages()
@@ -70,12 +81,17 @@ def build(mode, out):
         menu = "".join(f'<a href="{names[p]}"{" class=here" if p == path else ""}>{html.escape(t)}</a>'
                        for p, t in items)
         page = open(os.path.join(HERE, "page.html")).read()
+        owner, _, project_name = REPO.partition("/")
+        site = f"https://{owner}.github.io/{project_name}/"
+        page = (page.replace("{{description}}", html.escape(summary(text), quote=True)).replace("{{site}}", site)
+                    .replace("{{url}}", site + ("" if names[path] == "index.html" else names[path])))
         page = (page.replace("{{title}}", html.escape(title if path != "README.md" else project))
                     .replace("{{project}}", html.escape(project)).replace("{{menu}}", menu)
                     .replace("{{repo}}", f"https://github.com/{REPO}").replace("{{body}}", body))
         open(os.path.join(out, names[path]), "w").write(page)
     if mode == "pages":
         shutil.copy(os.path.join(HERE, "style.css"), out)
+        shutil.copy(os.path.join(HERE, "preview.jpg"), out)
     else:
         side = "\n".join(f"- [{t}]({names[p]})" for p, t in items)
         open(os.path.join(out, "_Sidebar.md"), "w").write(f"**{project}**\n\n{side}\n")
