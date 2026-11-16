@@ -19,6 +19,8 @@ your saves synced everywhere (nekozame-saves).
   nekozame-emu systems            what's supported, and what you have
   nekozame-emu art [SYSTEM...]    covers and screenshots for games without (libretro's
                                   thumbnail library, matched by your file names)
+  nekozame-emu boxes [SYSTEM...]  3d boxes made from the covers, for games with a cover
+                                  and no scraped box (--again: the made ones redone)
 
 settings (~/.config/nekozame/emulation.json), all optional:
   "roms":  ["~/Emulation/roms", "/mnt/nas/Emulation/roms"]   where your games are
@@ -519,6 +521,141 @@ def art(system, rom, s):
                 if kind in found:
                     break
     return found
+
+
+# --- 3d boxes ------------------------------------------------------------------------
+# a game's 3d box made from its cover, for games with a cover and no scraped box: the
+# cover on the front, a spine in the colours of the cover's edge, seen from a little to
+# the left, lit, with a soft shadow. what the case is follows the system (how deep, how
+# glossy, a keep case's plastic rim); its shape follows the cover, so a super famicom's
+# box stays wide and a snes's tall.
+BOXES = os.path.join(HOME, ".local/state/nekozame/boxes.json")  # the boxes nekozame made
+BOX_CASES = {"cardboard": dict(depth=0.22, gloss=0.0), "clamshell": dict(depth=0.14, gloss=0.35),
+             "jewel": dict(depth=0.09, gloss=0.55), "keep": dict(depth=0.11, gloss=0.4)}
+BOX_CASE = {
+    **{s: "clamshell" for s in ("megadrive", "megadrivejp", "genesis", "mastersystem", "gamegear", "sega32x",
+                                "sega32xjp", "sega32xna", "pcengine", "tg16", "ngp", "ngpc", "neogeo")},
+    **{s: "jewel" for s in ("psx", "saturn", "saturnjp", "segacd", "megacd", "megacdjp", "pcenginecd", "tg-cd",
+                            "neogeocd", "dreamcast", "3do", "pcfx")},
+    **{s: "keep" for s in ("ps2", "ps3", "ps4", "gc", "wii", "wiiu", "xbox", "switch", "psp", "nds", "n3ds")},
+}  # everything else: cardboard
+BOX_RIM = {"ps2": (20, 20, 24), "gc": (20, 20, 24), "psp": (20, 20, 24), "wii": (238, 238, 240),
+           "wiiu": (40, 120, 200), "ps3": (30, 40, 60), "ps4": (24, 70, 160), "switch": (210, 30, 40),
+           "xbox": (40, 110, 50), "nds": (240, 240, 242), "n3ds": (240, 240, 242)}
+
+
+def box_face(pg, dest, src, x0, x1, top0, bot0, top1, bot1, shade):
+    """src stretched onto a quadrilateral with upright left and right edges, column by
+    column (the perspective of a box turned about its upright axis)"""
+    w, sw = x1 - x0, src.get_width()
+    for i in range(w):
+        t = i / max(1, w - 1)
+        top, bot = top0 + (top1 - top0) * t, bot0 + (bot1 - bot0) * t
+        h = int(round(bot - top))
+        if h <= 0:
+            continue
+        col = pg.transform.smoothscale(src.subsurface((min(sw - 1, int(t * (sw - 1))), 0, 1, src.get_height())), (1, h))
+        v = int(255 * max(0.0, min(1.0, shade(t))))
+        if v < 255:
+            col.fill((v, v, v), special_flags=pg.BLEND_MULT)
+        dest.blit(col, (x0 + i, int(round(top))))
+
+
+def box_render(pg, cover_path, system, out_path, height=900):
+    kind = BOX_CASE.get(system, "cardboard")
+    case = BOX_CASES[kind]
+    cover = pg.image.load(cover_path).convert_alpha()
+    if system in BOX_RIM:  # a keep case: the cover under clear plastic, in a rim of the case's colour
+        b = max(4, cover.get_width() // 40)
+        framed = pg.Surface((cover.get_width() + 2 * b, cover.get_height() + 2 * b), pg.SRCALPHA)
+        framed.fill((*BOX_RIM[system], 255))
+        framed.blit(cover, (b, b))
+        cover = framed
+    cw, ch = cover.get_size()
+    fw = int(height * cw / ch)
+    spine_w = max(6, int(fw * case["depth"] * 0.55))  # the spine seen at an angle: narrower than deep
+    front_w = int(fw * 0.82)  # the front, foreshortened
+    persp, margin = 0.06, int(height * 0.08)  # how much the far edges shrink; room for the shadow
+    W, H = spine_w + front_w + 2 * margin, height + 2 * margin
+    out = pg.Surface((W, H), pg.SRCALPHA)
+    shadow = pg.Surface((W, H), pg.SRCALPHA)  # on the floor, soft
+    for r in range(12, 0, -1):
+        pg.draw.ellipse(shadow, (0, 0, 0, 10 + (12 - r) * 4),
+                        (margin - r * 4, margin + height * 0.98 - r, spine_w + front_w + r * 8, r * 5))
+    out.blit(shadow, (0, 0))
+    xj, top_j, bot_j = margin + spine_w, margin, margin + height  # the nearest edge: full height
+    # the spine: the colours of the cover's left edge, row by row (a real spine has its own
+    # art: its colours read true, its words wouldn't), darker, its far edge shrunk
+    edge = cover.subsurface((0, 0, max(2, cw // 30), ch)).copy()
+    strip = pg.transform.smoothscale(pg.transform.smoothscale(edge, (1, max(8, ch // 6))), (24, ch))
+    sh = height * persp * 0.6
+    box_face(pg, out, strip, margin, xj, top_j + sh / 2, bot_j - sh / 2, top_j, bot_j, lambda t: 0.62 + 0.12 * t)
+    sh = height * persp  # the front: the cover, its far edge shrunk, lit from the left
+    box_face(pg, out, cover, xj, xj + front_w, top_j, bot_j, top_j + sh / 2, bot_j - sh / 2, lambda t: 1.0 - 0.1 * t)
+    if kind == "jewel":  # a dark clear rim round the insert, and the hinge down its left side
+        rimw, hinge = max(3, front_w // 70), int(front_w * 0.075)
+        for i in range(front_w):
+            top, bot = top_j + sh / 2 * i / front_w, bot_j - sh / 2 * i / front_w
+            if i < hinge:
+                pg.draw.line(out, (12, 12, 16, 55 if i % max(3, hinge // 6) else 110), (xj + i, top), (xj + i, bot))
+            elif i > front_w - rimw:
+                pg.draw.line(out, (12, 12, 16, 170), (xj + i, top), (xj + i, bot))
+            pg.draw.line(out, (12, 12, 16, 170), (xj + i, top), (xj + i, top + rimw))
+            pg.draw.line(out, (12, 12, 16, 170), (xj + i, bot - rimw), (xj + i, bot))
+    if case["gloss"]:  # plastic catches the light: a soft sheen across the front
+        sheen = pg.Surface((W, H), pg.SRCALPHA)
+        for i in range(front_w):
+            a = int(case["gloss"] * 90 * max(0.0, 1 - abs(i / front_w - 0.28) / 0.22) ** 2)
+            if a:
+                pg.draw.line(sheen, (255, 255, 255, a), (xj + i, top_j), (xj + i, bot_j))
+        out.blit(sheen, (0, 0))
+    pg.draw.line(out, (255, 255, 255, 70), (xj, top_j + 1), (xj, bot_j - 1), 2)  # the near edge, lit
+    pg.image.save(out.subsurface(out.get_bounding_rect(min_alpha=4)).copy(), out_path)
+
+
+def make_boxes(systems=None, again=False):
+    """3d boxes for the games with a cover and no box (again: the ones nekozame made, redone)"""
+    pg = pygame_ready()
+    if not pg:
+        say("3d boxes need pygame")
+        return 1
+    s = settings()
+    try:
+        made = set(json.load(open(BOXES)))
+    except (OSError, ValueError):
+        made = set()
+    count = 0
+    for root in s["roms"]:
+        for system in SYSTEMS:
+            if systems and system not in systems:
+                continue
+            for rom in games(root, system):
+                base = os.path.splitext(os.path.basename(rom))[0]
+                cover = next((p for m in s["media"] for ext in ("png", "jpg")
+                              for p in [os.path.join(m, system, "covers", f"{base}.{ext}")] if os.path.exists(p)), None)
+                if not cover:
+                    continue
+                out = os.path.join(s["media"][0], system, "3dboxes", f"{base}.png")
+                have = any(os.path.exists(os.path.join(m, system, "3dboxes", f"{base}.{ext}"))
+                           for m in s["media"] for ext in ("png", "jpg"))
+                if have and not (again and out in made):
+                    continue  # a scraped box (or one made before): kept
+                os.makedirs(os.path.dirname(out), exist_ok=True)
+                try:
+                    box_render(pg, cover, system, out + ".part.png")
+                    os.replace(out + ".part.png", out)
+                except (pg.error, OSError, ValueError) as err:
+                    say(f"  {system}/{base}: {err}")
+                    continue
+                made.add(out)
+                count += 1
+                if count % 100 == 0:
+                    say(f"  {count} boxes")
+                    os.makedirs(os.path.dirname(BOXES), exist_ok=True)
+                    json.dump(sorted(made), open(BOXES, "w"))
+    os.makedirs(os.path.dirname(BOXES), exist_ok=True)
+    json.dump(sorted(made), open(BOXES, "w"))
+    say(f"{count} 3d boxes made (the layouts' 3d box pictures show them)")
 
 
 _pygame = None
@@ -1946,6 +2083,8 @@ def main(argv):
         return systems_list()
     if cmd == "art":
         return fetch_art(argv[1:] or None)
+    if cmd == "boxes":
+        return make_boxes([a for a in argv[1:] if not a.startswith("--")] or None, again="--again" in argv)
     if cmd == "esde" and argv[1:2] in ([], ["on"]):
         return esde()
     if cmd == "esde" and argv[1:2] == ["off"]:

@@ -49,7 +49,7 @@ Super Mario World (USA) (Rev 1).sfc
 - **The brackets stay**: region `(Japan)`, version `(Rev 1)`, language `(En,Fr,De)`, `(Beta)`, `(Translated En)`... A scraper would call all of these "Beatmania" or "Sonic the Hedgehog" and you couldn't tell which one you're starting. In Steam, the name is also printed under each cover (`"labels"`), because covers of different versions often look the same.
 - **One game, one entry**: games on several discs are best kept as an `.m3u` playlist (a text file listing the discs) next to the disc files, like `Beat Mania (Japan)/Beat Mania (Japan).m3u`. nekozame shows the playlist as the game, not each disc. The same goes for a `.cue` and its `.bin` files, and a `.gdi` and its tracks. When the same game is there in two formats (a `.chd` and a `.cue`), Steam gets only one: the first in nekozame's order for that system. The frontend shows both, so keep one format per game.
 - **Art is found by name**: `nekozame-emu art` fetches covers and screenshots from libretro's thumbnail library, which is named after No-Intro and Redump. Files named that way get their art; others may not.
-- **The region in the name gives the game its flags**: nekozame-emu-frontend reads the first bracket that names regions, like `(Japan)` or `(USA, Europe)`, and the theme stamps those flags in the corner of the game's data box. It knows the usual No-Intro and Redump region names; `(World)`, `(Asia)`, `(Scandinavia)` and `(Latin America)` show no flag. The region will also choose which box a generated 3D box gets (coming).
+- **The region in the name gives the game its flags**: nekozame-emu-frontend reads the first bracket that names regions, like `(Japan)` or `(USA, Europe)`, and the theme stamps those flags in the corner of the game's data box. It knows the usual No-Intro and Redump region names; `(World)`, `(Asia)`, `(Scandinavia)` and `(Latin America)` show no flag. 
 - **Renaming a file** makes it a new game to Steam (its entry, art and playtime start over), and to the frontend. Rename before adding games to Steam, not after.
 
 Two names never change: hidden files (starting with `.`, like macOS's `._` files) are skipped entirely, and the folder a game is in only matters for its system.
@@ -177,6 +177,8 @@ Puts every game in Steam as its own entry, with its art and launch command. With
 - `nekozame-emu steam refresh` redoes the art and collections. `nekozame-emu steam remove` takes every game out of Steam again.
 
 Games with no cover yet: `nekozame-emu art` fetches covers and screenshots from libretro's thumbnail library, matched by your file names.
+
+**3D boxes:** `nekozame-emu boxes` makes a 3D box for every game that has a cover but no box, for the frontend's 3D box layouts. It's built from the game's own cover: the cover on the front, a spine in the colors of the cover's edge, in perspective, with light and a soft shadow. The case follows the system (a cardboard box for the NES or SNES, a clamshell for the Mega Drive, a jewel case for PS1 or Saturn, a keep case in the system's own color for PS2, GameCube, Wii or Switch), and its shape follows the cover, so a Super Famicom box stays wide and an American SNES box tall. Boxes from the scraper are never replaced. `nekozame-emu boxes psx saturn` does only those systems, and `--again` redoes the boxes nekozame made (after a better cover, say).
 
 ---
 
