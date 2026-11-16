@@ -28,23 +28,9 @@ Pick the image for your machine:
 | PC with an NVIDIA GPU (GTX 16xx, RTX) | `nekozame-os-nvidia` |
 | Steam Deck | `nekozame-os-deck`: boots into Game Mode. Desktop Mode is KDE with the nekozame look; `ujust nekozame-niri` adds niri. No DX dev tools. |
 
-### From an ISO
-
-For a new install. It erases the disk you install to.
-
-| Image | Download | Checksum |
-|---|---|---|
-| nekozame-os | [nekozame-os.iso](https://archive.org/download/nekozame-os-iso/nekozame-os.iso) | [sha256](https://archive.org/download/nekozame-os-iso/nekozame-os.iso-CHECKSUM) |
-| nekozame-os-nvidia | [nekozame-os-nvidia.iso](https://archive.org/download/nekozame-os-iso/nekozame-os-nvidia.iso) | [sha256](https://archive.org/download/nekozame-os-iso/nekozame-os-nvidia.iso-CHECKSUM) |
-| nekozame-os-deck | [nekozame-os-deck.iso](https://archive.org/download/nekozame-os-iso/nekozame-os-deck.iso) | [sha256](https://archive.org/download/nekozame-os-iso/nekozame-os-deck.iso-CHECKSUM) |
-
-- They're hosted for free on the [Internet Archive](https://archive.org/details/nekozame-os-iso), which also has a torrent for each one.
-- Write it to a USB stick with [Fedora Media Writer](https://flathub.org/apps/org.fedoraproject.MediaWriter) or Ventoy, and boot from it.
-- They're made from the `:stable` image every Sunday. After installing, the system updates itself from the signed image.
-
 ### From another Fedora Atomic system
 
-From Bazzite or any Universal Blue or Fedora Atomic image. Your files, Flatpaks and settings stay.
+Install [Bazzite](https://bazzite.gg) (or any Universal Blue or Fedora Atomic image) first, then switch to nekozame os. Your files, Flatpaks and settings stay.
 
 ```sh
 IMAGE=nekozame-os   # or nekozame-os-nvidia, nekozame-os-deck
@@ -76,7 +62,6 @@ systemctl reboot
 - The [`Containerfile`](Containerfile) starts from Bazzite (`bazzite-dx`, `bazzite-dx-nvidia`, `bazzite-deck`) and runs [`build_files/build.sh`](build_files/build.sh). nekozame's own files are in [`system_files`](system_files).
 - GitHub Actions builds the 3 images every day. Each build runs smoke tests before it's published as `:latest`.
 - Once a week, the current `:latest` becomes `:stable`, which is what installs follow. That way a bad day upstream doesn't reach you.
-- The ISOs are built from `:stable` every Sunday ([`build-disk.yml`](.github/workflows/build-disk.yml), [`disk_config/iso.toml`](disk_config/iso.toml)).
 - Images are signed with Cosign: `cosign verify --key cosign.pub ghcr.io/purplekairi1312/nekozame-os`
 - When something breaks: [`MAINTENANCE.md`](MAINTENANCE.md).
 

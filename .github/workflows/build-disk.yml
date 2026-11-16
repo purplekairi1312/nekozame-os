@@ -4,9 +4,9 @@ name: Build ISOs
 # the installer ISOs, from the :stable images, uploaded to the internet archive
 # (free, with a torrent for each file): https://archive.org/download/nekozame-os-iso
 # without the IA_ACCESS_KEY and IA_SECRET_KEY secrets they stay as job artifacts.
+# not on a schedule yet: bootc-image-builder doesn't know bazzite-based images
+# (ID=bazzite), so this fails until it builds the live installer like bazzite does
 on:
-  schedule:
-    - cron: '0 16 * * 0'  # sundays, after promote.yml makes the new :stable
   workflow_dispatch:
   pull_request:
     branches:
