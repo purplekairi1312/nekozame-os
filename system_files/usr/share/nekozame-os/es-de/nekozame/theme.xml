@@ -375,6 +375,21 @@
                 <color>${body}</color>
                 <zIndex>12</zIndex>
             </text>
+            <!-- the game's region (from its file name), its flags stamped in the data box's corner -->
+            <image name="flag">
+                <pos>0.903 0.79</pos>
+                <origin>1 1</origin>
+                <maxSize>0.04 0.034</maxSize>
+                <imageType>flag</imageType>
+                <zIndex>13</zIndex>
+            </image>
+            <image name="flag2">
+                <pos>0.856 0.79</pos>
+                <origin>1 1</origin>
+                <maxSize>0.04 0.034</maxSize>
+                <imageType>flag2</imageType>
+                <zIndex>13</zIndex>
+            </image>
         </view>
     </variant>
 
@@ -439,6 +454,12 @@
     <!-- a review page: the game's screen large, its data and the list beside it -->
     <variant name="review, review-title, review-cover, review-box, review-media, review-video">
         <view name="gamelist">
+            <image name="flag">
+                <pos>0.903 0.384</pos>
+            </image>
+            <image name="flag2">
+                <pos>0.856 0.384</pos>
+            </image>
             <text name="headline">
                 <size>0.52 0.09</size>
             </text>
@@ -524,6 +545,12 @@
     <!-- the covers along the foot of the page, like a strip of film -->
     <variant name="filmstrip, filmstrip-title, filmstrip-cover, filmstrip-box, filmstrip-media, filmstrip-video">
         <view name="gamelist">
+            <image name="flag">
+                <pos>0.903 0.49</pos>
+            </image>
+            <image name="flag2">
+                <pos>0.856 0.49</pos>
+            </image>
             <image name="screenFrame">
                 <pos>0.045 0.17</pos>
                 <size>0.45 0.48</size>
@@ -606,6 +633,12 @@
     <!-- a contents page: the games small and many, the screen and data large -->
     <variant name="index, index-title, index-cover, index-box, index-media, index-video">
         <view name="gamelist">
+            <image name="flag">
+                <pos>0.903 0.92</pos>
+            </image>
+            <image name="flag2">
+                <pos>0.856 0.92</pos>
+            </image>
             <text name="headline">
                 <size>0.33 0.09</size>
                 <fontSize>0.05</fontSize>
