@@ -1031,6 +1031,12 @@ def new_boxes():
     """3d boxes for covers that came since the last look (from scraping in the frontend,
     say): only the systems whose covers folder changed are gone through."""
     s = settings()
+    # a share that isn't there yet (just after boot, away from home): left alone this
+    # round. looking into each system's folder would ask for it to be mounted again and
+    # again, until systemd gives up on it
+    media = [m for m in s["media"] if os.path.isdir(m)]
+    if not media:
+        return
     try:
         seen = json.load(open(COVERS_SEEN))
     except (OSError, ValueError):
@@ -1038,7 +1044,7 @@ def new_boxes():
     changed = []
     for system in SYSTEMS:
         times = []
-        for m in s["media"]:
+        for m in media:
             try:
                 times.append(os.stat(os.path.join(m, system, "covers")).st_mtime)
             except OSError:
@@ -1226,7 +1232,7 @@ def steam_watch():
     10 minutes. runs as nekozame-emu-collections.service."""
     import threading
     import time
-    boxes, last = None, 0
+    boxes, last = None, time.time()  # the first look 10 minutes after starting, once the network is up
     while True:
         if (boxes is None or not boxes.is_alive()) and time.time() - last > 600:
             # every 10 minutes, apart from steam: boxes for new covers
