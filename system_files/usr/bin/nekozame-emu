@@ -875,7 +875,10 @@ def steam_watch():
             if added:
                 js = steam_js()
                 ready = js("(window.__nekozameCollected ? 'done' : '') + "
-                           "(collectionStore.userCollections.length && appStore.GetAppOverviewByAppID(%d) ? 'in' : '')"
+                           # collectionsFromStorage first: asking for userCollections before steam
+                           # has loaded them breaks the library page until steam restarts
+                           "(window.collectionStore && collectionStore.collectionsFromStorage && "
+                           "collectionStore.userCollections.length && appStore.GetAppOverviewByAppID(%d) ? 'in' : '')"
                            % next(iter(added.values()))["appid"])
                 if ready == "in":
                     tidy(js, added)  # stray copies of games, out
