@@ -10,6 +10,11 @@ nekozame-setup:
 nekozame-emulation:
     /usr/bin/nekozame-emulation
 
+# Ports, decomps and recomps: pick and install them (new ones are found every week)
+[group('nekozame')]
+nekozame-ports:
+    /usr/bin/nekozame-ports
+
 # Audio latency: low (default), normal (for crackles) or status
 [group('nekozame')]
 nekozame-audio LATENCY="status":

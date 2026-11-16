@@ -1,0 +1,10 @@
+[Unit]
+Description=nekozame: look for new ports every week
+
+[Timer]
+OnCalendar=weekly
+RandomizedDelaySec=6h
+Persistent=true
+
+[Install]
+WantedBy=timers.target

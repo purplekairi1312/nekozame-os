@@ -116,6 +116,11 @@ elif ask "Install nekozame-emu-frontend? (in Steam's Apps tab and your apps menu
     nekozame-emu esde on
 fi
 
+step "Ports, decomps and recomps (games rebuilt to run natively, a new one every week)"
+if ask "Pick some to install now? (later: ujust nekozame-ports; you're told when new ones come out)" false; then
+    nekozame-ports
+fi
+
 step "Covers and 3D boxes"
 if ask "Fetch covers for games without, and make 3D boxes from them? (a while, for a big library)" false; then
     nekozame-emu art

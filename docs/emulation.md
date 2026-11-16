@@ -173,6 +173,7 @@ Puts every game in Steam as its own entry, with its art and launch command. With
 - **Tabs:** with Decky's TabMaster plugin (`ujust nekozame-decky` installs it), `nekozame-emu steam tabs` sets up two tabs:
   - **Apps:** your other non-Steam apps (Heroic, Tauon...), without the games and emulators.
   - **Emulation:** the games, plus the emulators themselves (kept in their own **Emulators** collection).
+  - **Ports:** the ports, decomps and recomps you've installed (section 7).
 
   Steam's own Non-Steam tab is hidden. Restart Decky (or the machine) for the tabs to show.
 - **Steam forgets big collections when it restarts:** its cloud won't store thousands of games in one collection. The `nekozame-emu-collections` service puts them back a few seconds after every Steam start, and tidies away any stray copies of games. It's on by default.
@@ -212,7 +213,26 @@ nekozame-emu esde on --again
 
 ---
 
-## 7. When something's wrong
+## 7. Ports, decomps and recomps
+
+Games rebuilt by their fans to run natively, with no emulator: decompiled line by line (Ship of Harkinian for Ocarina of Time, the Silent Hill decomp), recompiled whole (Zelda 64: Recompiled, Unleashed Recompiled, a new one almost every week), or their engines written anew (GZDoom, OpenMW, DevilutionX).
+
+```sh
+ujust nekozame-ports
+```
+
+shows them all, the newest first, and installs the ones you pick. They go in Steam's own **Ports** tab, and on the frontend's **Ports** page.
+
+- **Where they come from**, the safest first: **Flathub** (sandboxed, checked by Flathub), the projects nekozame **knows** by name (the HarbourMasters ports, the Zelda and Unleashed recomps and more, from their own releases), and **new finds** on GitHub. New finds need a Linux build and at least 25 stars (`"ports": {"minStars": 25}` in `emulation.json`), and the list shows their stars, age and page. They aren't checked by anyone and run unsandboxed like any program you download: look at the project before installing one.
+- **New ones are looked for every week**, and you're told when there are some. `nekozame-ports check` looks now.
+- **Your own copy of the game**: most ports need it (a ROM, or the game's files) and say what on first start. nekozame installs the port; the game is yours to bring.
+- `nekozame-ports update` brings the installed ones to their newest release, `nekozame-ports remove NAME` uninstalls one, `nekozame-ports list` shows everything with its page.
+
+GitHub answers about 60 questions an hour without a login, so a big check can stop partway: it carries on next time. With a GitHub token in `GITHUB_TOKEN`, it can ask far more.
+
+---
+
+## 8. When something's wrong
 
 | What you see | Why, and what to do |
 |---|---|

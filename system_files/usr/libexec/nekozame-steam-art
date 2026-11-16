@@ -18,7 +18,8 @@ sys.path.insert(0, "/usr/share/nekozame-os/python")
 from nekoui import DEEP, PINK, PLUM, SOFT, sh  # noqa: E402
 
 HOME = os.path.expanduser("~")
-APPS = [f"{HOME}/.local/share/flatpak/exports/share", "/var/lib/flatpak/exports/share", "/usr/share"]
+APPS = [f"{HOME}/.local/share/flatpak/exports/share", "/var/lib/flatpak/exports/share", f"{HOME}/.local/share",
+        "/usr/share"]
 
 
 def desktop_entry(name):

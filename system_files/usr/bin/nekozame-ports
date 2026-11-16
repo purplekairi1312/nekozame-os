@@ -1,0 +1,504 @@
+#!/usr/bin/python3
+"""nekozame-ports: ports, decomps and recomps: pc games rebuilt from console ones (and
+source ports of the old pc classics), found for you, installed in a step, in steam's
+Ports tab and the frontend's Ports page. new ones come out every week: it looks for them.
+
+  nekozame-ports                  pick what to install (the new ones first)
+  nekozame-ports list             every port it knows, and what's installed
+  nekozame-ports check            look for new ones (weekly, by itself: you're told)
+  nekozame-ports install NAME...  install (by its name or id)
+  nekozame-ports update           the installed ones to their newest release
+  nekozame-ports remove NAME...   uninstall
+
+where they come from, the safest first:
+  flathub        sandboxed apps, checked by flathub
+  known          projects nekozame knows by name (harbourmasters, the zelda and
+                 unleashed recomps...), from their own github releases
+  found          new projects on github that look like ports, have a linux build and
+                 at least MIN_STARS stars. not checked by anyone: they run unsandboxed
+                 like any program you download, so look at the project before you
+                 install it (the list shows its stars, age and page)
+
+most ports need your own copy of the game to play (a rom or the game's files): they
+say what on first start. settings (~/.config/nekozame/emulation.json): "ports":
+{"minStars": 25}. installed github ports live in ~/.local/share/nekozame/ports.
+"""
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+import tarfile
+import tempfile
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+import zipfile
+
+HOME = os.path.expanduser("~")
+STATE = os.path.join(HOME, ".local/state/nekozame/ports.json")
+CONFIG = os.path.join(HOME, ".config/nekozame/emulation.json")
+PORTS = os.path.join(HOME, ".local/share/nekozame/ports")
+APPS = os.path.join(HOME, ".local/share/applications")
+LAUNCHERS = os.path.join(PORTS, "launchers")  # one script per port: the frontend's Ports system
+CHECKED_FOR = 7 * 86400  # a github project without a linux build: asked about again after a week
+UA = {"User-Agent": "nekozame-ports (https://github.com/purplekairi1312/nekozame-os)"}
+
+# the ones nekozame knows: name, what it plays, where it comes from
+KNOWN = [
+    # rebuilt from console games
+    ("Ship of Harkinian", "Ocarina of Time (N64)", "github:HarbourMasters/Shipwright"),
+    ("2 Ship 2 Harkinian", "Majora's Mask (N64)", "github:HarbourMasters/2ship2harkinian"),
+    ("Starship", "Star Fox 64 (N64)", "github:HarbourMasters/Starship"),
+    ("SpaghettiKart", "Mario Kart 64 (N64)", "github:HarbourMasters/SpaghettiKart"),
+    ("Zelda 64: Recompiled", "Majora's Mask (N64)", "github:Zelda64Recomp/Zelda64Recomp"),
+    ("Unleashed Recompiled", "Sonic Unleashed (Xbox 360)", "github:hedge-dev/UnleashedRecomp"),
+    ("Perfect Dark", "Perfect Dark (N64)", "github:fgsfdsfgs/perfect_dark"),
+    ("sm64coopdx", "Super Mario 64 (N64), online co-op", "github:coop-deluxe/sm64coopdx"),
+    ("Silent Hill PC", "Silent Hill (PS1)", "github:SlickAmogus/silent-hill-decomp"),
+    ("Forza Horizon ReImagined", "Forza Horizon (Xbox 360)", "github:FH1-ReImagined/ForzaHorizon1-ReImagined"),
+    ("NXEngine-evo", "Cave Story", "github:nxengine/nxengine-evo"),
+    ("Sonic Robo Blast 2", "a 3D Sonic fan game", "flathub:org.srb2.SRB2"),
+    ("EasyRPG Player", "RPG Maker 2000 and 2003 games", "flathub:org.easyrpg.player"),
+    # source ports of the pc classics
+    ("GZDoom", "Doom, Heretic, Hexen, Strife", "flathub:org.zdoom.GZDoom"),
+    ("Crispy Doom", "Doom, as it was, sharper", "flathub:io.github.fabiangreffrath.Doom"),
+    ("Doomsday", "Doom, Heretic, Hexen", "flathub:net.dengine.Doomsday"),
+    ("Raze", "Duke Nukem 3D, Blood, Shadow Warrior (Build engine)", "flathub:org.zdoom.Raze"),
+    ("Dhewm 3", "Doom 3", "flathub:org.dhewm3.Dhewm3"),
+    ("Ironwail", "Quake", "github:andrei-drexler/ironwail"),
+    ("Hammer of Thyrion", "Hexen II", "flathub:net.sourceforge.uhexen2.uhexen2"),
+    ("DevilutionX", "Diablo", "flathub:org.diasurgical.DevilutionX"),
+    ("OpenMW", "Morrowind", "flathub:org.openmw.OpenMW"),
+    ("OpenRCT2", "RollerCoaster Tycoon 2", "flathub:io.openrct2.OpenRCT2"),
+    ("OpenTTD", "Transport Tycoon Deluxe", "flathub:org.openttd.OpenTTD"),
+    ("Augustus", "Caesar III", "flathub:com.github.keriew.augustus"),
+    ("OpenTyrian", "Tyrian", "flathub:com.github.opentyrian.OpenTyrian"),
+]
+# where new ones are looked for
+GITHUB_SEARCHES = ["topic:n64recomp", "topic:recompilation", "topic:static-recompilation",
+                   "topic:decompilation topic:pc-port", "topic:pc-port", "recomp in:name", "decomp port in:description"]
+FLATHUB_SEARCHES = ["source port", "recompiled", "decompilation", "port of", "reimplementation"]
+LOOKS_LIKE_PORT = re.compile(r"(?i)\b(port|recomp\w*|decomp\w*|reimplement\w*|source port|native pc|native linux)\b")
+NOT_GAMES = re.compile(r"(?i)\b(list|awesome|catalog|tools?|toolkit|library|launcher|hub|decompiler|template|framework|sdk|editor|map editor)\b")
+
+
+def say(*a):
+    print(*a, flush=True)
+
+
+def get(url, data=None, headers=None, timeout=30):
+    h = dict(UA, **(headers or {}))
+    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+    if token and "api.github.com" in url:
+        h["Authorization"] = f"Bearer {token}"
+    if data is not None:
+        data = json.dumps(data).encode()
+        h["Content-Type"] = "application/json"
+    with urllib.request.urlopen(urllib.request.Request(url, data=data, headers=h), timeout=timeout) as r:
+        return json.load(r)
+
+
+def load():
+    try:
+        return json.load(open(STATE))
+    except (OSError, ValueError):
+        return {"seen": {}, "installed": {}, "found": {}}
+
+
+def save(st):
+    os.makedirs(os.path.dirname(STATE), exist_ok=True)
+    with open(STATE + ".new", "w") as f:
+        json.dump(st, f, indent=1)
+    os.replace(STATE + ".new", STATE)
+
+
+def min_stars():
+    try:
+        return int(json.load(open(CONFIG)).get("ports", {}).get("minStars", 25))
+    except (OSError, ValueError, AttributeError):
+        return 25
+
+
+def slug(text):
+    return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
+
+
+# --- what's out there --------------------------------------------------------------
+
+def linux_asset(assets):
+    """the release's build for linux on x86-64: a flatpak bundle, an appimage, or an
+    archive with the program in it, in that order (zips are opened later)"""
+    best = None
+    for a in assets:
+        n = a["name"].lower()
+        if re.search(r"arm|aarch64|i686|i386|win|osx|mac|darwin|android|ios|switch|\.sha|\.sig|source", n):
+            continue
+        if n.endswith(".flatpak"):
+            rank = 0
+        elif n.endswith(".appimage"):
+            rank = 1
+        elif re.search(r"linux|flatpak|appimage|steamdeck|steam-deck", n) and n.endswith((".zip", ".tar.gz", ".tgz", ".tar.xz")):
+            rank = 2 if "flatpak" in n or "appimage" in n else 3
+        else:
+            continue
+        if best is None or rank < best[0]:
+            best = (rank, a)
+    return best[1] if best else None
+
+
+class Wait(Exception):
+    """github's limit for the hour is used up"""
+
+
+def github_release(repo):
+    try:
+        r = get(f"https://api.github.com/repos/{repo}/releases/latest")
+    except urllib.error.HTTPError as err:
+        if err.code in (403, 429):
+            raise Wait() from err
+        raise
+    asset = linux_asset(r.get("assets", []))
+    return r.get("tag_name"), asset
+
+
+def known():
+    return [{"key": src, "name": name, "plays": plays, "source": src.split(":", 1)[0], "id": src.split(":", 1)[1]}
+            for name, plays, src in KNOWN]
+
+
+def discover(st):
+    """new projects that look like ports, on flathub and github"""
+    found = dict(st.get("found", {}))
+    have = {k["key"] for k in known()}
+    for q in FLATHUB_SEARCHES:
+        try:
+            hits = get("https://flathub.org/api/v2/search", data={"query": q}).get("hits", [])
+        except OSError:
+            continue
+        for h in hits:
+            key = "flathub:" + h["app_id"]
+            text = f"{h.get('name', '')} {h.get('summary', '')}"
+            if key in have or key in found or not LOOKS_LIKE_PORT.search(text) or NOT_GAMES.search(text) \
+                    or "game" not in str(h.get("main_categories", "")).lower():
+                continue
+            found[key] = {"key": key, "name": h.get("name", h["app_id"]), "plays": h.get("summary", ""),
+                          "source": "flathub", "id": h["app_id"]}
+    floor = min_stars()
+    checked = st.setdefault("checked", {})  # projects looked at without a linux build, and when
+    for q in GITHUB_SEARCHES:
+        try:
+            items = get("https://api.github.com/search/repositories?" + urllib.parse.urlencode(
+                {"q": f"{q} stars:>={floor} fork:false archived:false", "sort": "updated", "per_page": 30})).get("items", [])
+        except OSError:
+            continue
+        time.sleep(2)  # github's search allows a few a minute without a login
+        for it in items:
+            key = "github:" + it["full_name"]
+            desc = it.get("description") or ""
+            if key in have or key in found or not LOOKS_LIKE_PORT.search(f"{it['name']} {desc}") \
+                    or NOT_GAMES.search(f"{it['name']} {desc}") or time.time() - checked.get(key, 0) < CHECKED_FOR:
+                continue
+            try:
+                tag, asset = github_release(it["full_name"])
+            except Wait:
+                say("  github's limit for the hour is used up: the rest next time")
+                st["found"] = found
+                return found
+            except OSError:
+                continue
+            if not asset:
+                checked[key] = time.time()  # nothing built for linux yet: asked again in a week
+                continue
+            found[key] = {"key": key, "name": it["name"], "plays": desc[:120], "source": "github", "id": it["full_name"],
+                          "stars": it["stargazers_count"], "since": it["created_at"][:10], "page": it["html_url"]}
+    st["found"] = found
+    return found
+
+
+def everything(st):
+    return known() + sorted(st.get("found", {}).values(), key=lambda p: -p.get("stars", 0))
+
+
+# --- installing --------------------------------------------------------------------
+
+def flatpak(*args):
+    return subprocess.run(["flatpak", *args], capture_output=True, text=True)
+
+
+def desktop_entry(p, exe, workdir, icon=""):
+    os.makedirs(APPS, exist_ok=True)
+    path = os.path.join(APPS, f"nekozame-port-{slug(p['name'])}.desktop")
+    with open(path, "w") as f:
+        f.write(f"[Desktop Entry]\nType=Application\nName={p['name']}\nComment={p['plays']}\n"
+                f"Exec=\"{exe}\"\nPath={workdir}\nIcon={icon or 'applications-games'}\n"
+                f"Categories=Game;\nTerminal=false\n")
+    return os.path.basename(path)
+
+
+def find_program(root):
+    """an archive's program: an appimage, a launcher script, or the biggest executable"""
+    files = [os.path.join(d, n) for d, _, ns in os.walk(root) for n in ns]
+    for f in files:
+        if f.lower().endswith(".appimage"):
+            return f
+    elf = []
+    for f in files:
+        try:
+            with open(f, "rb") as h:
+                magic = h.read(4)
+        except OSError:
+            continue
+        if magic == b"\x7fELF" and not re.search(r"\.so(\.|$)", os.path.basename(f)):
+            elf.append(f)
+    scripts = [f for f in files if f.endswith(".sh") and os.path.dirname(f) == root]
+    if scripts:
+        return scripts[0]
+    return max(elf, key=os.path.getsize) if elf else None
+
+
+def install_github(p, st):
+    tag, asset = github_release(p["id"])
+    if not asset:
+        say(f"  {p['name']}: no linux build in its newest release yet")
+        return False
+    dest = os.path.join(PORTS, slug(p["name"]))
+    with tempfile.TemporaryDirectory() as tmp:
+        f = os.path.join(tmp, asset["name"])
+        say(f"  {p['name']} {tag}: {asset['name']}")
+        urllib.request.urlretrieve(asset["browser_download_url"], f)
+        name = asset["name"].lower()
+        if name.endswith((".zip", ".tar.gz", ".tgz", ".tar.xz")):  # opened: what's inside decides
+            out = os.path.join(tmp, "x")
+            if name.endswith(".zip"):
+                zipfile.ZipFile(f).extractall(out)
+            else:
+                with tarfile.open(f) as t:
+                    t.extractall(out, filter="data")
+            bundles = [os.path.join(d, n) for d, _, ns in os.walk(out) for n in ns if n.endswith(".flatpak")]
+            if bundles:
+                f, name = bundles[0], bundles[0].lower()
+            else:
+                shutil.rmtree(dest, ignore_errors=True)
+                shutil.copytree(out, dest)
+                prog = find_program(dest)
+                if not prog:
+                    say(f"  {p['name']}: couldn't find its program in {asset['name']}")
+                    return False
+                for d, _, ns in os.walk(dest):  # zips lose the executable bit
+                    for n in ns:
+                        fp = os.path.join(d, n)
+                        if n.lower().endswith((".appimage", ".sh")) or fp == prog:
+                            os.chmod(fp, 0o755)
+                st["installed"][p["key"]] = {"tag": tag, "kind": "files", "path": dest,
+                                             "desktop": desktop_entry(p, prog, os.path.dirname(prog))}
+                return True
+        if name.endswith(".flatpak"):  # a flatpak bundle: sandboxed, like flathub's
+            apps = lambda: set(flatpak("list", "--user", "--app", "--columns=application").stdout.split())
+            before = apps()
+            r = flatpak("install", "--user", "-y", "--reinstall", "--bundle", f)
+            if r.returncode:
+                say(f"  {p['name']}: {r.stderr.strip()[-200:]}")
+                return False
+            added = sorted(apps() - before)
+            app = added[0] if added else st["installed"].get(p["key"], {}).get("app", "")
+            st["installed"][p["key"]] = {"tag": tag, "kind": "flatpak-bundle", "app": app}
+            return True
+        if name.endswith(".appimage"):
+            os.makedirs(dest, exist_ok=True)
+            target = os.path.join(dest, asset["name"])
+            shutil.copyfile(f, target)
+            os.chmod(target, 0o755)
+            st["installed"][p["key"]] = {"tag": tag, "kind": "appimage", "path": dest,
+                                         "desktop": desktop_entry(p, target, dest)}
+            return True
+    return False
+
+
+def install(p, st):
+    if p["source"] == "flathub":
+        r = flatpak("install", "--user", "-y", "flathub", p["id"])
+        if r.returncode:
+            say(f"  {p['name']}: {r.stderr.strip()[-200:]}")
+            return False
+        st["installed"][p["key"]] = {"kind": "flathub", "app": p["id"]}
+        return True
+    return install_github(p, st)
+
+
+def launcher(p, st):
+    """the port's script in the frontend's Ports system (named as it's shown)"""
+    i = st["installed"].get(p["key"], {})
+    os.makedirs(LAUNCHERS, exist_ok=True)
+    path = os.path.join(LAUNCHERS, f"{p['name'].replace('/', '-')}.sh")
+    if i.get("app"):
+        body = f"exec flatpak run {i['app']}"
+    else:
+        entry = open(os.path.join(APPS, i["desktop"])).read()
+        exe = re.search(r'(?m)^Exec="?(.*?)"?$', entry).group(1)
+        body = f'cd "{os.path.dirname(exe)}" && exec "{exe}"'
+    with open(path, "w") as f:
+        f.write(f"#!/bin/sh\n# {p['name']}: {p['plays']} (nekozame-ports)\n{body}\n")
+    os.chmod(path, 0o755)
+    i["launcher"] = path
+
+
+def to_steam(st, keys):
+    """the installed ports in steam (their art too), under Emulation"""
+    names = []
+    for k in keys:
+        i = st["installed"].get(k, {})
+        if i.get("desktop"):
+            names.append(i["desktop"])
+        elif i.get("app"):
+            names.append(i["app"] + ".desktop")
+    if names and os.path.exists("/usr/libexec/nekozame-add-to-steam"):
+        subprocess.Popen(["/usr/libexec/nekozame-add-to-steam", *names], start_new_session=True,
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+def remove(p, st):
+    i = st["installed"].pop(p["key"], None)
+    if not i:
+        return
+    if i.get("app"):
+        flatpak("uninstall", "--user", "-y", i["app"])
+    if i.get("path"):
+        shutil.rmtree(i["path"], ignore_errors=True)
+    for f in (os.path.join(APPS, i["desktop"]) if i.get("desktop") else "", i.get("launcher", "")):
+        try:
+            os.remove(f)
+        except OSError:
+            pass
+
+
+# --- commands ----------------------------------------------------------------------
+
+def find(st, words):
+    every = everything(st)
+    out = []
+    for w in words:
+        hit = next((p for p in every if w.lower() in (p["key"].lower(), p["id"].lower(), p["name"].lower(), slug(p["name"]))), None)
+        if hit:
+            out.append(hit)
+        else:
+            say(f"  no port called {w} (nekozame-ports list shows them all)")
+    return out
+
+
+def line(p, st):
+    where = {"flathub": "flathub", "github": "github"}[p["source"]]
+    extra = f"  ★{p['stars']} since {p['since']}" if p.get("stars") else ""
+    mark = "●" if p["key"] in st["installed"] else "○"
+    return f"{mark} {p['name']}: {p['plays']}  [{where}{extra}]"
+
+
+def check(st, quiet=False):
+    before = set(st.get("seen", {}))
+    discover(st)
+    now = time.strftime("%Y-%m-%d")
+    new = [p for p in everything(st) if p["key"] not in before]
+    for p in everything(st):
+        st["seen"].setdefault(p["key"], now)
+    save(st)
+    if new and before and not quiet:
+        names = ", ".join(p["name"] for p in new[:6]) + ("…" if len(new) > 6 else "")
+        subprocess.run(["notify-send", "-a", "nekozame", "-i", "applications-games",
+                        f"{len(new)} new port{'s' if len(new) > 1 else ''}", f"{names}\nujust nekozame-ports"],
+                       capture_output=True)
+    return new
+
+
+def pick(st):
+    say("looking for new ports…")
+    new = {p["key"] for p in check(st, quiet=True)}
+    recent = {k for k, d in st["seen"].items() if d >= time.strftime("%Y-%m-%d", time.localtime(time.time() - 14 * 86400))}
+    every = [p for p in everything(st) if p["key"] not in st["installed"]]
+    every.sort(key=lambda p: (p["key"] not in new and p["key"] not in recent, p["source"] == "github" and "stars" in p))
+    if not every:
+        say("everything nekozame knows is installed <3")
+        return 0
+    labels = {(("new  " if p["key"] in new or p["key"] in recent else "") + line(p, st)): p for p in every}
+    say("github finds run unsandboxed like any download: look at their page (nekozame-ports list) first")
+    r = subprocess.run(["gum", "choose", "--no-limit", "--height", "20", "--header",
+                        "Ports to install (space picks, enter installs):", *labels], stdout=subprocess.PIPE, text=True)
+    chosen = [labels[l] for l in r.stdout.splitlines() if l in labels]
+    return do_install(st, chosen)
+
+
+def do_install(st, ports):
+    done = []
+    for p in ports:
+        try:
+            ok = install(p, st)
+        except Wait:
+            say(f"  {p['name']}: github's limit for the hour is used up; try again in a while")
+            continue
+        except OSError as err:
+            say(f"  {p['name']}: {err}")
+            continue
+        if ok:
+            launcher(p, st)
+            done.append(p["key"])
+            say(f"  ✓ {p['name']}")
+        save(st)
+    to_steam(st, done)
+    if done:
+        say("in steam's Ports tab once steam has them (restart steam to see their art), and on the"
+            " frontend's Ports page; most need your own copy of the game: they say what on first start")
+    return 0
+
+
+def main(argv):
+    st = load()
+    st.setdefault("seen", {}); st.setdefault("installed", {}); st.setdefault("found", {})
+    cmd = argv[0] if argv else ""
+    if cmd == "":
+        if not sys.stdin.isatty() or not shutil.which("gum"):
+            say(__doc__)
+            return 0
+        return pick(st)
+    if cmd == "list":
+        for p in everything(st):
+            say(line(p, st) + (f"\n      {p['page']}" if p.get("page") else ""))
+        return 0
+    if cmd == "check":
+        new = check(st)
+        say(f"{len(new)} new" + (": " + ", ".join(p["name"] for p in new) if new else ""))
+        return 0
+    if cmd == "install":
+        return do_install(st, find(st, argv[1:]))
+    if cmd == "remove":
+        for p in find(st, argv[1:]):
+            remove(p, st)
+            say(f"  {p['name']} removed")
+        save(st)
+        return 0
+    if cmd == "update":
+        flatpak("update", "--user", "-y")
+        for key, i in list(st["installed"].items()):
+            if not key.startswith("github:"):
+                continue
+            p = next((q for q in everything(st) if q["key"] == key), None)
+            try:
+                tag, _ = github_release(key.split(":", 1)[1])
+            except Wait:
+                say("  github's limit for the hour is used up: the rest next time")
+                break
+            except OSError:
+                continue
+            if p and tag and tag != i.get("tag"):
+                say(f"  {p['name']}: {i.get('tag')} → {tag}")
+                if install(p, st):
+                    launcher(p, st)
+                save(st)
+        say("up to date")
+        return 0
+    say(__doc__)
+    return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

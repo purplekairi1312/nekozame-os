@@ -1,0 +1,7 @@
+[Unit]
+Description=nekozame: look for new ports, decomps and recomps (you're told about new ones)
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/nekozame-ports check

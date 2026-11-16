@@ -169,6 +169,7 @@ install -Dm0644 "$T/steam/nekozame.js" /usr/share/nekozame-os/steam/nekozame.js
 systemctl --global enable nekozame-steam-theme.service
 systemctl --global enable nekozame-audio-follow.service
 systemctl --global enable nekozame-emu-collections.service
+systemctl --global enable nekozame-ports-check.timer
 # kde: the plasma style (panel, popups) and the window decorations (round buttons)
 mkdir -p /usr/share/plasma/desktoptheme /usr/share/aurorae/themes
 cp -r "$T/plasma/nekozame" /usr/share/plasma/desktoptheme/nekozame

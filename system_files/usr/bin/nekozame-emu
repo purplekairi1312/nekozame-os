@@ -61,6 +61,9 @@ STATE = os.path.join(HOME, ".local/state/nekozame/steam-games.json")
 TABMASTER = os.path.join(HOME, "homebrew/settings/TabMaster/settings.json")
 EVERYTHING = "Emulation"  # the collection with all of them (tabmaster's tabs use it)
 EMULATORS_COLLECTION = "Emulators"  # the emulators themselves, in the Emulation tab too
+PORTS_COLLECTION = "Ports"  # nekozame-ports' ports: a tab of their own
+PORT_STATE = os.path.join(HOME, ".local/state/nekozame/ports.json")
+PORT_LAUNCHERS = os.path.join(HOME, ".local/share/nekozame/ports/launchers")  # the frontend's Ports system
 # emulators steam may have as apps (beside the ones nekozame plays with): their flatpaks
 OTHER_EMULATORS = ["ca.parallel_launcher.ParallelLauncher", "com.blitterstudio.amiberry", "org.duckstation.DuckStation",
                    "io.github.lime3ds.Lime3DS", "org.flycast.Flycast", "io.mgba.mGBA", "net.kuribo64.melonDS",
@@ -802,6 +805,28 @@ def emulator_apps(js):
     return len(found)
 
 
+def port_apps(js):
+    """the ports steam has (nekozame-ports installed them) into their own collection"""
+    try:
+        installed = json.load(open(PORT_STATE)).get("installed", {}).values()
+    except (OSError, ValueError):
+        return 0
+    marks = [i["app"] for i in installed if i.get("app")] + ["/nekozame/ports/"]
+    found = [sc["appid"] for sc in steam_shortcuts()
+             if any(m in sc.get("exe", "") + " " + sc.get("launchoptions", "") for m in marks)]
+    if not found:
+        return 0
+    js("""(async () => {
+        const name = %s;
+        let c = collectionStore.userCollections.find(c => c.displayName === name);
+        if (!c) { c = collectionStore.NewUnsavedCollection(name, undefined, []); await c.Save();
+                  c = collectionStore.userCollections.find(c => c.displayName === name) || c; }
+        c.AsDragDropCollection().AddApps(%s.map(id => appStore.GetAppOverviewByAppID(id)).filter(Boolean));
+        await c.Save();
+    })()""" % (json.dumps(PORTS_COLLECTION), json.dumps(found)), wait=True)
+    return len(found)
+
+
 def steam_watch():
     """steam keeps big collections only while it runs (its cloud won't store thousands of
     games in one), so each time steam starts, once your library is in: the emulation
@@ -819,6 +844,7 @@ def steam_watch():
                     tidy(js, added)  # stray copies of games, out
                     collect(js, added, quiet=True)
                     emulator_apps(js)
+                    port_apps(js)
                     js("window.__nekozameCollected = true")
                     say(f"emulation collections back in steam ({len(added)} games)")
         except (OSError, ValueError, StopIteration, KeyError):
@@ -974,7 +1000,9 @@ def tabs(js=None, remove=False):
     coll = js("collectionStore.userCollections.find(c => c.displayName === %s)?.id" % json.dumps(EVERYTHING))
     if coll and not remove:
         emulator_apps(js)
+        port_apps(js)
     emus = js("collectionStore.userCollections.find(c => c.displayName === %s)?.id" % json.dumps(EMULATORS_COLLECTION))
+    ports = js("collectionStore.userCollections.find(c => c.displayName === %s)?.id" % json.dumps(PORTS_COLLECTION))
     try:
         cfg = json.load(open(TABMASTER))
     except (OSError, ValueError):
@@ -988,7 +1016,7 @@ def tabs(js=None, remove=False):
                                           ("Collections", "Collections"), ("DesktopApps", "Non-steam"),
                                           ("Soundtracks", "Soundtracks")]):
             t[tid] = {"id": tid, "title": title, "position": i}
-    for tid in ("nekozame-apps", "nekozame-emulation"):
+    for tid in ("nekozame-apps", "nekozame-emulation", "nekozame-ports"):
         t.pop(tid, None)
     if "DesktopApps" in t:
         t["DesktopApps"]["position"] = -1 if not remove else max(p["position"] for p in t.values()) + 1
@@ -1002,13 +1030,20 @@ def tabs(js=None, remove=False):
                               "filters": [{"type": "platform", "inverted": False, "params": {"platform": "nonSteam"}},
                                           {"type": "collection", "inverted": True, "params": {"id": coll, "name": EVERYTHING}}]
                               + ([{"type": "collection", "inverted": True, "params": {"id": emus, "name": EMULATORS_COLLECTION}}]
-                                 if emus else []),
+                                 if emus else [])
+                              + ([{"type": "collection", "inverted": True, "params": {"id": ports, "name": PORTS_COLLECTION}}]
+                                 if ports else []),
                               "filtersMode": "and", "categoriesToInclude": every, "autoHide": False}
         t["nekozame-emulation"] = {"id": "nekozame-emulation", "title": "Emulation", "position": last + 2,
                                    "filters": [{"type": "collection", "inverted": False, "params": {"id": coll, "name": EVERYTHING}}]
                                    + ([{"type": "collection", "inverted": False, "params": {"id": emus, "name": EMULATORS_COLLECTION}}]
                                       if emus else []),
                                    "filtersMode": "or", "categoriesToInclude": every, "autoHide": False}
+        if ports:
+            t["nekozame-ports"] = {"id": "nekozame-ports", "title": "Ports", "position": last + 3,
+                                   "filters": [{"type": "collection", "inverted": False,
+                                                "params": {"id": ports, "name": PORTS_COLLECTION}}],
+                                   "filtersMode": "and", "categoriesToInclude": every, "autoHide": False}
     # positions in order again, the hidden ones staying hidden
     shown = sorted((p for p in t.values() if p["position"] >= 0), key=lambda p: p["position"])
     for i, p in enumerate(shown):
@@ -1018,7 +1053,7 @@ def tabs(js=None, remove=False):
     with open(TABMASTER + ".new", "w") as f:
         json.dump(cfg, f, indent=4)
     os.replace(TABMASTER + ".new", TABMASTER)
-    say("  tabmaster's tabs " + ("taken out" if remove else "are set: Apps and Emulation")
+    say("  tabmaster's tabs " + ("taken out" if remove else "are set: Apps, Emulation" + (" and Ports" if ports else ""))
         + " (they show once decky restarts: reboot, or sudo systemctl restart plugin_loader)")
 
 
@@ -1147,6 +1182,8 @@ def esde_systems(appimage):
     def ours(m):
         block = m.group(0)
         name = re.search(r"<name>(.*?)</name>", block).group(1)
+        if name == "ports":  # the ports this machine has (nekozame-ports), not a folder of the share's
+            return re.sub(r"<path>.*?</path>", f"<path>{escape(PORT_LAUNCHERS)}</path>", block)
         if name not in SYSTEMS:
             return block
         cmd = f'<command label="nekozame">{escape(exe)} launch {name} %ROM%</command>'
@@ -1190,6 +1227,7 @@ THEME_SRC = "/usr/share/nekozame-os/es-de/nekozame"
 SCE, NEC = "ソニー・コンピュータエンタテインメント", "NECホームエレクトロニクス"
 POSTER = {
     "nes": ("NES", "1985年10月18日発売（北米）　任天堂"),
+    "ports": ("移植版", ""),
     "fds": ("ディスクシステム", "1986年2月21日発売　任天堂"),
     "snes": ("Super NES", "1991年8月23日発売（北米）　任天堂"),
     "sfc": ("スーパーファミコン", "1990年11月21日発売　任天堂"),
@@ -1275,6 +1313,7 @@ KIND = {
     "handheld": ("Handheld", "携帯ゲーム機"), "addon": ("Add-on", "周辺機器"), "arcade": ("Arcade board", "アーケード基板"),
     "hybrid": ("Hybrid console", "据置・携帯兼用機"), "3d": ("3D game system", "3Dゲーム機"),
     "engine": ("Game engine", "ゲームエンジン"), "archive": ("Arcade archive", "アーケードの記録"),
+    "ports": ("Ports and recomps", "移植・再コンパイル版"),
     "open": ("Open-source console", "オープンソースのゲーム機"), "os": ("PC operating system", "パソコン（OS）"),
 }
 PLACARD = {
@@ -1506,6 +1545,9 @@ PLACARD = {
     "cps3": ("arcade",
              "Capcom's third CP System, with its games on CD; Street Fighter III ran on it.",
              "カプコンの第3世代「CPシステム」で、ゲームはCDで届いた。『ストリートファイターIII』がここで動いた。"),
+    "ports": ("ports",
+              "Games taken apart and rebuilt by their fans, to run natively here: decompiled line by line, recompiled whole, or their engines written anew. Most still ask for your own copy of the game.",
+              "ファンの手で解き明かされ、この機械でそのまま動くよう作り直されたゲームたち。逆コンパイル、再コンパイル、エンジンの書き直し。遊ぶには、多くが元のゲームのデータを必要とする。"),
     "xbox": ("console",
              "Microsoft's first console, with a hard disk built in, and Halo at its side.",
              "ハードディスクを内蔵したマイクロソフト初のゲーム機。『Halo』とともに登場した。"),
@@ -1794,9 +1836,12 @@ def magazine(system, s, scheme, dest, bare=False, lang="en"):
         date, _, maker = release.partition("　")
         if not maker:
             date, maker = "", release
-        count = sum(len(games(r, system)) for r in s["roms"]) if system in SYSTEMS else sum(
-            len([x for x in os.listdir(os.path.join(r, system)) if not x.startswith(".")])
-            for r in s["roms"] if os.path.isdir(os.path.join(r, system)))
+        if system == "ports":  # the ports on this machine
+            count = len([x for x in os.listdir(PORT_LAUNCHERS) if x.endswith(".sh")]) if os.path.isdir(PORT_LAUNCHERS) else 0
+        else:
+            count = sum(len(games(r, system)) for r in s["roms"]) if system in SYSTEMS else sum(
+                len([x for x in os.listdir(os.path.join(r, system)) if not x.startswith(".")])
+                for r in s["roms"] if os.path.isdir(os.path.join(r, system)))
         # a column of screens from your games
         shots = []
         for media in s["media"]:
@@ -1814,7 +1859,7 @@ def magazine(system, s, scheme, dest, bare=False, lang="en"):
         fh = f("Noto Sans CJK JP:black", 92)
         page.blit(fh.render("深く、青く。", True, c["ink1"]), (90, 50))
         page.blit(fh.render("あの夏の海へ", True, c["ink2"]), (90, 158))
-        en_name = SYSTEMS[system][0] if system in SYSTEMS else system
+        en_name = SYSTEMS[system][0] if system in SYSTEMS else {"ports": "Ports"}.get(system, system)
         maker_en = MAKERS_EN.get(maker, maker)
         arcade = "稼働" in date or system in ("arcade", "mame", "fbneo", "naomi", "atomiswave", "cps1", "cps2", "cps3", "neogeo")
         # the copy: a museum's placard for the machine (what it was, what it did), then
@@ -1837,7 +1882,8 @@ def magazine(system, s, scheme, dest, bare=False, lang="en"):
                         line = trial
             return out + [line] if line else out
         if lang == "ja":
-            intro = f"{date}、{maker}から登場した{ja}。" if date.endswith(("発売", "稼働")) else f"{ja}。"
+            intro = f"{date}、{maker}から登場した{ja}。" if date.endswith(("発売", "稼働")) else (
+                "" if system == "ports" else f"{ja}。")
             facts = f"　{intro}{plac_ja}"
             poem = f"　いま、その{count}本が深い青の底で静かに眠っている。コントローラーを握れば、あの夏の海がもう一度ひろがる……。"
             fb, fp = f("Noto Sans CJK JP:regular", 26), f("Noto Sans CJK JP:regular", 24)
@@ -1845,7 +1891,7 @@ def magazine(system, s, scheme, dest, bare=False, lang="en"):
         else:
             when = date_en(date)
             intro = (f"The {en_name}, {'in arcades from' if arcade else 'released'} {when}"
-                     f"{' by ' + maker_en if maker_en else ''}. " if when else f"The {en_name}. ")
+                     f"{' by ' + maker_en if maker_en else ''}. " if when else "" if system == "ports" else f"The {en_name}. ")
             facts = intro + plac_en
             poem = (f"{count} titles rest here now, quietly, at the bottom of the deep blue. Pick up the controller, "
                     f"and that summer sea opens up once more…")
@@ -1921,7 +1967,7 @@ def esde_theme(s, pages=True, again=False):
     from xml.sax.saxutils import escape
     os.makedirs(os.path.join(dest, "systems"), exist_ok=True)
     vertical = {"ー": "丨", "、": "︑", "。": "︒", "・": "・", " ": "　"}
-    for system, (name, _, _) in SYSTEMS.items():
+    for system, name in [(k, v[0]) for k, v in SYSTEMS.items()] + [("ports", "Ports")]:
         ja, release = POSTER.get(system, (name, ""))
         year = re.match(r"\d{4}", release)
         # down the spine: the name, a gap, the page's little line, again and again
@@ -1943,6 +1989,8 @@ def esde_theme(s, pages=True, again=False):
                         not f.startswith(".") and not f.lower().endswith((".txt", ".xml"))
                         for f in os.listdir(path)):
                     shown.add(d)
+        if os.path.isdir(PORT_LAUNCHERS) and any(f.endswith(".sh") for f in os.listdir(PORT_LAUNCHERS)):
+            shown.add("ports")
         for system in sorted(shown):
             for scheme in SCHEMES:
                 for name, bare, lang in ((f"{system}-{scheme}-en", False, "en"), (f"{system}-{scheme}-ja", False, "ja"),
@@ -1997,15 +2045,22 @@ def esde(off=False):
         say("ES-DE is gone (your game lists, art and saves stay)")
         return 0
     s = settings()
-    # nekozame-emu-frontend itself: the newest release (its steam deck build on a deck)
-    with urllib.request.urlopen(ESDE_RELEASES, timeout=30) as r:
-        release = json.load(r)
+    # nekozame-emu-frontend itself: the newest release (its steam deck build on a deck);
+    # when github can't be asked (offline, or its hourly limit), the one installed stays
+    try:
+        with urllib.request.urlopen(ESDE_RELEASES, timeout=30) as r:
+            release = json.load(r)
+    except (OSError, ValueError) as err:
+        if not os.path.exists(appimage):
+            raise
+        say(f"  couldn't look for a newer {ESDE_NAME} ({err}): keeping {st.get('version', 'the one installed')}")
+        release = {"tag_name": st.get("version", ""), "assets": []}
     deck = open("/sys/devices/virtual/dmi/id/sys_vendor").read().strip() == "Valve" \
         if os.path.exists("/sys/devices/virtual/dmi/id/sys_vendor") else False
     want = f"nekozame-emu-frontend_x64{'_SteamDeck' if deck else ''}.AppImage"
-    link = next(a["browser_download_url"] for a in release["assets"] if a["name"] == want)
+    link = next((a["browser_download_url"] for a in release["assets"] if a["name"] == want), None)
     fresh = False
-    if st.get("version") != release["tag_name"] or not os.path.exists(appimage):
+    if link and (st.get("version") != release["tag_name"] or not os.path.exists(appimage)):
         say(f"getting nekozame-emu-frontend {release['tag_name']}")
         os.makedirs(ESDE, exist_ok=True)
         urllib.request.urlretrieve(link, appimage + ".part")
