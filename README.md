@@ -20,13 +20,31 @@ On your first login, a short setup turns all of it on and asks about the optiona
 
 ## Install
 
-From any Universal Blue image. Your files, Flatpaks and settings stay. Pick the image for your machine:
+Pick the image for your machine:
 
 | Machine | Image |
 |---|---|
 | PC or laptop with AMD or Intel graphics | `nekozame-os` |
-| PC with an NVIDIA GPU | `nekozame-os-nvidia` |
-| Steam Deck | `nekozame-os-deck` (boots Game Mode; Desktop Mode is KDE with the nekozame look, `ujust nekozame-niri` adds niri; no DX dev tools) |
+| PC with an NVIDIA GPU (GTX 16xx, RTX) | `nekozame-os-nvidia` |
+| Steam Deck | `nekozame-os-deck`: boots into Game Mode. Desktop Mode is KDE with the nekozame look; `ujust nekozame-niri` adds niri. No DX dev tools. |
+
+### From an ISO
+
+For a new install. It erases the disk you install to.
+
+| Image | Download | Checksum |
+|---|---|---|
+| nekozame-os | [nekozame-os.iso](https://archive.org/download/nekozame-os-iso/nekozame-os.iso) | [sha256](https://archive.org/download/nekozame-os-iso/nekozame-os.iso-CHECKSUM) |
+| nekozame-os-nvidia | [nekozame-os-nvidia.iso](https://archive.org/download/nekozame-os-iso/nekozame-os-nvidia.iso) | [sha256](https://archive.org/download/nekozame-os-iso/nekozame-os-nvidia.iso-CHECKSUM) |
+| nekozame-os-deck | [nekozame-os-deck.iso](https://archive.org/download/nekozame-os-iso/nekozame-os-deck.iso) | [sha256](https://archive.org/download/nekozame-os-iso/nekozame-os-deck.iso-CHECKSUM) |
+
+- They're hosted for free on the [Internet Archive](https://archive.org/details/nekozame-os-iso), which also has a torrent for each one.
+- Write it to a USB stick with [Fedora Media Writer](https://flathub.org/apps/org.fedoraproject.MediaWriter) or Ventoy, and boot from it.
+- They're made from the `:stable` image every Sunday. After installing, the system updates itself from the signed image.
+
+### From another Fedora Atomic system
+
+From Bazzite or any Universal Blue or Fedora Atomic image. Your files, Flatpaks and settings stay.
 
 ```sh
 IMAGE=nekozame-os   # or nekozame-os-nvidia, nekozame-os-deck
@@ -43,26 +61,29 @@ sudo rpm-ostree rebase ostree-image-signed:docker://ghcr.io/purplekairi1312/$IMA
 systemctl reboot
 ```
 
+- The first rebase is unsigned because your system doesn't have nekozame's signing key yet; the image brings it. From then on, every update is checked against it.
+- Going back: `sudo rpm-ostree rebase ostree-image-signed:docker://ghcr.io/ublue-os/bazzite-dx:stable` (or `bazzite-dx-nvidia`, `bazzite-deck`, matching your image).
+
+## Customizing
+
+- `ujust nekozame-setup` runs the first-login setup again: the optional bits, like music production, Helium or Sunshine.
+- `ujust` lists everything else.
+- niri: your config is `~/.config/niri/config.kdl`, and it's yours to change. nekozame's shortcuts are in `/usr/share/nekozame-os/niri/binds.kdl`, which it includes, so they update with the OS.
+- Install apps with Flatpak (Bazaar), or Homebrew for command-line tools. Layering packages with rpm-ostree works too, but slows updates down.
+
+## How it's built
+
+- The [`Containerfile`](Containerfile) starts from Bazzite (`bazzite-dx`, `bazzite-dx-nvidia`, `bazzite-deck`) and runs [`build_files/build.sh`](build_files/build.sh). nekozame's own files are in [`system_files`](system_files).
+- GitHub Actions builds the 3 images every day. Each build runs smoke tests before it's published as `:latest`.
+- Once a week, the current `:latest` becomes `:stable`, which is what installs follow. That way a bad day upstream doesn't reach you.
+- The ISOs are built from `:stable` every Sunday ([`build-disk.yml`](.github/workflows/build-disk.yml), [`disk_config/iso.toml`](disk_config/iso.toml)).
+- Images are signed with Cosign: `cosign verify --key cosign.pub ghcr.io/purplekairi1312/nekozame-os`
+- When something breaks: [`MAINTENANCE.md`](MAINTENANCE.md).
+
 ## FAQ
 
 **What does nekozame mean?**
 猫鮫, catshark. I'm a catgirl, I love cats, sharks are my fav animal, and I'm a Sonic fan: the Sonic hedgehog protein (yes, named after Sonic) gets studied a lot in catsharks, which I find funny and that way im fusing 3 things i really like :D
-
-**Going back?**
-
-```sh
-# bazzite-dx, bazzite-dx-nvidia or bazzite-deck, matching your nekozame os image
-sudo rpm-ostree rebase ostree-image-signed:docker://ghcr.io/ublue-os/bazzite-dx:stable
-```
-
-**How is it built and updated?**
-GitHub Actions builds it daily from the [`Containerfile`](Containerfile) and [`build_files/build.sh`](build_files/build.sh), and every build runs smoke tests before it's published. `:stable` gets the latest good build once a week (`:latest` is daily, for testing). Images are signed with Cosign:
-
-```sh
-cosign verify --key cosign.pub ghcr.io/purplekairi1312/nekozame-os
-```
-
-See [`MAINTENANCE.md`](MAINTENANCE.md) for when something breaks.
 
 ## Credits
 
