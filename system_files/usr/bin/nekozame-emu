@@ -50,6 +50,7 @@ settings (~/.config/nekozame/emulation.json), all optional:
                                               one on a network share never stalls
 """
 import json
+import urllib.error
 import urllib.parse
 import os
 import re
@@ -769,6 +770,11 @@ def achievements(argv):
         try:
             with urllib.request.urlopen(req, timeout=30) as r:
                 answer = json.load(r)
+        except urllib.error.HTTPError as err:  # a wrong login comes back as 401, with the reason
+            try:
+                answer = json.loads(err.read() or b"{}")
+            except ValueError:
+                answer = {"Error": str(err)}
         except (OSError, ValueError) as err:
             say(f"couldn't reach retroachievements.org: {err}")
             return 1
