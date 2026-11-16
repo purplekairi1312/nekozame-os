@@ -30,6 +30,9 @@ settings (~/.config/nekozame/emulation.json), all optional:
                                               a game tell apart in the library
   "music": true, "musicVolume": 40            es-de's music ("dolphin sanctuary" by
                                               purplekairi1312, © 2026, all rights reserved)
+  "loadToRam": true                           discs read into memory before a game starts
+                                              (ps1, saturn, pc engine cd, ps2, psp), so
+                                              one on a network share never stalls
 """
 import json
 import urllib.parse
@@ -344,7 +347,7 @@ def set_ini(path, section, values):
     lines = open(path, errors="replace").read().splitlines() if os.path.exists(path) else []
     out, in_section, done = [], False, set()
     for line in lines:
-        m = re.match(r"\s*\[(.+)\]\s*$", line)
+        m = re.match(r"\s*\[(.+)\]\s*$", line.lstrip("\ufeff"))  # (ppsspp's starts with a bom)
         if m:
             if in_section:
                 out += [f"{k} = {v}" for k, v in values.items() if k not in done]
@@ -358,7 +361,7 @@ def set_ini(path, section, values):
         out.append(line)
     if in_section:
         out += [f"{k} = {v}" for k, v in values.items() if k not in done]
-    elif section not in [re.sub(r"[\[\]\s]", "", l) for l in lines]:
+    elif section not in [re.sub(r"[\[\]\s\ufeff]", "", l) for l in lines]:
         out += ["", f"[{section}]"] + [f"{k} = {v}" for k, v in values.items()]
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path + ".new", "w") as f:
@@ -380,7 +383,28 @@ def link_saves(emu):
         os.symlink(target, here)
 
 
+def set_cfg(path, values):
+    """retroarch's key = "value" lines: these set, the rest of the file as it was."""
+    lines = open(path, errors="replace").read().splitlines() if os.path.exists(path) else []
+    lines = [l for l in lines if l.split("=", 1)[0].strip() not in values]
+    lines += [f'{k} = "{v}"' for k, v in values.items()]
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path + ".new", "w") as f:
+        f.write("\n".join(lines) + "\n")
+    os.replace(path + ".new", path)
+
+
+# a disc read into memory before the game starts (its cores and emulators that can), so
+# a game from a network share doesn't stall when it reads the disc: the start takes
+# longer, the playing doesn't ("loadToRam": false for reading from the disc as it goes).
+# cartridges are always read whole.
+RAM_CORES = {"Beetle PSX HW": {"beetle_psx_hw_cd_access_method": "precache"},
+             "Beetle Saturn": {"beetle_saturn_cdimagecache": "enabled"},
+             "Beetle PCE": {"pce_cdimagecache": "enabled"}}
+
+
 def configure(emu, s):
+    ram = s.get("loadToRam", True)
     saves = os.path.join(HOME, "Emulation/saves")
     if emu == "pcsx2":
         ini = os.path.join(VAR, "net.pcsx2.PCSX2/config/PCSX2/inis/PCSX2.ini")
@@ -389,6 +413,10 @@ def configure(emu, s):
         set_ini(ini, "Folders", {"Bios": s["bios"], "MemoryCards": f"{saves}/pcsx2/saves",
                                  "SaveStates": f"{saves}/pcsx2/states"})
         set_ini(ini, "UI", {"SetupWizardIncomplete": "false", "StartFullscreen": "true"})
+        set_ini(ini, "EmuCore", {"CdvdPrecache": "true" if ram else "false"})
+    elif emu == "ppsspp":
+        set_ini(os.path.join(VAR, "org.ppsspp.PPSSPP/config/ppsspp/PSP/SYSTEM/ppsspp.ini"), "General",
+                {"CacheFullIsoInRam": "True" if ram else "False"})
     elif emu == "retroarch":
         cfg = os.path.join(VAR, RA, "config/retroarch/retroarch.cfg")
         if os.path.exists(cfg):
@@ -396,6 +424,13 @@ def configure(emu, s):
             if 'system_directory = "default"' in text or "system_directory" not in text:
                 text = re.sub(r'^system_directory = .*$', "", text, flags=re.M).rstrip("\n")
                 open(cfg, "w").write(text + f'\nsystem_directory = "{s["bios"]}"\n')
+        # the core options: retroarch's shared file, and each core's own (whichever it reads)
+        base = os.path.join(VAR, RA, "config/retroarch")
+        for core, opts in RAM_CORES.items():
+            if not ram:
+                opts = {k: {"precache": "sync", "enabled": "disabled"}[v] for k, v in opts.items()}
+            set_cfg(os.path.join(base, "retroarch-core-options.cfg"), opts)
+            set_cfg(os.path.join(base, "config", core, f"{core}.opt"), opts)
     link_saves(emu)
 
 
