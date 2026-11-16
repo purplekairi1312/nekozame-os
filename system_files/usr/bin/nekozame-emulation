@@ -87,6 +87,22 @@ fi
 step "Emulators"
 nekozame-emu setup
 
+step "How games look on this machine (aspect ratio, resolution, the CRT PAL shader)"
+nekozame-emu video show
+if ask "Change these? (the recommended resolution is picked for this machine's screen and graphics)" false; then
+    nekozame-emu video
+fi
+
+step "RetroAchievements"
+if [ -s "$HOME/.config/nekozame/retroachievements.json" ]; then
+    nekozame-emu achievements
+elif ask "Log in to RetroAchievements? (achievements in RetroArch, PCSX2, Dolphin and PPSSPP; only a login token is kept)" false; then
+    if nekozame-emu achievements login; then
+        ask "Hardcore mode? (no save states, rewind or cheats, as RetroAchievements needs for hardcore points)" false &&
+            nekozame-emu achievements hardcore on
+    fi
+fi
+
 step "Saves"
 if [ -s "$HOME/.config/nekozame/saves.json" ]; then
     ok "syncing (where to: nekozame-saves setup)"

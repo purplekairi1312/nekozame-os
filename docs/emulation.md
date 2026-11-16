@@ -146,6 +146,8 @@ The settings are in `~/.config/nekozame/emulation.json`, all of them optional. A
 | `steam.names` | `"file"` | Game names: `"file"` (your file names) or `"scraped"` (ES-DE's scraped titles) |
 | `steam.labels` | `true` | The name printed under each cover in Steam |
 | `loadToRam` | `true` | Disc games (PS1, Saturn, PC Engine CD, PS2, PSP) are read into memory before starting, so reading from the share doesn't interrupt them. Starting takes a bit longer. |
+| `video` | console, recommended, shader off | How games look: `aspect`, `resolution`, `shader` and `shaderSystems` (see "How games look") |
+| `achievements` | `{"enabled": true, "hardcore": false}` | RetroAchievements, once you've logged in |
 | `music` | `true` | The frontend's music |
 | `musicVolume` | `40` | Its volume, 0 to 100 |
 | `drawings` | `"sharks"` | What's on each frontend page: `"sharks"` (Kawahara Keiga's sharks and rays), `"machines"` (a photo of the console) or `"both"` |
@@ -164,6 +166,34 @@ nekozame-emu setup
 - Installs the emulators (from Flathub) for the systems you have games for, and points them at your `bios` and `saves`. Run it again after adding a system.
 - RetroArch plays most systems. The standalone ones are PCSX2 (PS2), Dolphin (GameCube, Wii), PPSSPP (PSP), RPCS3 (PS3), shadPS4 (PS4), Ryujinx (Switch), Azahar (3DS), Cemu (Wii U), xemu (Xbox) and ScummVM.
 - Games launch through `nekozame-emu launch`, which syncs that emulator's saves before and after the game. Launching some other way skips the sync.
+
+### How games look
+
+```sh
+nekozame-emu video
+```
+
+A menu for this machine's aspect ratio, resolution and CRT shader. Each machine has its own: the settings file isn't shared, so the Deck and the PC can differ.
+
+- **Aspect ratio:** the console's own shape (4:3 for PS1, Saturn, N64, with bars at the sides), widescreen hacks where the emulator has them (PS1, N64, PS2, GameCube), or fill the screen.
+- **Resolution:** for the 3D consoles (PS1, N64, PS2, GameCube, Wii, PSP). "Recommended" is picked from this machine's screen and graphics: high enough to fill the screen, but no higher than the machine runs at full speed. On a Steam Deck: PS1 2x, N64 3x, PS2 1x, GameCube 2x, PSP 3x. "Native" is the console's own; a number picks the scale yourself.
+- **CRT PAL shader:** crt-royale with r57shell's PAL signal, the picture of a 90s TV: scanlines, the mask, and a PAL signal's colours. It's off unless you turn it on, for the systems you pick (PS1, Saturn and N64 at first). It uses the shader that comes with RetroArch, and switches those cores to OpenGL, which it needs. Systems with the shader stay at their native resolution, since that's what it's made for. It only covers systems RetroArch plays: PCSX2, Dolphin and PPSSPP have their own filters.
+
+Without the menu: `nekozame-emu video aspect wide`, `nekozame-emu video resolution 4`, `nekozame-emu video shader crt-pal psx saturn n64`, `nekozame-emu video shader off`.
+
+### RetroAchievements
+
+```sh
+nekozame-emu achievements login
+```
+
+Achievements from [RetroAchievements](https://retroachievements.org) in RetroArch, PCSX2, Dolphin and PPSSPP.
+
+- You log in once per machine. Only the login token RetroAchievements gives back is kept, never your password, in a file only you can read.
+- RetroAchievements recognizes a game by its file, matched against the No-Intro and Redump dumps, so games named and dumped that way get their achievements. Most hacks and translations don't have any.
+- `nekozame-emu achievements hardcore on` turns on hardcore mode: no save states, rewind, slow motion or cheats, as RetroAchievements needs for hardcore points. `off` goes back to normal.
+- `nekozame-emu achievements off` turns them off in every emulator, keeping the login. `logout` takes the login off this machine.
+- If you already logged in inside an emulator, nekozame leaves that login alone until you log in with `nekozame-emu achievements login`.
 
 ---
 

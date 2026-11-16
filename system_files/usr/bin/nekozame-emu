@@ -21,6 +21,9 @@ your saves synced everywhere (nekozame-saves).
                                   thumbnail library, matched by your file names)
   nekozame-emu boxes [SYSTEM...]  3d boxes made from the covers, for games with a cover
                                   and no scraped box (--again: the made ones redone)
+  nekozame-emu video              how games look on this machine: aspect ratio,
+                                  resolution, the crt pal shader (a menu)
+  nekozame-emu achievements       retroachievements: login, hardcore, on or off
 
 settings (~/.config/nekozame/emulation.json), all optional:
   "roms":  ["~/Emulation/roms", "/mnt/nas/Emulation/roms"]   where your games are
@@ -38,6 +41,10 @@ settings (~/.config/nekozame/emulation.json), all optional:
                                               "sharks", the "machines" themselves (museum
                                               photos, patent drawings), or "both" (the
                                               machine, a smaller shark below it)
+  "video": {"aspect": "console", "resolution": "recommended", "shader": "off"}
+                                              how games look (nekozame-emu video)
+  "achievements": {"enabled": true, "hardcore": false}
+                                              retroachievements (nekozame-emu achievements)
   "loadToRam": true                           discs read into memory before a game starts
                                               (ps1, saturn, pc engine cd, ps2, psp), so
                                               one on a network share never stalls
@@ -451,7 +458,356 @@ def configure(emu, s):
                 opts = {k: {"precache": "sync", "enabled": "disabled"}[v] for k, v in opts.items()}
             set_cfg(os.path.join(base, "retroarch-core-options.cfg"), opts)
             set_cfg(os.path.join(base, "config", core, f"{core}.opt"), opts)
+    if emu in ("retroarch", "pcsx2", "dolphin", "ppsspp"):
+        video_config(emu, s)
+        cheevos_config(emu, s)
     link_saves(emu)
+
+
+def save_setting(key, value):
+    """one setting written into emulation.json, the others as they were."""
+    try:
+        user = json.load(open(CONFIG))
+    except (OSError, ValueError):
+        user = {}
+    user[key] = value
+    os.makedirs(os.path.dirname(CONFIG), exist_ok=True)
+    with open(CONFIG + ".new", "w") as f:
+        json.dump(user, f, indent=2, ensure_ascii=False)
+        f.write("\n")
+    os.replace(CONFIG + ".new", CONFIG)
+
+
+def unset_cfg(path, keys):
+    """retroarch's key = "value" lines: these taken out, the rest as it was."""
+    if not os.path.exists(path):
+        return
+    lines = [l for l in open(path, errors="replace").read().splitlines() if l.split("=", 1)[0].strip() not in keys]
+    with open(path + ".new", "w") as f:
+        f.write("\n".join(lines) + "\n" if lines else "")
+    os.replace(path + ".new", path)
+
+
+# --- how games look: aspect ratio, resolution, the crt shader ----------------------
+# "video" in emulation.json, each machine its own (the file isn't shared):
+#   "aspect": "console" (the console's own shape), "wide" (widescreen hacks where the
+#             emulator has them) or "stretch" (filling the screen)
+#   "resolution": "recommended" (for this machine's screen and graphics), "native", or
+#             a number (2 = twice the console's resolution) for the 3d consoles
+#   "shader": "crt-pal" (crt-royale with r57shell's pal signal, from retroarch's own
+#             shaders) or "off"; "shaderSystems": the systems it's on
+VIDEO = {"aspect": "console", "resolution": "recommended", "shader": "off",
+         "shaderSystems": ["psx", "saturn", "saturnjp", "n64"]}
+CRT_PAL = "/app/share/libretro/shaders/shaders_glsl/crt/crt-royale-pal-r57shell.glslp"  # inside retroarch's flatpak
+OURS = "# nekozame-emu video"  # marks the shader presets nekozame-emu wrote
+# the 3d consoles' own picture height, and the scales their emulators offer
+NATIVE = {"psx": 240, "n64": 240, "ps2": 448, "gc": 528, "wii": 528, "psp": 272}
+SCALES = {"psx": [1, 2, 4, 8, 16], "n64": list(range(1, 9)), "ps2": list(range(1, 9)),
+          "gc": list(range(1, 9)), "wii": list(range(1, 9)), "psp": list(range(1, 11))}
+# how far each kind of machine goes at full speed
+CAPS = {"handheld": {"psx": 2, "n64": 3, "ps2": 1, "gc": 2, "wii": 2, "psp": 3},
+        "igpu": {"psx": 4, "n64": 4, "ps2": 2, "gc": 2, "wii": 2, "psp": 4},
+        "dgpu": {"psx": 8, "n64": 8, "ps2": 6, "gc": 6, "wii": 6, "psp": 8}}
+CORE_DIRS = {"mednafen_psx_hw": "Beetle PSX HW", "mednafen_saturn": "Beetle Saturn",
+             "mupen64plus_next": "Mupen64Plus-Next", "mednafen_pce": "Beetle PCE",
+             "genesis_plus_gx": "Genesis Plus GX", "snes9x": "Snes9x", "mesen": "Mesen",
+             "opera": "Opera", "fbneo": "FinalBurn Neo", "mame": "MAME"}
+
+
+def video_settings(s=None):
+    return {**VIDEO, **(s or settings()).get("video", {})}
+
+
+def machine():
+    """this machine's screen and graphics: (width, height), and "handheld", "igpu" or "dgpu"."""
+    import glob
+    product = ""
+    try:
+        product = open("/sys/devices/virtual/dmi/id/product_name").read().strip()
+    except OSError:
+        pass
+    if product in ("Jupiter", "Galileo"):  # the steam deck, lcd and oled
+        return (1280, 800), "handheld", "Steam Deck"
+    screens = []
+    for status in glob.glob("/sys/class/drm/card*-*/status"):
+        try:
+            if open(status).read().strip() != "connected":
+                continue
+            mode = open(os.path.join(os.path.dirname(status), "modes")).readline().strip()
+            screens.append(tuple(int(x) for x in mode.split("x")))
+        except (OSError, ValueError):
+            continue
+    screen = max(screens, key=lambda wh: wh[1], default=(1920, 1080))  # the tallest one connected
+    tier = "igpu"
+    for dev in glob.glob("/sys/class/drm/card[0-9]/device"):
+        try:
+            vendor = open(f"{dev}/vendor").read().strip()
+            vram = int(open(f"{dev}/mem_info_vram_total").read()) if os.path.exists(f"{dev}/mem_info_vram_total") else 0
+        except (OSError, ValueError):
+            continue
+        if vendor == "0x10de" or (vendor == "0x1002" and vram > 2 << 30):  # nvidia, or amd with its own memory
+            tier = "dgpu"
+    return screen, tier, {"dgpu": "graphics card", "igpu": "built-in graphics"}[tier]
+
+
+def scale_for(system, v, m):
+    """the internal resolution scale for SYSTEM: the setting, fitted to what its emulator offers."""
+    (w, h), tier, _ = m
+    res = v["resolution"]
+    if res == "native" or (v["shader"] != "off" and system in v["shaderSystems"]):
+        return 1  # the crt shader is made for the console's own resolution
+    if res == "recommended":
+        want = min(-(-h // NATIVE[system]), CAPS[tier][system])  # enough to fill the screen
+    else:
+        want = int(res)
+    return max([x for x in SCALES[system] if x <= max(want, 1)] or [1])
+
+
+def core_dir(core_name):
+    """the folder retroarch keeps a core's own settings in: its name (Beetle PSX HW...)."""
+    import glob
+    if core_name in CORE_DIRS:
+        return CORE_DIRS[core_name]
+    for info in glob.glob(os.path.join(HOME, ".local/share/flatpak/app", RA, "current/active/files/share/libretro/info", f"{core_name}_libretro.info")) + \
+            glob.glob(f"/var/lib/flatpak/app/{RA}/current/active/files/share/libretro/info/{core_name}_libretro.info"):
+        m = re.search(r'^corename\s*=\s*"([^"]+)"', open(info, errors="replace").read(), re.M)
+        if m:
+            return m.group(1)
+    return None
+
+
+def video_config(emu, s):
+    """the video settings into EMU's own settings."""
+    v, m = video_settings(s), machine()
+    (w, h), _, _ = m
+    wide_ratio = "16:10" if abs(w / h - 1.6) < 0.05 else "16:9"
+    aspect, base = v["aspect"], os.path.join(VAR, RA, "config/retroarch")
+    if emu == "retroarch":
+        set_cfg(os.path.join(base, "retroarch.cfg"), {"aspect_ratio_index": 24 if aspect == "stretch" else 22})
+        psx = scale_for("psx", v, m)
+        opts = {"Beetle PSX HW": {"beetle_psx_hw_internal_resolution": "1x(native)" if psx == 1 else f"{psx}x",
+                                  "beetle_psx_hw_widescreen_hack": "enabled" if aspect == "wide" else "disabled",
+                                  "beetle_psx_hw_widescreen_hack_aspect_ratio": wide_ratio},
+                "Mupen64Plus-Next": {"mupen64plus-EnableNativeResFactor": str(scale_for("n64", v, m)),
+                                     "mupen64plus-aspect": "16:9 adjusted" if aspect == "wide" else "4:3"}}
+        for core, o in opts.items():
+            set_cfg(os.path.join(base, "retroarch-core-options.cfg"), o)
+            set_cfg(os.path.join(base, "config", core, f"{core}.opt"), o)
+        # the crt shader: a preset per core pointing at retroarch's own, and opengl for
+        # those cores (the shader is glsl); turned off, nekozame's presets come out again
+        cores = {core_dir(emulator_of(x)[1]) for x in v["shaderSystems"]
+                 if x in SYSTEMS and emulator_of(x)[0] == "retroarch"}
+        everything = {core_dir(emulator_of(x)[1]) for x in SYSTEMS if emulator_of(x)[0] == "retroarch"}
+        for core in sorted(c for c in everything if c):
+            preset = os.path.join(base, "config", core, f"{core}.glslp")
+            on = v["shader"] == "crt-pal" and core in cores
+            if on:
+                if os.path.exists(preset) and OURS not in open(preset, errors="replace").read():
+                    shutil.copyfile(preset, preset + ".before-nekozame")  # yours, kept
+                os.makedirs(os.path.dirname(preset), exist_ok=True)
+                with open(preset, "w") as f:
+                    f.write(f'{OURS}: the crt pal shader\n#reference "{CRT_PAL}"\n')
+                set_cfg(os.path.join(base, "config", core, f"{core}.cfg"),
+                        {"video_driver": "gl", "video_shader_enable": "true"})
+            elif os.path.exists(preset) and OURS in open(preset, errors="replace").read():
+                os.remove(preset)
+                if os.path.exists(preset + ".before-nekozame"):
+                    os.replace(preset + ".before-nekozame", preset)
+                unset_cfg(os.path.join(base, "config", core, f"{core}.cfg"), {"video_driver", "video_shader_enable"})
+    elif emu == "pcsx2":
+        ini = os.path.join(VAR, "net.pcsx2.PCSX2/config/PCSX2/inis/PCSX2.ini")
+        set_ini(ini, "EmuCore/GS", {"upscale_multiplier": scale_for("ps2", v, m),
+                                    "AspectRatio": {"console": "Auto 4:3/3:2", "wide": "16:9", "stretch": "Stretch"}[aspect]})
+        set_ini(ini, "EmuCore", {"EnableWideScreenPatches": "true" if aspect == "wide" else "false"})
+    elif emu == "dolphin":
+        set_ini(os.path.join(VAR, "org.DolphinEmu.dolphin-emu/config/dolphin-emu/GFX.ini"), "Settings",
+                {"InternalResolution": scale_for("gc", v, m),
+                 "AspectRatio": {"console": 0, "wide": 1, "stretch": 3}[aspect],  # auto, 16:9, stretch
+                 "wideScreenHack": "True" if aspect == "wide" else "False"})
+    elif emu == "ppsspp":
+        ini = os.path.join(VAR, "org.ppsspp.PPSSPP/config/ppsspp/PSP/SYSTEM/ppsspp.ini")
+        set_ini(ini, "Graphics", {"InternalResolution": scale_for("psp", v, m)})
+        set_ini(ini, "DisplayLayout.Landscape", {"DisplayStretch": "True" if aspect == "stretch" else "False"})
+
+
+def video(argv):
+    """nekozame-emu video: how games look on this machine. no arguments: a menu."""
+    s = settings()
+    v, m = video_settings(s), machine()
+    (w, h), tier, what = m
+    if argv[:1] == ["aspect"] and argv[1:2] and argv[1] in ("console", "wide", "stretch"):
+        v["aspect"] = argv[1]
+    elif argv[:1] == ["resolution"] and argv[1:2] and (argv[1] in ("native", "recommended") or argv[1].isdigit()):
+        v["resolution"] = argv[1] if not argv[1].isdigit() else int(argv[1])
+    elif argv[:1] == ["shader"] and argv[1:2] and argv[1] in ("crt-pal", "off"):
+        v["shader"] = argv[1]
+        if argv[2:]:
+            v["shaderSystems"] = [x for x in argv[2:] if x in SYSTEMS]
+    elif argv[:1] in ([], ["menu"]) and shutil.which("gum") and sys.stdin.isatty():
+        v = video_menu(v, m)
+    elif argv[:1] != ["show"]:
+        say(video.__doc__ + "\n  nekozame-emu video aspect console|wide|stretch\n"
+            "  nekozame-emu video resolution recommended|native|NUMBER\n"
+            "  nekozame-emu video shader crt-pal|off [SYSTEM...]\n  nekozame-emu video show")
+        return 1
+    if argv[:1] != ["show"]:
+        save_setting("video", v)
+        s = settings()
+        for emu in ("retroarch", "pcsx2", "dolphin", "ppsspp"):
+            if installed(EMULATORS[emu]["flatpak"]):
+                video_config(emu, s)
+    say(f"this machine: {w}x{h}, {what}")
+    say(f"  aspect ratio: {v['aspect']}")
+    say("  resolution: " + ", ".join(f"{SYSTEMS[x][0]} {scale_for(x, v, m)}x" for x in ("psx", "n64", "ps2", "gc", "psp")))
+    say(f"  crt pal shader: {v['shader']}" + (f" ({', '.join(SYSTEMS[x][0] for x in v['shaderSystems'] if x in SYSTEMS)})"
+                                              if v["shader"] != "off" else ""))
+    return 0
+
+
+def gum(*args):
+    r = subprocess.run(["gum", *args], stdout=subprocess.PIPE, text=True)
+    return r.stdout.strip() if r.returncode == 0 else None
+
+
+def video_menu(v, m):
+    (w, h), tier, what = m
+    rec = ", ".join(f"{SYSTEMS[x][0]} {scale_for(x, {**v, 'resolution': 'recommended', 'shader': 'off'}, m)}x"
+                    for x in ("psx", "n64", "ps2", "gc", "psp"))
+    say(f"this machine: {w}x{h}, {what}")
+    pick = gum("choose", "--header", "Aspect ratio",
+               "console: the console's own shape (4:3 for PS1, Saturn, N64), bars at the sides",
+               "wide: widescreen hacks where the emulator has them (PS1, N64, PS2, GameCube)",
+               "stretch: fill the screen")
+    if pick:
+        v["aspect"] = pick.split(":")[0]
+    pick = gum("choose", "--header", "Resolution of the 3D consoles",
+               f"recommended: for this machine ({rec})",
+               "native: the console's own, the sharpest pixels and the most like back then",
+               "number: pick the scale yourself")
+    if pick and pick.startswith("number"):
+        n = gum("input", "--placeholder", "2", "--header", "Scale (2 = twice the console's resolution)")
+        v["resolution"] = int(n) if n and n.isdigit() else v["resolution"]
+    elif pick:
+        v["resolution"] = pick.split(":")[0]
+    pick = gum("choose", "--header", "CRT PAL shader (crt-royale with a PAL TV's signal)",
+               "off", "crt-pal: on, for the systems you pick next")
+    if pick:
+        v["shader"] = pick.split(":")[0]
+    if v["shader"] == "crt-pal":
+        names = {SYSTEMS[x][0]: x for x in SYSTEMS if emulator_of(x)[0] == "retroarch"}
+        chosen = [SYSTEMS[x][0] for x in v["shaderSystems"] if x in SYSTEMS]
+        pick = gum("choose", "--no-limit", "--header", "The systems it's on (space to pick)",
+                   "--selected", ",".join(chosen), *sorted(names))
+        if pick is not None:
+            v["shaderSystems"] = [names[n] for n in pick.splitlines() if n in names]
+    return v
+
+
+# --- retroachievements -------------------------------------------------------------
+# you log in once per machine; only the login token is kept (never the password), in a
+# file only you can read, and given to every emulator that has achievements.
+# "achievements" in emulation.json: {"enabled": true, "hardcore": false}
+RA_LOGIN = os.path.join(HOME, ".config/nekozame/retroachievements.json")
+
+
+def cheevos_login():
+    try:
+        return json.load(open(RA_LOGIN))
+    except (OSError, ValueError):
+        return None
+
+
+def cheevos_config(emu, s):
+    """the retroachievements login and mode into EMU's own settings. without a login made
+    here, each emulator's own (if you logged in inside it) is left as it is."""
+    login = cheevos_login()
+    if not login:
+        return
+    a = {"enabled": True, "hardcore": False, **s.get("achievements", {})}
+    on, hard = a["enabled"], a["enabled"] and a["hardcore"]
+    user, token = login["username"], login["token"]
+    if emu == "retroarch":
+        set_cfg(os.path.join(VAR, RA, "config/retroarch/retroarch.cfg"),
+                {"cheevos_enable": "true" if on else "false", "cheevos_username": user, "cheevos_token": token,
+                 "cheevos_password": "", "cheevos_hardcore_mode_enable": "true" if hard else "false"})
+    elif emu == "pcsx2":
+        set_ini(os.path.join(VAR, "net.pcsx2.PCSX2/config/PCSX2/inis/PCSX2.ini"), "Achievements",
+                {"Enabled": "true" if on else "false", "ChallengeMode": "true" if hard else "false",
+                 "Username": user, "Token": token})  # pcsx2 moves the token to its secrets file
+    elif emu == "dolphin":
+        set_ini(os.path.join(VAR, "org.DolphinEmu.dolphin-emu/config/dolphin-emu/RetroAchievements.ini"), "Achievements",
+                {"Enabled": "True" if on else "False", "HardcoreEnabled": "True" if hard else "False",
+                 "Username": user, "ApiToken": token})
+    elif emu == "ppsspp":
+        set_ini(os.path.join(VAR, "org.ppsspp.PPSSPP/config/ppsspp/PSP/SYSTEM/ppsspp.ini"), "Achievements",
+                {"AchievementsEnable": "True" if on else "False", "AchievementsChallengeMode": "True" if hard else "False",
+                 "AchievementsUserName": user, "AchievementsToken": token})
+
+
+def achievements(argv):
+    """nekozame-emu achievements: retroachievements on this machine's emulators.
+
+  nekozame-emu achievements login       your retroachievements.org account
+  nekozame-emu achievements hardcore on|off   hardcore: no save states, rewind or cheats
+  nekozame-emu achievements on|off      achievements in the emulators, or not
+  nekozame-emu achievements logout      the login taken off this machine"""
+    s = settings()
+    a = {"enabled": True, "hardcore": False, **s.get("achievements", {})}
+    if argv[:1] == ["login"]:
+        user = argv[1] if argv[1:2] else (gum("input", "--placeholder", "username", "--header", "RetroAchievements username")
+                                          if shutil.which("gum") else input("RetroAchievements username: "))
+        if not user:
+            return 1
+        import getpass
+        pw = (gum("input", "--password", "--header", f"Password for {user} (only used to log in, not kept)")
+              if shutil.which("gum") and sys.stdin.isatty() else getpass.getpass("Password (not kept): "))
+        if not pw:
+            return 1
+        req = urllib.request.Request("https://retroachievements.org/dorequest.php",
+                                     data=urllib.parse.urlencode({"r": "login2", "u": user, "p": pw}).encode(),
+                                     headers={"User-Agent": "nekozame-emu/1.0"})
+        try:
+            with urllib.request.urlopen(req, timeout=30) as r:
+                answer = json.load(r)
+        except (OSError, ValueError) as err:
+            say(f"couldn't reach retroachievements.org: {err}")
+            return 1
+        if not answer.get("Success") or not answer.get("Token"):
+            say(f"retroachievements said no: {answer.get('Error', 'wrong username or password')}")
+            return 1
+        os.makedirs(os.path.dirname(RA_LOGIN), exist_ok=True)
+        fd = os.open(RA_LOGIN + ".new", os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "w") as f:
+            json.dump({"username": answer.get("User", user), "token": answer["Token"]}, f)
+        os.replace(RA_LOGIN + ".new", RA_LOGIN)
+        say(f"logged in as {answer.get('User', user)}")
+    elif argv[:1] == ["logout"]:
+        if os.path.exists(RA_LOGIN):
+            save_setting("achievements", {**a, "enabled": False})
+            for emu in ("retroarch", "pcsx2", "dolphin", "ppsspp"):
+                if installed(EMULATORS[emu]["flatpak"]):
+                    cheevos_config(emu, settings())
+            os.remove(RA_LOGIN)
+            save_setting("achievements", a)
+        say("logged out on this machine: achievements off in its emulators")
+    elif argv[:1] == ["hardcore"] and argv[1:2] in (["on"], ["off"]):
+        a["hardcore"] = argv[1] == "on"
+        save_setting("achievements", a)
+    elif argv[:1] in (["on"], ["off"]):
+        a["enabled"] = argv[0] == "on"
+        save_setting("achievements", a)
+    elif argv:
+        say(achievements.__doc__)
+        return 1
+    s = settings()
+    for emu in ("retroarch", "pcsx2", "dolphin", "ppsspp"):
+        if installed(EMULATORS[emu]["flatpak"]):
+            cheevos_config(emu, s)
+    login = cheevos_login()
+    a = {"enabled": True, "hardcore": False, **s.get("achievements", {})}
+    say(f"retroachievements: {'logged in as ' + login['username'] if login else 'not logged in'}, "
+        f"{'on' if a['enabled'] else 'off'}, {'hardcore' if a['hardcore'] else 'normal'} mode")
+    return 0
 
 
 def setup(everything=False):
@@ -2272,6 +2628,10 @@ def main(argv):
         return systems_list()
     if cmd == "art":
         return fetch_art(argv[1:] or None)
+    if cmd == "video":
+        return video(argv[1:])
+    if cmd == "achievements":
+        return achievements(argv[1:])
     if cmd == "boxes":
         return make_boxes([a for a in argv[1:] if not a.startswith("--")] or None, again="--again" in argv)
     if cmd == "esde" and argv[1:2] in ([], ["on"]):
