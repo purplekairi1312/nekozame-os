@@ -25,7 +25,7 @@ RUN /ctx/audinux-catalog.sh
 # plain Fedora like mpvpaper. it takes bazzite updater's place in the image.
 FROM registry.fedoraproject.org/fedora:45 AS updater
 # renovate: datasource=git-refs depName=https://github.com/purplekairi1312/nekozame-updater
-ARG UPDATER=b7055473d7a686004924147f79955a0629cf45b1
+ARG UPDATER=46185f344a34d4f0643a6b202c1ca9b52cb2023e
 RUN dnf -y install rpm-build git && \
     git clone -q https://github.com/purplekairi1312/nekozame-updater /src && cd /src && \
     git checkout -q "${UPDATER}" && git submodule update -q --init && \
