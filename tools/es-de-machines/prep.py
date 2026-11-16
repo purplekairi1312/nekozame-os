@@ -5,7 +5,9 @@ os.environ["SDL_VIDEODRIVER"] = "dummy"
 import pygame as pg
 pg.display.init(); pg.display.set_mode((1, 1))
 from picks import PICK
-SKIP = {"amstradcpc", "apple2", "dos", "pc88", "pc98", "pcenginecd", "zxspectrum"}  # rooms behind them, not white
+SKIP = {"amstradcpc", "apple2", "dos", "pc88", "pc98", "pcenginecd", "zxspectrum",  # rooms behind them, not white
+        # other photographers' (other light, other angles): only evan-amos's museum set, so all match
+        "amiga", "msx", "colecovision", "pokemini", "megacd", "megacdjp", "sega32x", "sega32xjp"}
 PATENTS = {  # sheet, crop (fractions), turn (degrees, pygame's sense)
     "atari2600": ("pat/atari2600-2.jpg", (0.03, 0.10, 0.56, 0.97), -90),
     "atari5200": ("pat/atari5200-2.jpg", (0.0, 0.11, 0.66, 1.0), -90),
@@ -65,7 +67,7 @@ for sysname, f in PICK.items():
         continue
     src = "src/" + re.sub(r"[^\w.-]", "_", f)
     im = shrink(on_white(src), 1400)
-    im = soften(shrink(whiten_and_crop(im)))
+    im = shrink(whiten_and_crop(im, cut=238))
     pg.image.save(im, os.path.join(out, f"machine-{sysname}.jpg")); done.append(sysname)
 ERASE = {"vectrex": [(0.0, 0.283, 0.47, 0.34), (0.47, 0.323, 0.78, 0.34)]}  # the next figure's label, painted out
 for sysname, (f, (a, b, c, d), turn) in PATENTS.items():
@@ -75,6 +77,6 @@ for sysname, (f, (a, b, c, d), turn) in PATENTS.items():
     im = im.subsurface(pg.Rect(int(a * w), int(b * h), int((c - a) * w), int((d - b) * h))).copy()
     if turn:
         im = pg.transform.rotate(im, turn)
-    im = soften(shrink(whiten_and_crop(im, pad=16, cut=200)), 12)
+    im = shrink(whiten_and_crop(im, pad=16, cut=200))
     pg.image.save(im, os.path.join(out, f"patent-{sysname}.jpg")); done.append("patent-" + sysname)
 print(len(done), "made")

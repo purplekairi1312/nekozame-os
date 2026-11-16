@@ -1399,72 +1399,64 @@ PAIRS = [
     ("diver", "manta-2", 1150, "multiply", "▲ダイバーの頭上を、マンタがゆっくりと舞う。", "▲ A manta dances slowly above a diver."),
 ]
 # the machines themselves, for "drawings": "machines" or "both": a museum photo of each
-# system as its own region knew it (most by evan-amos, public domain; the others' licences
-# in photos/CREDITS.txt), and a u.s. patent's drawing where one is public; each with
-# its credit
+# system as its own region knew it (evan-amos's, all one set: public domain, a few cc
+# by-sa, see photos/CREDITS.txt), or a u.s. patent's drawing where there's no photo;
+# each with its credit
 MACHINES = {
-    '3do': [('machine-3do', 'photo: Evan-Amos', '写真：Evan-Amos')],
-    'amiga': [('machine-amiga', 'photo: Sernot', '写真：Sernot')],
-    'arcade': [('patent-arcade', 'Atari, U.S. patent 4,084,194, 1978', 'アタリ\u3000米国特許4,084,194（1978年）')],
-    'atari2600': [('machine-atari2600', 'photo: Evan-Amos', '写真：Evan-Amos'), ('patent-atari2600', 'U.S. design patent D251,143, 1979', '米国意匠特許D251,143（1979年）')],
-    'atari5200': [('machine-atari5200', 'photo: Evan-Amos', '写真：Evan-Amos'), ('patent-atari5200', 'U.S. design patent D271,311, 1983', '米国意匠特許D271,311（1983年）')],
-    'atari7800': [('machine-atari7800', 'photo: Evan-Amos', '写真：Evan-Amos')],
-    'atarijaguar': [('machine-atarijaguar', 'photo: Evan-Amos', '写真：Evan-Amos')],
-    'atarilynx': [('machine-atarilynx', 'photo: Evan-Amos', '写真：Evan-Amos')],
-    'c64': [('machine-c64', 'photo: Evan-Amos', '写真：Evan-Amos')],
-    'colecovision': [('machine-colecovision', 'photo: OliverGalvin', '写真：OliverGalvin')],
-    'dreamcast': [('machine-dreamcast', 'photo: Evan-Amos', '写真：Evan-Amos')],
-    'fbneo': [('patent-arcade', 'Atari, U.S. patent 4,084,194, 1978', 'アタリ\u3000米国特許4,084,194（1978年）')],
-    'fds': [('machine-fds', 'photo: Evan-Amos', '写真：Evan-Amos')],
-    'gamegear': [('machine-gamegear', 'photo: Evan-Amos', '写真：Evan-Amos')],
-    'gb': [('machine-gb', 'photo: Evan-Amos', '写真：Evan-Amos')],
-    'gba': [('machine-gba', 'photo: Evan-Amos', '写真：Evan-Amos')],
-    'gbc': [('machine-gbc', 'photo: Evan-Amos', '写真：Evan-Amos')],
-    'gc': [('machine-gc', 'photo: Evan-Amos', '写真：Evan-Amos')],
-    'genesis': [('machine-genesis', 'photo: Evan-Amos', '写真：Evan-Amos')],
-    'intellivision': [('machine-intellivision', 'photo: Evan-Amos', '写真：Evan-Amos')],
-    'mame': [('patent-arcade', 'Atari, U.S. patent 4,084,194, 1978', 'アタリ\u3000米国特許4,084,194（1978年）')],
-    'mastersystem': [('machine-mastersystem', 'photo: Evan-Amos', '写真：Evan-Amos')],
-    'megacd': [('machine-megacd', 'photo: X201, Alphathon', '写真：X201, Alphathon')],
-    'megacdjp': [('machine-megacdjp', 'photo: X201, Alphathon', '写真：X201, Alphathon')],
-    'megadrive': [('machine-megadrive', 'photo: Evan-Amos', '写真：Evan-Amos')],
-    'megadrivejp': [('machine-megadrivejp', 'photo: Evan-Amos', '写真：Evan-Amos')],
-    'msx': [('machine-msx', 'photo: SanderK', '写真：SanderK')],
-    'n3ds': [('machine-n3ds', 'photo: Evan-Amos', '写真：Evan-Amos')],
-    'n64': [('machine-n64', 'photo: Evan-Amos', '写真：Evan-Amos')],
-    'nds': [('machine-nds', 'photo: Evan-Amos', '写真：Evan-Amos')],
-    'neogeo': [('machine-neogeo', 'photo: Evan-Amos', '写真：Evan-Amos')],
-    'neogeocd': [('machine-neogeocd', 'photo: Evan-Amos', '写真：Evan-Amos')],
-    'nes': [('machine-nes', 'photo: Evan-Amos', '写真：Evan-Amos')],
-    'ngp': [('machine-ngp', 'photo: Evan-Amos', '写真：Evan-Amos')],
-    'ngpc': [('machine-ngpc', 'photo: Evan-Amos', '写真：Evan-Amos')],
-    'odyssey2': [('machine-odyssey2', 'photo: Evan-Amos', '写真：Evan-Amos'), ('patent-odyssey2', 'U.S. patent 4,579,338, 1986', '米国特許4,579,338（1986年）')],
-    'pcengine': [('machine-pcengine', 'photo: Evan-Amos', '写真：Evan-Amos')],
-    'pcfx': [('machine-pcfx', 'photo: Evan-Amos', '写真：Evan-Amos')],
-    'pokemini': [('machine-pokemini', 'photo: Sesu Prime', '写真：Sesu Prime')],
-    'ps2': [('machine-ps2', 'photo: Evan-Amos', '写真：Evan-Amos')],
-    'ps3': [('machine-ps3', 'photo: Evan-Amos', '写真：Evan-Amos')],
-    'ps4': [('machine-ps4', 'photo: Evan-Amos', '写真：Evan-Amos')],
-    'psp': [('machine-psp', 'photo: Evan-Amos', '写真：Evan-Amos')],
-    'psx': [('machine-psx', 'photo: Evan-Amos', '写真：Evan-Amos')],
-    'saturn': [('machine-saturn', 'photo: Evan-Amos', '写真：Evan-Amos')],
-    'saturnjp': [('machine-saturnjp', 'photo: Evan-Amos', '写真：Evan-Amos')],
-    'sega32x': [('machine-sega32x', 'photo: Thee Computer Guy', '写真：Thee Computer Guy')],
-    'sega32xjp': [('machine-sega32xjp', 'photo: Thee Computer Guy', '写真：Thee Computer Guy')],
-    'sega32xna': [('machine-sega32xna', 'photo: Evan-Amos', '写真：Evan-Amos')],
-    'segacd': [('machine-segacd', 'photo: Evan-Amos', '写真：Evan-Amos')],
-    'sfc': [('machine-sfc', 'photo: Evan-Amos', '写真：Evan-Amos')],
-    'sg-1000': [('machine-sg-1000', 'photo: Evan-Amos', '写真：Evan-Amos')],
-    'snes': [('machine-snes', 'photo: Evan-Amos', '写真：Evan-Amos')],
-    'switch': [('machine-switch', 'photo: Evan-Amos', '写真：Evan-Amos')],
-    'tg16': [('machine-tg16', 'photo: Evan-Amos', '写真：Evan-Amos')],
-    'vectrex': [('machine-vectrex', 'photo: Evan-Amos', '写真：Evan-Amos'), ('patent-vectrex', 'U.S. design patent D276,539, 1984', '米国意匠特許D276,539（1984年）')],
-    'virtualboy': [('machine-virtualboy', 'photo: Evan-Amos', '写真：Evan-Amos')],
-    'wii': [('machine-wii', 'photo: Evan-Amos', '写真：Evan-Amos')],
-    'wiiu': [('machine-wiiu', 'photo: Evan-Amos', '写真：Evan-Amos')],
-    'wonderswan': [('machine-wonderswan', 'photo: Evan-Amos', '写真：Evan-Amos')],
-    'wonderswancolor': [('machine-wonderswancolor', 'photo: Evan-Amos', '写真：Evan-Amos')],
-    'xbox': [('machine-xbox', 'photo: Evan-Amos', '写真：Evan-Amos')],
+    "3do": [("machine-3do", "photo: Evan-Amos", "写真：Evan-Amos")],
+    "arcade": [("patent-arcade", "Atari, U.S. patent 4,084,194, 1978", "アタリ　米国特許4,084,194（1978年）")],
+    "atari2600": [("machine-atari2600", "photo: Evan-Amos", "写真：Evan-Amos"), ("patent-atari2600", "U.S. design patent D251,143, 1979", "米国意匠特許D251,143（1979年）")],
+    "atari5200": [("machine-atari5200", "photo: Evan-Amos", "写真：Evan-Amos"), ("patent-atari5200", "U.S. design patent D271,311, 1983", "米国意匠特許D271,311（1983年）")],
+    "atari7800": [("machine-atari7800", "photo: Evan-Amos", "写真：Evan-Amos")],
+    "atarijaguar": [("machine-atarijaguar", "photo: Evan-Amos", "写真：Evan-Amos")],
+    "atarilynx": [("machine-atarilynx", "photo: Evan-Amos", "写真：Evan-Amos")],
+    "c64": [("machine-c64", "photo: Evan-Amos", "写真：Evan-Amos")],
+    "dreamcast": [("machine-dreamcast", "photo: Evan-Amos", "写真：Evan-Amos")],
+    "fbneo": [("patent-arcade", "Atari, U.S. patent 4,084,194, 1978", "アタリ　米国特許4,084,194（1978年）")],
+    "fds": [("machine-fds", "photo: Evan-Amos", "写真：Evan-Amos")],
+    "gamegear": [("machine-gamegear", "photo: Evan-Amos", "写真：Evan-Amos")],
+    "gb": [("machine-gb", "photo: Evan-Amos", "写真：Evan-Amos")],
+    "gba": [("machine-gba", "photo: Evan-Amos", "写真：Evan-Amos")],
+    "gbc": [("machine-gbc", "photo: Evan-Amos", "写真：Evan-Amos")],
+    "gc": [("machine-gc", "photo: Evan-Amos", "写真：Evan-Amos")],
+    "genesis": [("machine-genesis", "photo: Evan-Amos", "写真：Evan-Amos")],
+    "intellivision": [("machine-intellivision", "photo: Evan-Amos", "写真：Evan-Amos")],
+    "mame": [("patent-arcade", "Atari, U.S. patent 4,084,194, 1978", "アタリ　米国特許4,084,194（1978年）")],
+    "mastersystem": [("machine-mastersystem", "photo: Evan-Amos", "写真：Evan-Amos")],
+    "megadrive": [("machine-megadrive", "photo: Evan-Amos", "写真：Evan-Amos")],
+    "megadrivejp": [("machine-megadrivejp", "photo: Evan-Amos", "写真：Evan-Amos")],
+    "n3ds": [("machine-n3ds", "photo: Evan-Amos", "写真：Evan-Amos")],
+    "n64": [("machine-n64", "photo: Evan-Amos", "写真：Evan-Amos")],
+    "nds": [("machine-nds", "photo: Evan-Amos", "写真：Evan-Amos")],
+    "neogeo": [("machine-neogeo", "photo: Evan-Amos", "写真：Evan-Amos")],
+    "neogeocd": [("machine-neogeocd", "photo: Evan-Amos", "写真：Evan-Amos")],
+    "nes": [("machine-nes", "photo: Evan-Amos", "写真：Evan-Amos")],
+    "ngp": [("machine-ngp", "photo: Evan-Amos", "写真：Evan-Amos")],
+    "ngpc": [("machine-ngpc", "photo: Evan-Amos", "写真：Evan-Amos")],
+    "odyssey2": [("machine-odyssey2", "photo: Evan-Amos", "写真：Evan-Amos"), ("patent-odyssey2", "U.S. patent 4,579,338, 1986", "米国特許4,579,338（1986年）")],
+    "pcengine": [("machine-pcengine", "photo: Evan-Amos", "写真：Evan-Amos")],
+    "pcfx": [("machine-pcfx", "photo: Evan-Amos", "写真：Evan-Amos")],
+    "ps2": [("machine-ps2", "photo: Evan-Amos", "写真：Evan-Amos")],
+    "ps3": [("machine-ps3", "photo: Evan-Amos", "写真：Evan-Amos")],
+    "ps4": [("machine-ps4", "photo: Evan-Amos", "写真：Evan-Amos")],
+    "psp": [("machine-psp", "photo: Evan-Amos", "写真：Evan-Amos")],
+    "psx": [("machine-psx", "photo: Evan-Amos", "写真：Evan-Amos")],
+    "saturn": [("machine-saturn", "photo: Evan-Amos", "写真：Evan-Amos")],
+    "saturnjp": [("machine-saturnjp", "photo: Evan-Amos", "写真：Evan-Amos")],
+    "sega32xna": [("machine-sega32xna", "photo: Evan-Amos", "写真：Evan-Amos")],
+    "segacd": [("machine-segacd", "photo: Evan-Amos", "写真：Evan-Amos")],
+    "sfc": [("machine-sfc", "photo: Evan-Amos", "写真：Evan-Amos")],
+    "sg-1000": [("machine-sg-1000", "photo: Evan-Amos", "写真：Evan-Amos")],
+    "snes": [("machine-snes", "photo: Evan-Amos", "写真：Evan-Amos")],
+    "switch": [("machine-switch", "photo: Evan-Amos", "写真：Evan-Amos")],
+    "tg16": [("machine-tg16", "photo: Evan-Amos", "写真：Evan-Amos")],
+    "vectrex": [("machine-vectrex", "photo: Evan-Amos", "写真：Evan-Amos"), ("patent-vectrex", "U.S. design patent D276,539, 1984", "米国意匠特許D276,539（1984年）")],
+    "virtualboy": [("machine-virtualboy", "photo: Evan-Amos", "写真：Evan-Amos")],
+    "wii": [("machine-wii", "photo: Evan-Amos", "写真：Evan-Amos")],
+    "wiiu": [("machine-wiiu", "photo: Evan-Amos", "写真：Evan-Amos")],
+    "wonderswan": [("machine-wonderswan", "photo: Evan-Amos", "写真：Evan-Amos")],
+    "wonderswancolor": [("machine-wonderswancolor", "photo: Evan-Amos", "写真：Evan-Amos")],
+    "xbox": [("machine-xbox", "photo: Evan-Amos", "写真：Evan-Amos")],
 }
 
 # 川原慶賀's sharks and rays (photos/kawahara-*.jpg, the paper made white), and what
@@ -1626,14 +1618,15 @@ def magazine(system, s, scheme, dest, bare=False, lang="en"):
         # with a smaller shark below it ("drawings": "sharks", "machines", "both")
         drawings = [d for d in DRAWINGS if os.path.exists(f"{PHOTOS}/{d[0]}.jpg")] or DRAWINGS
         shark_name, shark_ja, shark_en = drawings[rnd.randrange(len(drawings))]
-        shark = (shark_name, f"▲{shark_ja}　川原慶賀画", f"▲ {shark_en} · painted by Kawahara Keiga", "paint")
+        shark = (shark_name, f"▲{shark_ja}　川原慶賀画", f"▲ {shark_en} · painted by Kawahara Keiga", "cut")
         machines = [m for m in MACHINES.get(system, []) if os.path.exists(f"{PHOTOS}/{m[0]}.jpg")]
+        machines = [m for m in machines if m[0].startswith("machine-")] or machines  # a photo, if there is one
         machine = None
         if machines:
             m_name, m_en, m_ja = machines[rnd.randrange(len(machines))]
             m_cap = POSTER.get(system, (SYSTEMS[system][0] if system in SYSTEMS else system, ""))[0]
             machine = (m_name, f"▲{m_cap}　{m_ja}", f"▲ {SYSTEMS[system][0] if system in SYSTEMS else system} · {m_en}",
-                       "line" if m_name.startswith("patent-") else "photo")
+                       "line" if m_name.startswith("patent-") else "cut")
         mode = s.get("drawings", "sharks")
         if mode == "machines" and machine:
             arts = [(machine, (880, 30, 470, 230))]
@@ -1653,25 +1646,25 @@ def magazine(system, s, scheme, dest, bare=False, lang="en"):
             art.fill((14, 14, 14), special_flags=pg.BLEND_ADD)  # its paper to white, so it vanishes
             at = (bx0 + (bw0 - art.get_width()) // 2, by0 + (bh0 - art.get_height()) // 2)
             if c.get("dark"):
-                # a dark page would swallow it multiplied, so its white is taken out: a
-                # painting's paper made transparent (only the paint and ink left, lifted a
-                # little to read), a photo's backdrop cut away (the machine kept solid), a
-                # patent's lines drawn in the page's light ink
+                # a dark page would swallow it multiplied, so its white is cut away: the
+                # painting or the machine kept whole in its own colours, its edge cleaned of
+                # white; a patent's lines drawn in the page's light ink
                 ink = pg.Surface(art.get_size(), pg.SRCALPHA)
                 src, dst = pg.PixelArray(art), pg.PixelArray(ink)
                 for y in range(art.get_height()):
                     for x in range(art.get_width()):
                         r, g, b, _ = art.unmap_rgb(src[x, y])
-                        a = max(255 - r, 255 - g, 255 - b) / 255
-                        if a < 0.04:
+                        d = 255 - min(r, g, b)  # how far from the white paper
+                        if kind == "line":
+                            if d > 10:
+                                dst[x, y] = (*c["body"], int(min(1, d / 180) * 255))
                             continue
-                        if kind == "photo":
-                            dst[x, y] = (r, g, b, int(min(1, a * 255 / 40) * 255))
-                        elif kind == "line":
-                            dst[x, y] = (*c["body"], int(min(1, a * 1.4) * 255))
-                        else:
-                            col = [min(255, max(0, (v - 255 * (1 - a)) / a)) for v in (r, g, b)]
-                            dst[x, y] = (*(int(255 - (255 - v) * 0.72) for v in col), int(min(1, a * 1.25) * 255))
+                        if d <= 6:
+                            continue  # the paper itself: gone
+                        a = min(1.0, (d - 6) / 34)  # solid once clearly off-white; a soft edge before
+                        if a < 1:  # the edge: the white taken out of it, so no light halo
+                            r, g, b = (min(255, max(0, int((v - 255 * (1 - a)) / a))) for v in (r, g, b))
+                        dst[x, y] = (r, g, b, int(a * 255))
                 del src, dst
                 page.blit(ink, at)
             else:
