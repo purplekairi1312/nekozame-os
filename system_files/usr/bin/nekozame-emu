@@ -58,6 +58,12 @@ CONFIG = os.path.join(HOME, ".config/nekozame/emulation.json")
 STATE = os.path.join(HOME, ".local/state/nekozame/steam-games.json")
 TABMASTER = os.path.join(HOME, "homebrew/settings/TabMaster/settings.json")
 EVERYTHING = "Emulation"  # the collection with all of them (tabmaster's tabs use it)
+EMULATORS_COLLECTION = "Emulators"  # the emulators themselves, in the Emulation tab too
+# emulators steam may have as apps (beside the ones nekozame plays with): their flatpaks
+OTHER_EMULATORS = ["ca.parallel_launcher.ParallelLauncher", "com.blitterstudio.amiberry", "org.duckstation.DuckStation",
+                   "io.github.lime3ds.Lime3DS", "org.flycast.Flycast", "io.mgba.mGBA", "net.kuribo64.melonDS",
+                   "org.mamedev.MAME", "com.snes9x.Snes9x", "io.github.simple64.simple64", "app.xemu.xemu",
+                   "org.citra_emu.citra", "org.yuzu_emu.yuzu", "dev.ares.ares", "io.github.dosbox-staging"]
 VAR = os.path.join(HOME, ".var/app")
 RA = "org.libretro.RetroArch"
 RA_CORES = os.path.join(VAR, RA, "config/retroarch/cores")
@@ -643,6 +649,22 @@ def collect(js, added, quiet=False):
             say(f"  {name}: {n} games")
 
 
+def emulator_apps(js):
+    """the emulators steam has as apps (by their flatpak) into their own collection"""
+    ids = [e["flatpak"] for e in EMULATORS.values() if e.get("flatpak")] + OTHER_EMULATORS
+    found = [sc["appid"] for sc in steam_shortcuts()
+             if any(i in sc.get("exe", "") + " " + sc.get("launchoptions", "") for i in ids)]
+    js("""(async () => {
+        const name = %s;
+        let c = collectionStore.userCollections.find(c => c.displayName === name);
+        if (!c) { c = collectionStore.NewUnsavedCollection(name, undefined, []); await c.Save();
+                  c = collectionStore.userCollections.find(c => c.displayName === name) || c; }
+        c.AsDragDropCollection().AddApps(%s.map(id => appStore.GetAppOverviewByAppID(id)).filter(Boolean));
+        await c.Save();
+    })()""" % (json.dumps(EMULATORS_COLLECTION), json.dumps(found)), wait=True)
+    return len(found)
+
+
 def steam_watch():
     """steam keeps big collections only while it runs (its cloud won't store thousands of
     games in one), so each time steam starts, once your library is in: the emulation
@@ -657,7 +679,9 @@ def steam_watch():
                            "(collectionStore.userCollections.length && appStore.GetAppOverviewByAppID(%d) ? 'in' : '')"
                            % next(iter(added.values()))["appid"])
                 if ready == "in":
+                    tidy(js, added)  # stray copies of games, out
                     collect(js, added, quiet=True)
+                    emulator_apps(js)
                     js("window.__nekozameCollected = true")
                     say(f"emulation collections back in steam ({len(added)} games)")
         except (OSError, ValueError, StopIteration, KeyError):
@@ -801,7 +825,8 @@ def steam_remove():
 
 def tabs(js=None, remove=False):
     """tabmaster's tabs (when it's installed): "Apps", your non-steam apps without the
-    emulated games; "Emulation", the games; steam's own non-steam tab hidden. other
+    emulated games and the emulators; "Emulation", the games and the emulators; steam's
+    own non-steam tab hidden. other
     tabs you made stay. remove takes ours out and brings steam's back."""
     if not os.path.isdir(os.path.dirname(TABMASTER)):
         if not remove:
@@ -810,6 +835,9 @@ def tabs(js=None, remove=False):
     js = js or steam_js()
     user = js("BigInt.asUintN(32, BigInt(App.m_CurrentUser.strSteamID)).toString()")
     coll = js("collectionStore.userCollections.find(c => c.displayName === %s)?.id" % json.dumps(EVERYTHING))
+    if coll and not remove:
+        emulator_apps(js)
+    emus = js("collectionStore.userCollections.find(c => c.displayName === %s)?.id" % json.dumps(EMULATORS_COLLECTION))
     try:
         cfg = json.load(open(TABMASTER))
     except (OSError, ValueError):
@@ -835,11 +863,15 @@ def tabs(js=None, remove=False):
         every = 1 | 2 | 8192  # games, software, music
         t["nekozame-apps"] = {"id": "nekozame-apps", "title": "Apps", "position": last + 1,
                               "filters": [{"type": "platform", "inverted": False, "params": {"platform": "nonSteam"}},
-                                          {"type": "collection", "inverted": True, "params": {"id": coll, "name": EVERYTHING}}],
+                                          {"type": "collection", "inverted": True, "params": {"id": coll, "name": EVERYTHING}}]
+                              + ([{"type": "collection", "inverted": True, "params": {"id": emus, "name": EMULATORS_COLLECTION}}]
+                                 if emus else []),
                               "filtersMode": "and", "categoriesToInclude": every, "autoHide": False}
         t["nekozame-emulation"] = {"id": "nekozame-emulation", "title": "Emulation", "position": last + 2,
-                                   "filters": [{"type": "collection", "inverted": False, "params": {"id": coll, "name": EVERYTHING}}],
-                                   "filtersMode": "and", "categoriesToInclude": every, "autoHide": False}
+                                   "filters": [{"type": "collection", "inverted": False, "params": {"id": coll, "name": EVERYTHING}}]
+                                   + ([{"type": "collection", "inverted": False, "params": {"id": emus, "name": EMULATORS_COLLECTION}}]
+                                      if emus else []),
+                                   "filtersMode": "or", "categoriesToInclude": every, "autoHide": False}
     # positions in order again, the hidden ones staying hidden
     shown = sorted((p for p in t.values() if p["position"] >= 0), key=lambda p: p["position"])
     for i, p in enumerate(shown):
