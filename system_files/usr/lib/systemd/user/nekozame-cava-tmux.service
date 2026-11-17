@@ -1,0 +1,11 @@
+[Unit]
+Description=nekozame: cava's bars on tmux's status bar while something plays
+After=pipewire.service
+
+[Service]
+ExecStart=/usr/libexec/nekozame-cava-tmux
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target

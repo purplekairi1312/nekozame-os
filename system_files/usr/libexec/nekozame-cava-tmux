@@ -1,0 +1,82 @@
+#!/usr/bin/python3
+"""nekozame-cava-tmux: cava's bars on tmux's status bar, from what's playing (PipeWire).
+
+Sets tmux's @nekozame_cava option, which nekozame-theme's tmux theme shows before the
+clock, and redraws the bar up to 5 times a second while there's sound; empty in silence.
+Cava only runs while a tmux server does. nekozame-cava-tmux.service runs it.
+"""
+import os
+import shutil
+import subprocess
+import tempfile
+import time
+
+CONF = """[general]
+bars = 14
+framerate = 20
+autosens = 1
+[input]
+method = pipewire
+source = auto
+[output]
+method = raw
+raw_target = /dev/stdout
+data_format = ascii
+ascii_max_range = 7
+bar_delimiter = 0
+frame_delimiter = 10
+"""
+BLOCKS = "▁▂▃▄▅▆▇█"
+
+
+def tmux(*args):
+    return subprocess.run(["tmux", *args], capture_output=True, text=True)
+
+
+def show(bars):
+    """the bars into tmux's option, and every client's status bar redrawn"""
+    if tmux("set", "-g", "@nekozame_cava", bars).returncode != 0:
+        return False  # tmux is gone
+    for client in tmux("list-clients", "-F", "#{client_name}").stdout.split():
+        tmux("refresh-client", "-S", "-t", client)
+    return True
+
+
+def listen(conf):
+    """cava while tmux runs: back when tmux has gone"""
+    cava = subprocess.Popen(["cava", "-p", conf], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+    quiet, shown, last = 0, False, 0.0
+    try:
+        for line in cava.stdout:
+            levels = [int(c) for c in line.strip() if c.isdigit()]
+            if not levels or not any(levels):
+                quiet += 1
+                if quiet == 20 and shown:  # a second of silence: hidden
+                    shown = False
+                    if not show(""):
+                        return
+                continue
+            quiet = 0
+            now = time.monotonic()
+            if now - last < 0.2:
+                continue
+            last, shown = now, True
+            if not show("".join(BLOCKS[min(n, 7)] for n in levels)):
+                return
+    finally:
+        cava.terminate()
+
+
+def main():
+    if not shutil.which("cava") or not shutil.which("tmux"):
+        return
+    with tempfile.NamedTemporaryFile("w", suffix=".conf", delete=False) as f:
+        f.write(CONF)
+    while True:
+        if tmux("list-sessions").returncode == 0:
+            listen(f.name)
+        time.sleep(5)
+
+
+if __name__ == "__main__":
+    main()

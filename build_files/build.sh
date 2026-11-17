@@ -171,6 +171,9 @@ systemctl --global enable nekozame-steam-theme.service
 systemctl --global enable nekozame-audio-follow.service
 systemctl --global enable nekozame-emu-collections.service
 systemctl --global enable nekozame-ports-check.timer
+# cava's bars on tmux's status bar (every image, the deck's too: it has tmux)
+rpm -q cava >/dev/null || retry dnf5 -y install cava
+systemctl --global enable nekozame-cava-tmux.service
 # kde: the plasma style (panel, popups) and the window decorations (round buttons)
 mkdir -p /usr/share/plasma/desktoptheme /usr/share/aurorae/themes
 cp -r "$T/plasma/nekozame" /usr/share/plasma/desktoptheme/nekozame

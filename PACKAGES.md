@@ -4,7 +4,7 @@
 
 - [niri](https://github.com/niri-wm/niri) (window manager)
 - [DankMaterialShell](https://github.com/AvengeMedia/DankMaterialShell) (shell: bar, launcher, notifications, settings, login screen)
-- [cava](https://github.com/karlstav/cava) (audio visualizer on the bar)
+- [cava](https://github.com/karlstav/cava) (audio visualizer on the bar, and on tmux's status bar)
 - [Ghostty](https://ghostty.org) (terminal)
 - [fuzzel](https://codeberg.org/dnkl/fuzzel) (launcher)
 - [Thunar](https://docs.xfce.org/xfce/thunar/start) (file manager)
