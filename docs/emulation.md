@@ -294,6 +294,16 @@ The frontend keeps what it scrapes (descriptions, dates, genres...), your favour
 - With `both`, the newer list of a system wins, and the one it replaces is kept next to it as `gamelist.xml.bak`.
 - `both` only helps when the machine has games of its own: the frontend only lists games it can reach. With a library on a share and two machines using the frontend at once, whichever closes last wins for a system both changed.
 
+To bring in game lists from elsewhere (an old ES-DE or EmuDeck, a backup, another machine's):
+
+```sh
+nekozame-emu esde gamelists import FOLDER
+```
+
+- It finds the lists in ES-DE's layout (`SYSTEM/gamelist.xml`) or the old one inside the ROM folders (`roms/SYSTEM/gamelist.xml`).
+- It merges them game by game: games you don't have info for are added, and games you do only get what's missing filled in. Your own info, favourites and play counts stay.
+- Each list it changes is kept as `gamelist.xml.bak` first.
+
 More on how the frontend works: its [guide](https://github.com/purplekairi1312/nekozame-emu-frontend/blob/main/docs/guide.md).
 
 ---

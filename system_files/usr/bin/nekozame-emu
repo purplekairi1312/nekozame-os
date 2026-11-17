@@ -25,6 +25,9 @@ your saves synced everywhere (nekozame-saves).
                                   where the frontend's game lists live (what's
                                   scraped, favourites, play counts): with the
                                   library (the default), here, or both (a menu)
+  nekozame-emu esde gamelists import FOLDER
+                                  game lists from elsewhere (an old es-de or
+                                  emudeck, a backup) merged into yours
   nekozame-emu video              how games look on this machine: aspect ratio,
                                   resolution, shaders (a menu)
   nekozame-emu achievements       retroachievements: login, hardcore, on or off
@@ -1848,6 +1851,73 @@ def aside(path, suffix):
     return out
 
 
+GAME_INFO = ("name", "desc", "rating", "releasedate", "developer", "publisher", "genre", "players",
+             "lastplayed", "playcount", "favorite", "hidden", "kidgame")
+
+
+def gamelists_import(folder, s):
+    """game lists from FOLDER (es-de's layout, SYSTEM/gamelist.xml, or the old one inside
+    the rom folders, roms/SYSTEM/gamelist.xml) merged into yours, game by game: games
+    yours don't have are added, the ones it has only get what's missing filled in. each
+    list that changes is kept as .bak first."""
+    from xml.etree import ElementTree as ET
+    folder = os.path.expanduser(folder)
+    mine = os.path.join(ESDE_HOME, "gamelists")
+    found = {}
+    for base in (folder, os.path.join(folder, "gamelists"), os.path.join(folder, "roms")):
+        if os.path.isdir(base):
+            for system in os.listdir(base):
+                f = os.path.join(base, system, "gamelist.xml")
+                if os.path.isfile(f) and system in SYSTEMS:
+                    found.setdefault(system, f)
+    if not found:
+        say(f"no game lists in {folder} (SYSTEM/gamelist.xml, or roms/SYSTEM/gamelist.xml)")
+        return 1
+    added = filled = 0
+    for system, src in sorted(found.items()):
+        try:
+            theirs = ET.parse(src).getroot()
+        except ET.ParseError as err:
+            say(f"  {system}: couldn't read it ({err})")
+            continue
+        dest = os.path.join(mine, system, "gamelist.xml")
+        try:
+            tree = ET.parse(dest)
+        except (OSError, ET.ParseError):
+            tree = ET.ElementTree(ET.Element("gameList"))
+        root = tree.getroot()
+        have = {g.findtext("path"): g for g in root.findall("game")}
+        changed = 0
+        for g in theirs.findall("game"):
+            path = g.findtext("path")
+            if not path:
+                continue
+            if path not in have:
+                root.append(g)
+                added += 1
+                changed += 1
+                continue
+            for field in GAME_INFO:  # only what's missing; yours stays
+                value = g.findtext(field)
+                if value and not (have[path].findtext(field) or "").strip():
+                    e = have[path].find(field)
+                    if e is None:
+                        e = ET.SubElement(have[path], field)
+                    e.text = value
+                    filled += 1
+                    changed += 1
+        if changed:
+            os.makedirs(os.path.dirname(dest), exist_ok=True)
+            if os.path.exists(dest):
+                shutil.copy2(dest, dest + ".bak")
+            ET.indent(tree, "\t")
+            tree.write(dest + ".part", encoding="utf-8", xml_declaration=True)
+            os.replace(dest + ".part", dest)
+            say(f"  {SYSTEMS[system][0]}: {changed} changes")
+    say(f"imported from {folder}: {added} games added, {filled} details filled in")
+    return 0
+
+
 def esde_run(args):
     """the frontend, with the game lists synced before it opens and after it closes when
     they're kept in both places (gamelists: both)."""
@@ -2835,6 +2905,11 @@ def main(argv):
         return esde()
     if cmd == "esde" and argv[1:2] == ["run"]:
         return esde_run(argv[2:])
+    if cmd == "esde" and argv[1:2] == ["gamelists"] and argv[2:3] == ["import"]:
+        if not argv[3:]:
+            say("nekozame-emu esde gamelists import FOLDER")
+            return 1
+        return gamelists_import(argv[3], settings())
     if cmd == "esde" and argv[1:2] == ["gamelists"]:
         mode = argv[2] if argv[2:3] else None
         if mode is None and shutil.which("gum") and sys.stdin.isatty():
@@ -2842,8 +2917,12 @@ def main(argv):
             pick = gum("choose", "--header", "Where should the frontend keep its game lists (what's scraped, favourites, play counts)?",
                        "library: with the games, next to their art (every machine using the library sees them)",
                        "local: on this machine only",
-                       "both: on this machine and with the library, synced when the frontend opens and closes")
+                       "both: on this machine and with the library, synced when the frontend opens and closes",
+                       "import: add game lists from another folder (an old ES-DE or EmuDeck, a backup)")
             mode = pick.split(":")[0] if pick else None
+            if mode == "import":
+                folder = gum("input", "--header", "The folder with the game lists", "--placeholder", "~/ES-DE/gamelists")
+                return gamelists_import(folder, settings()) if folder else 1
         if mode not in ("library", "local", "both"):
             say("nekozame-emu esde gamelists library|local|both")
             return 1
