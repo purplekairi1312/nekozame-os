@@ -21,9 +21,10 @@ your saves synced everywhere (nekozame-saves).
                                   thumbnail library, matched by your file names)
   nekozame-emu boxes [SYSTEM...]  3d boxes made from the covers, for games with a cover
                                   and no scraped box (--again: the made ones redone)
-  nekozame-emu esde gamelists library|local|both
+  nekozame-emu esde gamelists [library|local|both]
                                   where the frontend's game lists live (what's
-                                  scraped, favourites, play counts)
+                                  scraped, favourites, play counts): with the
+                                  library (the default), here, or both (a menu)
   nekozame-emu video              how games look on this machine: aspect ratio,
                                   resolution, shaders (a menu)
   nekozame-emu achievements       retroachievements: login, hardcore, on or off
@@ -45,7 +46,7 @@ settings (~/.config/nekozame/emulation.json), all optional:
                                               photos, patent drawings), or "both" (the
                                               machine, a smaller shark below it)
   "gamelists": "library"                      the frontend's game lists: "library" (next to
-                                              the art, every machine), "local", or "both"
+                                              the art, the default), "local", or "both"
   "video": {"aspect": "console", "resolution": "recommended", "shaders": {"psx": "crt-pal"}}
                                               how games look (nekozame-emu video)
   "achievements": {"enabled": true, "hardcore": false}
@@ -1772,15 +1773,12 @@ def esde_systems(appimage):
 #   "both":    this machine's own copy, synced with the library's when the frontend opens
 #              and closes (the newest wins; the one it replaces is kept as .bak): it
 #              still works when the library isn't there (away, the disk unplugged)
-# the default: "library" when the art is outside your home folder (a share or a disk),
-# "local" when it's all on this machine
+# the default: "library", wherever the library is (a share, a disk, or ~/Emulation)
 
 
 def gamelists_mode(s):
     mode = s.get("gamelists")
-    if mode in ("library", "local", "both"):
-        return mode
-    return "local" if os.path.realpath(s["media"][0]).startswith(HOME + "/") else "library"
+    return mode if mode in ("library", "local", "both") else "library"
 
 
 def gamelists_shared(s):
@@ -2837,8 +2835,19 @@ def main(argv):
         return esde()
     if cmd == "esde" and argv[1:2] == ["run"]:
         return esde_run(argv[2:])
-    if cmd == "esde" and argv[1:2] == ["gamelists"] and argv[2:3] and argv[2] in ("library", "local", "both"):
-        save_setting("gamelists", argv[2])
+    if cmd == "esde" and argv[1:2] == ["gamelists"]:
+        mode = argv[2] if argv[2:3] else None
+        if mode is None and shutil.which("gum") and sys.stdin.isatty():
+            say(f"now: {gamelists_mode(settings())}")
+            pick = gum("choose", "--header", "Where should the frontend keep its game lists (what's scraped, favourites, play counts)?",
+                       "library: with the games, next to their art (every machine using the library sees them)",
+                       "local: on this machine only",
+                       "both: on this machine and with the library, synced when the frontend opens and closes")
+            mode = pick.split(":")[0] if pick else None
+        if mode not in ("library", "local", "both"):
+            say("nekozame-emu esde gamelists library|local|both")
+            return 1
+        save_setting("gamelists", mode)
         esde_gamelists(settings())
         return esde()
     if cmd == "esde" and argv[1:2] == ["off"]:

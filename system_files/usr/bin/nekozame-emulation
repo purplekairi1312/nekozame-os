@@ -128,21 +128,8 @@ fi
 step "The frontend (browse the whole library, in nekozame's magazine theme)"
 if [ -s "$HOME/.local/state/nekozame/es-de.json" ] ||
     ask "Install nekozame-emu-frontend? (in Steam's Apps tab and your apps menu)"; then
-    # where its game lists live (what's scraped, favourites, play counts), asked when
-    # the library is outside this machine's home folder (a share or a disk)
-    if ! python3 -c 'import json,sys; sys.exit("gamelists" not in json.load(open(sys.argv[1])))' "$CONF" 2>/dev/null &&
-        [ -n "$(current_roms)" ] && [ "${ROOT#"$HOME"/}" = "$ROOT" ]; then
-        where=$(gum choose --header "Where should the frontend keep its game lists (what's scraped, favourites, play counts)?" \
-            "With the library: every machine sees what one scrapes" \
-            "On this machine only" \
-            "Both: this machine's copy, synced with the library's when the frontend opens and closes (for a library that isn't always there)")
-        case "$where" in
-            With*) setting gamelists='"library"' ;;
-            On*) setting gamelists='"local"' ;;
-            Both*) setting gamelists='"both"' ;;
-        esac
-    fi
     nekozame-emu esde on
+    ok "its game lists (what's scraped, favourites, play counts) are with the library; nekozame-emu esde gamelists changes that"
 fi
 
 step "Ports, decomps and recomps (games rebuilt to run natively, a new one every week)"
