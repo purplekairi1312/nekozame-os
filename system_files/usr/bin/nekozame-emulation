@@ -87,7 +87,7 @@ fi
 step "Emulators"
 nekozame-emu setup
 
-step "How games look on this machine (aspect ratio, resolution, the CRT PAL shader)"
+step "How games look on this machine (aspect ratio, resolution, shaders)"
 nekozame-emu video show
 if ask "Change these? (the recommended resolution is picked for this machine's screen and graphics)" false; then
     nekozame-emu video
