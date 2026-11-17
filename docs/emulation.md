@@ -147,6 +147,7 @@ The settings are in `~/.config/nekozame/emulation.json`, all of them optional. A
 | `steam.names` | `"file"` | Game names: `"file"` (your file names) or `"scraped"` (ES-DE's scraped titles) |
 | `steam.labels` | `true` | The name printed under each cover in Steam |
 | `loadToRam` | `true` | Disc games (PS1, Saturn, PC Engine CD, PS2, PSP) are read into memory before starting, so reading from the share doesn't interrupt them. Starting takes a bit longer. |
+| `gamelists` | library or local | Where the frontend's game lists live: `library`, `local` or `both` (see "Where the game lists live") |
 | `video` | console, recommended, no shaders | How games look: `aspect`, `resolution`, and `shaders` per system (see "How games look") |
 | `achievements` | `{"enabled": true, "hardcore": false}` | RetroAchievements, once you've logged in |
 | `music` | `true` | The frontend's music |
@@ -276,6 +277,21 @@ After adding games or changing `"drawings"`, print the pages again:
 ```sh
 nekozame-emu esde on --again
 ```
+
+### Where the game lists live
+
+The frontend keeps what it scrapes (descriptions, dates, genres...), your favourites and play counts in game lists, one per system. The art always goes with the library, in `media`. The lists can go where suits you:
+
+| Setting | Where | Good for |
+|---|---|---|
+| `"gamelists": "library"` | With the library, in `tools/gamelists` next to the art | A library on a share or a disk that several machines use: what one scrapes, all see. The default when the library is outside your home folder |
+| `"gamelists": "local"` | This machine only (`~/ES-DE/gamelists`) | A library on this machine alone. The default when it's in your home folder |
+| `"gamelists": "both"` | This machine's own copy, synced with the library's when the frontend opens and closes | A library that isn't always there (a Deck away from home without Tailscale, a disk you unplug): the frontend keeps working and catches up next time |
+
+- The setup asks when your library is on a share or a disk. `nekozame-emu esde gamelists library` (or `local`, `both`) changes it later.
+- Switching never loses anything. Moving to the library adds this machine's lists to the library's, keeping the newer of each, and sets this machine's aside in `~/ES-DE`.
+- With "both", the newer list of a system wins. The one it replaces is kept next to it as `gamelist.xml.bak`.
+- With "both" and two machines using the frontend at once, whichever closes last wins for a system both changed. With a share that's always reachable, "library" is simpler.
 
 More on how the frontend works: its [guide](https://github.com/purplekairi1312/nekozame-emu-frontend/blob/main/docs/guide.md).
 

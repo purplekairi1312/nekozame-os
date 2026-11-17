@@ -21,6 +21,9 @@ your saves synced everywhere (nekozame-saves).
                                   thumbnail library, matched by your file names)
   nekozame-emu boxes [SYSTEM...]  3d boxes made from the covers, for games with a cover
                                   and no scraped box (--again: the made ones redone)
+  nekozame-emu esde gamelists library|local|both
+                                  where the frontend's game lists live (what's
+                                  scraped, favourites, play counts)
   nekozame-emu video              how games look on this machine: aspect ratio,
                                   resolution, shaders (a menu)
   nekozame-emu achievements       retroachievements: login, hardcore, on or off
@@ -41,6 +44,8 @@ settings (~/.config/nekozame/emulation.json), all optional:
                                               "sharks", the "machines" themselves (museum
                                               photos, patent drawings), or "both" (the
                                               machine, a smaller shark below it)
+  "gamelists": "library"                      the frontend's game lists: "library" (next to
+                                              the art, every machine), "local", or "both"
   "video": {"aspect": "console", "resolution": "recommended", "shaders": {"psx": "crt-pal"}}
                                               how games look (nekozame-emu video)
   "achievements": {"enabled": true, "hardcore": false}
@@ -1759,6 +1764,107 @@ def esde_systems(appimage):
                                "<!-- nekozame: es-de's systems, with nekozame's launcher first (nekozame-emu esde) -->"))
 
 
+# --- where the game lists live (what's scraped, favourites, play counts) ----------
+# "gamelists" in emulation.json:
+#   "library": with your games, next to their art (media): on a share or a disk every
+#              machine reaches, what one scrapes, all see. ~/ES-DE/gamelists points there
+#   "local":   on this machine only
+#   "both":    this machine's own copy, synced with the library's when the frontend opens
+#              and closes (the newest wins; the one it replaces is kept as .bak): it
+#              still works when the library isn't there (away, the disk unplugged)
+# the default: "library" when the art is outside your home folder (a share or a disk),
+# "local" when it's all on this machine
+
+
+def gamelists_mode(s):
+    mode = s.get("gamelists")
+    if mode in ("library", "local", "both"):
+        return mode
+    return "local" if os.path.realpath(s["media"][0]).startswith(HOME + "/") else "library"
+
+
+def gamelists_shared(s):
+    return os.path.join(os.path.dirname(s["media"][0].rstrip("/")), "gamelists")
+
+
+def gamelists_sync(here, there):
+    """each system's list, both ways: the newer one wins, the one it replaces kept as .bak."""
+    import filecmp
+    names = set()
+    for root in (here, there):
+        if os.path.isdir(root):
+            names |= {d for d in os.listdir(root) if os.path.isfile(os.path.join(root, d, "gamelist.xml"))}
+    for name in sorted(names):
+        a, b = os.path.join(here, name, "gamelist.xml"), os.path.join(there, name, "gamelist.xml")
+        if os.path.exists(a) and os.path.exists(b) and filecmp.cmp(a, b, shallow=False):
+            continue
+        newer, older = (a, b) if not os.path.exists(b) or (os.path.exists(a) and os.path.getmtime(a) > os.path.getmtime(b)) else (b, a)
+        os.makedirs(os.path.dirname(older), exist_ok=True)
+        if os.path.exists(older):
+            shutil.copy2(older, older + ".bak")
+        shutil.copy2(newer, older + ".part")
+        os.replace(older + ".part", older)
+
+
+def esde_gamelists(s):
+    """the game lists where the setting says: moved, linked or synced; nothing is lost
+    (a list that's replaced is kept as .bak, and this machine's are kept aside when they
+    move to the library)."""
+    mode, local, shared = gamelists_mode(s), os.path.join(ESDE_HOME, "gamelists"), gamelists_shared(s)
+    if mode != "local" and not os.path.isdir(os.path.dirname(shared)):
+        say(f"  game lists: {os.path.dirname(shared)} isn't there right now: left as they are")
+        return mode
+    if mode == "library":
+        os.makedirs(shared, exist_ok=True)
+        if os.path.islink(local) and os.path.realpath(local) == os.path.realpath(shared):
+            return mode
+        if os.path.isdir(local) and not os.path.islink(local):
+            gamelists_sync(local, shared)  # this machine's lists join the library's
+            os.replace(local, aside(local, ".here-before-library"))
+        elif os.path.islink(local):
+            os.remove(local)
+        os.symlink(shared, local)
+        say(f"  game lists: with the library, {shared}")
+    else:
+        if os.path.islink(local):  # was with the library: a copy here now
+            os.remove(local)
+            if os.path.isdir(shared):
+                shutil.copytree(shared, local)
+        os.makedirs(local, exist_ok=True)
+        if mode == "both":
+            gamelists_sync(local, shared)
+            say(f"  game lists: here and with the library ({shared}), synced as the frontend opens and closes")
+        else:
+            say("  game lists: on this machine")
+    return mode
+
+
+def aside(path, suffix):
+    """a free name next to PATH for keeping it aside: PATH.SUFFIX-DATE, numbered if taken"""
+    import time
+    base = path + suffix + time.strftime("-%Y%m%d-%H%M%S")
+    n, out = 1, base
+    while os.path.lexists(out):
+        n += 1
+        out = f"{base}-{n}"
+    return out
+
+
+def esde_run(args):
+    """the frontend, with the game lists synced before it opens and after it closes when
+    they're kept in both places (gamelists: both)."""
+    s = settings()
+    appimage = os.path.join(ESDE, "ES-DE.AppImage")
+    local, shared = os.path.join(ESDE_HOME, "gamelists"), gamelists_shared(s)
+    both = gamelists_mode(s) == "both" and os.path.isdir(os.path.dirname(shared))
+    if both:
+        gamelists_sync(local, shared)
+    code = subprocess.call([appimage, *args])
+    if both and os.path.isdir(os.path.dirname(shared)):
+        gamelists_sync(local, shared)
+    return code
+
+
 def esde_names():
     """your file names as the games' names: the names scraped in before are cleared
     (the game lists are kept aside first, once)."""
@@ -2649,6 +2755,10 @@ def esde(off=False):
     esde_music(on=s.get("music", True))
     values["CustomEventScripts"] = ("bool", "true")
     esde_settings(values)
+    mode = esde_gamelists(s)
+    # started through nekozame-emu when the game lists are kept in both places (it syncs them)
+    exe = shutil.which("nekozame-emu") or os.path.realpath(__file__)
+    run, run_args = (exe, "esde run") if mode == "both" else (appimage, "")
     # in the menu, and in steam with nekozame's art
     icon = os.path.join(ESDE, "es-de.svg")
     if fresh and os.path.exists(icon):
@@ -2664,12 +2774,12 @@ def esde(off=False):
     os.makedirs(os.path.dirname(desktop), exist_ok=True)
     with open(desktop, "w") as f:
         f.write(f"[Desktop Entry]\nType=Application\nName={ESDE_NAME}\nComment=Your whole game library\n"
-                f"Exec={appimage}\nIcon={icon}\nCategories=Game;Emulator;\nTerminal=false\n")
+                f"Exec={run}{' ' + run_args if run_args else ''}\nIcon={icon}\nCategories=Game;Emulator;\nTerminal=false\n")
     try:
         js = steam_js()
         if not st.get("appid") or not js("appStore.GetAppOverviewByAppID(%d)?.appid" % st["appid"]):
             st["appid"] = js("SteamClient.Apps.AddShortcut(%s, %s, %s, %s)" % (
-                json.dumps(ESDE_NAME), json.dumps(appimage), json.dumps(ESDE), json.dumps("")), wait=True)
+                json.dumps(ESDE_NAME), json.dumps(run), json.dumps(ESDE), json.dumps(run_args)), wait=True)
             import time
             time.sleep(10)  # steam writes the shortcut down; then its art
         elif fresh:  # nekozame's art from the last release's icon: made again
@@ -2679,6 +2789,8 @@ def esde(off=False):
                     if os.path.exists(old):
                         os.remove(old)
         js("SteamClient.Apps.SetShortcutName(%d, %s)" % (st["appid"], json.dumps(ESDE_NAME)))
+        js("SteamClient.Apps.SetShortcutExe(%d, %s)" % (st["appid"], json.dumps(run)))
+        js("SteamClient.Apps.SetShortcutLaunchOptions(%d, %s)" % (st["appid"], json.dumps(run_args)))
         subprocess.run([f"{USR}/libexec/nekozame-steam-art", desktop], capture_output=True)
     except (OSError, StopIteration):
         say(f"  (steam isn't running: {ESDE_NAME} goes in its library next time)")
@@ -2722,6 +2834,12 @@ def main(argv):
     if cmd == "boxes":
         return make_boxes([a for a in argv[1:] if not a.startswith("--")] or None, again="--again" in argv)
     if cmd == "esde" and argv[1:2] in ([], ["on"]):
+        return esde()
+    if cmd == "esde" and argv[1:2] == ["run"]:
+        return esde_run(argv[2:])
+    if cmd == "esde" and argv[1:2] == ["gamelists"] and argv[2:3] and argv[2] in ("library", "local", "both"):
+        save_setting("gamelists", argv[2])
+        esde_gamelists(settings())
         return esde()
     if cmd == "esde" and argv[1:2] == ["off"]:
         return esde(off=True)
