@@ -1,0 +1,32 @@
+#!/bin/bash
+# nekozame-mount-share SERVER SHARE USER (the password on stdin): a network share with your
+# games, mounted at /mnt/nas/SHARE for good. Its login goes in a file only root can read,
+# with the options that keep a big library quick and come back after sleep (docs/emulation.md
+# says why). Run by pkexec from nekozame-firstboot (its polkit rule allows whoever is at the
+# machine) and by sudo from nekozame-emulation; the mount belongs to that user.
+set -euo pipefail
+server="${1:?the NAS}" share="${2:?the shared folder}" user="${3:?the user}"
+uid="${PKEXEC_UID:-${SUDO_UID:?run it with pkexec or sudo}}"
+gid="$(id -g "$uid")"
+# a name, not a path or options: the share and server go into /etc/fstab
+[[ "$share" =~ ^[A-Za-z0-9._-]+$ ]] || { echo "the shared folder's name can only have letters, numbers, . _ and -" >&2; exit 2; }
+[[ "$server" =~ ^[A-Za-z0-9.:_-]+$ ]] || { echo "the NAS's name can only have letters, numbers, . : _ and -" >&2; exit 2; }
+[[ "$user" =~ ^[^,=[:space:]]+$ ]] || { echo "the user can't have spaces, commas or =" >&2; exit 2; }
+IFS= read -r pass || true
+
+mnt="/mnt/nas/$share"
+creds="/etc/nekozame/smb-$share-credentials"
+mkdir -p /etc/nekozame "$mnt"
+( umask 077; printf 'username=%s\npassword=%s\n' "$user" "$pass" > "$creds" )
+if ! grep -q " $mnt cifs " /etc/fstab; then
+    echo "//$server/$share $mnt cifs credentials=$creds,iocharset=utf8,actimeo=600,echo_interval=10,uid=$uid,gid=$gid,_netdev,nofail,x-systemd.automount,x-systemd.mount-timeout=20 0 0" >> /etc/fstab
+fi
+systemctl daemon-reload
+unit="$(systemd-escape -p --suffix=automount "$mnt")"
+systemctl restart "$unit" 2>/dev/null || true
+if ls "$mnt" >/dev/null 2>&1; then
+    echo "$mnt"
+else
+    echo "the share didn't answer: check the NAS's name, the folder and the login" >&2
+    exit 1
+fi

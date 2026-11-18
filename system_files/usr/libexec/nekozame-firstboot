@@ -291,16 +291,19 @@ class Keyboard:
     UPPER = ["!\"#$%&/()=", "QWERTYUIOP", "ASDFGHJKL+", "ZXCVBNM;:?"]
     SPECIAL = ["shift", "space", "delete", "connect"]
 
-    def __init__(self, ssid):
-        self.ssid, self.value, self.shift, self.show = ssid, "", False, False
+    def __init__(self, ssid, prompt=None, value="", secret=True, done="connect", back="wifi"):
+        """the wi-fi password by default; with PROMPT, any line of text: DONE is what it
+        hands back with the text, BACK where B goes"""
+        self.ssid, self.value, self.shift, self.show = ssid, value, False, not secret
+        self.prompt, self.done, self.back = prompt, done, back
         self.row, self.col = 1, 0
 
     def keys(self):
         rows = [list(r) for r in (self.UPPER if self.shift else self.LOWER)]
-        return rows + [self.SPECIAL]
+        return rows + [self.SPECIAL if self.done == "connect" else self.SPECIAL[:3] + ["done"]]
 
     def draw(self, look, t):
-        look.title(f"password for {self.ssid}")
+        look.title(self.prompt or f"password for {self.ssid}")
         box = pygame.Rect(int(look.w * 0.2), int(150 * look.s), int(look.w * 0.6), int(60 * look.s))
         look.panel(box, DEEP, PINK)
         shown = self.value if self.show else "•" * len(self.value)
@@ -320,7 +323,7 @@ class Keyboard:
                 look.panel(rect, PINK if on else RAISED if not special_on else SOFT, None, radius=12)
                 look.label(k, look.mid if len(k) == 1 else look.text, DEEP if on or special_on else WHITE,
                            (rect.centerx, rect.y + int(16 * look.s)), center=True)
-        look.hint("A: type   X: delete   B: back   Start: connect   (a keyboard works too)")
+        look.hint(f"A: type   X: delete   B: back   Start: {'connect' if self.done == 'connect' else 'done'}   (a keyboard works too)")
 
     def press(self, k):
         if k == "shift":
@@ -329,8 +332,8 @@ class Keyboard:
             self.value += " "
         elif k == "delete":
             self.value = self.value[:-1]
-        elif k == "connect":
-            return ("connect", self.ssid, self.value)
+        elif k in ("connect", "done"):
+            return (self.done, self.ssid, self.value)
         else:
             self.value += k
         return None
@@ -350,9 +353,9 @@ class Keyboard:
         if DEL in acts:
             self.value = self.value[:-1]
         if START in acts:
-            return ("connect", self.ssid, self.value)
+            return (self.done, self.ssid, self.value)
         if BACK in acts:
-            return "wifi"
+            return self.back
         for pos in clicks:
             for r, c, rect in getattr(self, "rects", []):
                 if rect.collidepoint(pos):
@@ -361,7 +364,7 @@ class Keyboard:
         if OK in acts:
             # enter on a real keyboard connects; A on the pad types the key
             if pygame.key.get_pressed()[pygame.K_RETURN]:
-                return ("connect", self.ssid, self.value)
+                return (self.done, self.ssid, self.value)
             return self.press(rows[self.row][self.col])
         return None
 
@@ -437,6 +440,144 @@ CATALOG = [
          lambda: os.path.exists(os.path.join(HOME, ".local/bin/helium")), [], False),
     ]),
 ]
+
+
+EMULATION = os.path.join(HOME, ".config/nekozame/emulation.json")
+
+
+def library_root():
+    """where the games are already set up to be, or None"""
+    try:
+        import json
+        roms = json.load(open(EMULATION)).get("roms") or []
+        return roms[0][: -len("/roms")] if roms and roms[0].endswith("/roms") else None
+    except (OSError, ValueError):
+        return None
+
+
+def set_library(root, saves_there):
+    """nekozame-emu's settings: the games in ROOT/roms (your file names kept as their names);
+    with SAVES_THERE, saves synced with ROOT/saves, so every machine plays from the same ones"""
+    import json
+    for d in ("roms", "bios", "saves", "tools/downloaded_media"):
+        os.makedirs(os.path.join(root, d), exist_ok=True)
+    try:
+        s = json.load(open(EMULATION))
+    except (OSError, ValueError):
+        s = {}
+    s.update({"roms": [root + "/roms"], "bios": root + "/bios", "media": [root + "/tools/downloaded_media"],
+              "steam": {"roms": [root + "/roms"], "names": "file"}})
+    os.makedirs(os.path.dirname(EMULATION), exist_ok=True)
+    json.dump(s, open(EMULATION, "w"), indent=2)
+    saves = os.path.join(HOME, ".config/nekozame/saves.json")
+    if saves_there and not os.path.exists(saves):
+        fd = os.open(saves, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "w") as f:
+            json.dump({"remote": {"type": "folder", "path": root + "/saves"}}, f, indent=2)
+
+
+class Library(Rows):
+    """where your games are: this deck, a NAS (its login typed with the on-screen keyboard),
+    or later in desktop mode. the rest of nekozame's emulation is ujust nekozame-emulation."""
+    CHOICES = [("here", "on this deck", "~/Emulation: one folder per system in roms/, copied over from your PC"),
+               ("nas", "on a NAS", "a network share every machine plays from, saves too; mounted for good"),
+               ("later", "later", "in desktop mode: ujust nekozame-emulation")]
+
+    def __init__(self):
+        self.root = library_root()
+        self.choice = None
+
+    def rows(self):
+        return ([("keep", "keep them where they are", self.root)] if self.root else []) + self.CHOICES
+
+    def draw(self, look, t):
+        look.title("your games", "where your emulation library is: the emulators and steam find it there")
+        for i, (r, (_, name, desc)) in enumerate(zip(self.layout(look, int(160 * look.s)), self.rows())):
+            on = i == self.focus
+            look.panel(r, RAISED if on else PANEL, PINK if on else None)
+            look.label(name, look.mid, WHITE, (r.x + int(22 * look.s), r.y + int(5 * look.s)))
+            look.label(desc, look.small, DIM, (r.x + int(22 * look.s), r.y + int(35 * look.s)))
+        look.hint("A: pick   B: back")
+
+    def handle(self, acts, text, clicks, look):
+        rows = self.rows()
+        self.move(acts, len(rows))
+        hit = self.clicked(clicks, self.layout(look, int(160 * look.s)))
+        if BACK in acts:
+            return "back"
+        if not (OK in acts or START in acts or hit):
+            return None
+        key = rows[self.focus][0]
+        if key == "nas":
+            return "nas"
+        if key == "here":
+            set_library(os.path.join(HOME, "Emulation"), False)
+        self.choice = key
+        return "next"
+
+
+class Nas(Rows):
+    """the NAS's name, its shared folder, your user and password: each typed on the keyboard"""
+    FIELDS = [("server", "the NAS", "its name or address (nas.local), or its tailscale name", False),
+              ("share", "the shared folder", "the one with roms/, bios/ and saves/ in it", False),
+              ("user", "your user on the NAS", "", False),
+              ("password", "its password", "kept in a file only root can read", True)]
+
+    def __init__(self):
+        self.values = {"server": "", "share": "Emulation", "user": "", "password": ""}
+        self.state, self.root = None, None
+
+    def rows(self):
+        return self.FIELDS + [("go", "mount it", "", False)]
+
+    def mount(self):
+        v = self.values
+        p = subprocess.run(["pkexec", "/usr/libexec/nekozame-mount-share", v["server"], v["share"], v["user"]],
+                           input=v["password"] + "\n", capture_output=True, text=True)
+        if p.returncode == 0:
+            self.root = p.stdout.strip().splitlines()[-1]
+            set_library(self.root, True)
+            self.state = "ok"
+        else:
+            self.state = (p.stderr.strip().splitlines() or ["couldn't mount it"])[-1]
+
+    def draw(self, look, t):
+        look.title("your NAS", "mounted at /mnt/nas/<folder>, and every time the deck starts")
+        for i, (r, (key, name, desc, secret)) in enumerate(zip(self.layout(look, int(150 * look.s)), self.rows())):
+            on = i == self.focus
+            if key == "go":
+                look.panel(r, PINK if on else PANEL, PINK if on else None)
+                label = {"mounting": "mounting…", None: name}.get(self.state, name)
+                look.label(label, look.mid, DEEP if on else WHITE, (r.centerx, r.y + int(13 * look.s)), center=True)
+                continue
+            look.panel(r, RAISED if on else PANEL, PINK if on else None)
+            value = self.values[key]
+            shown = ("•" * len(value) if secret else value) or desc
+            look.label(name, look.mid, WHITE, (r.x + int(22 * look.s), r.y + int(5 * look.s)))
+            look.label(shown, look.small, SOFT if value else DIM, (r.x + int(22 * look.s), r.y + int(35 * look.s)))
+        if self.state not in (None, "ok", "mounting"):
+            look.label(self.state[:90], look.text, BUTTER, (look.w // 2, look.h - int(110 * look.s)), center=True)
+        look.hint("A: type it / mount   B: back")
+
+    def handle(self, acts, text, clicks, look):
+        if self.state == "ok":
+            return "next"
+        if self.state == "mounting":
+            return None
+        rows = self.rows()
+        self.move(acts, len(rows))
+        hit = self.clicked(clicks, self.layout(look, int(150 * look.s)))
+        if BACK in acts:
+            return "library"
+        if not (OK in acts or hit):
+            return None
+        key, name, _, secret = rows[self.focus]
+        if key != "go":
+            return ("field", key, name, self.values[key], secret)
+        if self.values["server"] and self.values["share"]:
+            self.state = "mounting"
+            threading.Thread(target=self.mount, daemon=True).start()
+        return None
 
 
 class Page(Rows):
@@ -587,6 +728,7 @@ class Working:
         self.tasks = []  # [label, command, status, last line]
         add = lambda label, *cmd: self.tasks.append([label, cmd, "waiting", ""])
         self.to_steam = []
+        self.steam_games = False
         for _, _, items in CATALOG:
             for key, name, _, _, _, flatpaks, steam in items:
                 if not picked.get(key) or not flatpaks:
@@ -594,6 +736,11 @@ class Working:
                 add(name, "flatpak", "install", "--user", "-y", "--noninteractive", "flathub", *flatpaks)
                 if steam:
                     self.to_steam += [f + ".desktop" for f in flatpaks]
+        if picked.get("library") in ("keep", "here", "nas"):
+            add("Emulators for your games", "nekozame-emu", "setup")
+            if picked.get("library") == "nas":
+                add("Your saves, synced with the NAS", "nekozame-saves", "sync")
+            self.steam_games = True
         if picked.get("sunshine"):
             add("Sunshine", "env", "NEKOZAME_SETUP=1", "nekozame-sunshine")
         editor = picked.get("editor")
@@ -624,6 +771,11 @@ class Working:
                 task[2] = "ok" if p.wait() == 0 else "failed"
             except OSError as e:
                 task[2], task[3] = "failed", str(e)
+        if self.steam_games:
+            # every game in steam, each with its art, once steam is up
+            subprocess.Popen(["setsid", "-f", "sh", "-c", "until pgrep -x steam >/dev/null; do sleep 5; done; "
+                              "sleep 90; nekozame-emu steam add"],
+                             stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         if self.to_steam:
             # steam isn't running yet: add them to its library once it is
             subprocess.Popen(["setsid", "-f", "/usr/libexec/nekozame-add-to-steam", *self.to_steam],
@@ -684,7 +836,7 @@ def main():
     pygame.mouse.set_visible(True)
     look, inp, clock = Look(screen), Input(), pygame.time.Clock()
     pages = [name for name, _, _ in CATALOG]
-    order = ["welcome", "wifi"] + pages + ["tailscale", "working", "tour"]
+    order = ["welcome", "wifi", pages[0], "library"] + pages[1:] + ["tailscale", "working", "tour"]
     screens = {"welcome": Welcome()}
     current = "welcome"
     t0 = time.time()
@@ -694,7 +846,12 @@ def main():
         for name in pages:
             if name in screens:
                 out.update(screens[name].picked())
+        if "library" in screens:
+            out["library"] = screens["library"].choice
         return out
+
+    def emulators():
+        return picked().get("emulators") or all(installed(a) for a in EMULATORS)
 
     def go_to(name):
         nonlocal current
@@ -705,6 +862,12 @@ def main():
         elif name in pages and name not in screens:
             title, items = next((t, it) for n, t, it in CATALOG if n == name)
             screens[name] = Page(title, items)
+        elif name == "library":
+            if not emulators():
+                return go_to(order[order.index("library") + 1])
+            screens.setdefault("library", Library())
+        elif name == "nas":
+            screens.setdefault("nas", Nas())
         elif name == "tailscale":
             if not picked().get("tailscale") or not online():
                 return go_to("working")
@@ -727,6 +890,9 @@ def main():
         pygame.display.flip()
         r = screen_obj.handle(acts, text, clicks, look)
         if r == "next":
+            if current == "nas":
+                screens["library"].choice = "nas"
+                current = "library"
             i = order.index(current) if current in order else 1
             if i + 1 >= len(order):
                 break
@@ -736,6 +902,15 @@ def main():
             go_to("welcome" if back == "wifi" else back)
         elif r == "wifi":
             go_to("wifi")
+        elif r in ("nas", "library"):
+            go_to(r)
+        elif isinstance(r, tuple) and r[0] == "field":  # a line of the NAS's, on the keyboard
+            _, key, name, value, secret = r
+            screens["typing"] = Keyboard(key, name, value, secret, done="typed", back="nas")
+            current = "typing"
+        elif isinstance(r, tuple) and r[0] == "typed":
+            screens["nas"].values[r[1]] = r[2].strip() if r[1] != "password" else r[2]
+            go_to("nas")
         elif isinstance(r, tuple) and r[0] == "password":
             screens["password"] = Keyboard(r[1])
             current = "password"

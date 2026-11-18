@@ -6,6 +6,8 @@
 # the whole story: https://github.com/purplekairi1312/nekozame-os/blob/main/docs/emulation.md
 set -uo pipefail
 CONF="$HOME/.config/nekozame/emulation.json"
+# next to this one: /usr/libexec on nekozame os, or this repo's system_files/usr/libexec
+LIBEXEC="$(cd "$(dirname "$(readlink -f "$0")")/../libexec" && pwd)"
 
 pink() { gum style --foreground "#ffc0e5" --bold "$*"; }
 step() { echo; pink "▸ $*"; }
@@ -32,31 +34,20 @@ current_roms() {
     python3 -c 'import json,sys; print((json.load(open(sys.argv[1])).get("roms") or [""])[0])' "$CONF" 2>/dev/null
 }
 
-# a network share mounted for good: its login readable only by root, and the options
-# that keep a big library quick and come back after sleep (the guide says why)
+# a network share mounted for good (nekozame-mount-share: its login readable only by root, and
+# the options that keep a big library quick and come back after sleep; the guide says why)
 mount_share() {
-    local server share user pass mnt creds line
+    local server share user pass mnt
     server=$(gum input --header "The NAS (its name or address, e.g. nas.local, or its Tailscale name to play from anywhere):") || return 1
     share=$(gum input --header "The shared folder with your games (e.g. Emulation):" --value Emulation) || return 1
     user=$(gum input --header "Your user on the NAS:") || return 1
     pass=$(gum input --password --header "Its password (kept in a file only root can read):") || return 1
     [ -n "$server" ] && [ -n "$share" ] || return 1
-    mnt="/mnt/nas/$share"
-    creds="/etc/nekozame/smb-$share-credentials"
-    sudo mkdir -p /etc/nekozame "$mnt"
-    printf 'username=%s\npassword=%s\n' "$user" "$pass" | sudo tee "$creds" >/dev/null
-    sudo chmod 600 "$creds"
-    line="//$server/$share $mnt cifs credentials=$creds,iocharset=utf8,actimeo=600,echo_interval=10,uid=$(id -u),gid=$(id -g),_netdev,nofail,x-systemd.automount,x-systemd.mount-timeout=20 0 0"
-    if ! grep -q " $mnt cifs " /etc/fstab; then
-        echo "$line" | sudo tee -a /etc/fstab >/dev/null
-    fi
-    sudo systemctl daemon-reload
-    sudo systemctl restart "$(systemd-escape -p --suffix=automount "$mnt")" 2>/dev/null
-    if ls "$mnt" >/dev/null 2>&1; then
+    if mnt=$(printf '%s\n' "$pass" | sudo "$LIBEXEC/nekozame-mount-share" "$server" "$share" "$user"); then
         ok "mounted at $mnt, and every time this machine starts"
         ROOT="$mnt"
     else
-        echo "  the share didn't answer: check the name, the folder and the login, then run this again"
+        echo "  check the name, the folder and the login, then run this again"
         return 1
     fi
 }

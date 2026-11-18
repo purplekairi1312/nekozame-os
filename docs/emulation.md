@@ -14,6 +14,7 @@ Your games with their emulators, art and saves, in Steam and in a frontend.
 | Steam | Every game as its own entry with its art, in collections and tabs |
 
 - The quick way: `ujust nekozame-emulation` (also a step of nekozame's first setup) goes through all of it. The sections below explain each step and how to do it by hand.
+- On a Steam Deck, the first boot asks where your games are, with the controller: on the Deck, on a NAS (typed with the on-screen keyboard and mounted for good, saves synced there too), or later. Then it sets up the emulators for them and puts every game in Steam once Steam starts. `ujust nekozame-emulation` in Desktop Mode does the rest (video, RetroAchievements, the frontend, covers).
 
 ### Without nekozame os
 
