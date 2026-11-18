@@ -4,7 +4,16 @@
 # the screens go in niri's dms/outputs.kdl, the file dms's own Displays settings use too (the
 # old one is kept as outputs.kdl.bak); niri picks it up straight away, no logging out
 set -euo pipefail
-[ -n "${NIRI_SOCKET:-}" ] || { echo "nekozame-display is for niri: run it in a niri session (in KDE: System Settings → Display)"; exit 1; }
+# in tmux or over ssh, niri's variables aren't passed on: found from its socket
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+if [ -z "${NIRI_SOCKET:-}" ]; then
+    NIRI_SOCKET=$(ls -t "$XDG_RUNTIME_DIR"/niri.wayland-*.sock 2>/dev/null | head -1) || true
+    [ -n "$NIRI_SOCKET" ] && export NIRI_SOCKET
+fi
+if [ -z "${WAYLAND_DISPLAY:-}" ] && [ -n "${NIRI_SOCKET:-}" ]; then  # niri.wayland-1.PID.sock: wayland-1
+    WAYLAND_DISPLAY=$(basename "$NIRI_SOCKET" | cut -d. -f2) && export WAYLAND_DISPLAY
+fi
+[ -n "${NIRI_SOCKET:-}" ] || { echo "nekozame-display is for niri: log in to niri first (in KDE: System Settings → Display)"; exit 1; }
 OUTPUTS="${XDG_CONFIG_HOME:-$HOME/.config}/niri/dms/outputs.kdl"
 
 pink() { gum style --foreground "#ffc0e5" --bold "$*"; }
