@@ -8,6 +8,10 @@ name: Build ISOs
 # without the IA_ACCESS_KEY and IA_SECRET_KEY secrets they stay as job artifacts.
 on:
   workflow_dispatch:
+    inputs:
+      images:
+        description: "Which ISOs (a JSON list): only the ones that need it"
+        default: '["nekozame-os", "nekozame-os-nvidia", "nekozame-os-deck"]'
   pull_request:
     branches:
       - main
@@ -32,7 +36,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image: [nekozame-os, nekozame-os-nvidia, nekozame-os-deck]
+        image: ${{ fromJSON(inputs.images || '["nekozame-os", "nekozame-os-nvidia", "nekozame-os-deck"]') }}
     permissions:
       contents: read
       packages: read
@@ -96,12 +100,19 @@ jobs:
           pip install --quiet internetarchive
           printf '[s3]\naccess = %s\nsecret = %s\n' "$IA_ACCESS_KEY_ID" "$IA_SECRET_ACCESS_KEY" > ia.ini
           cd upload
-          ia --config-file ../ia.ini upload "$IA_ITEM" "${{ matrix.image }}.iso" "${{ matrix.image }}.iso-CHECKSUM" \
-            --metadata="mediatype:software" --metadata="title:nekozame os installers" \
-            --metadata="description:Live installers for nekozame os: https://github.com/${{ github.repository }}" \
-            --metadata="licenseurl:https://www.gnu.org/licenses/gpl-3.0.html" \
-            --retries 20 --no-derive
+          # the ISOs go up at the same time: while the first one is still making the archive's
+          # item, the others are told its name "is not available". once it's there, they go up
+          for try in 1 2 3 4 5; do
+            ia --config-file ../ia.ini upload "$IA_ITEM" "${{ matrix.image }}.iso" "${{ matrix.image }}.iso-CHECKSUM" \
+              --metadata="mediatype:software" --metadata="title:nekozame os installers" \
+              --metadata="description:Live installers for nekozame os: https://github.com/${{ github.repository }}" \
+              --metadata="licenseurl:https://www.gnu.org/licenses/gpl-3.0.html" \
+              --retries 20 --no-derive && ok=1 && break
+            echo "upload refused (try $try): again in $((try * 2)) minutes"
+            sleep $((try * 120))
+          done
           rm -f ../ia.ini
+          [ "${ok:-}" = 1 ]
 
       - name: Keep it as a job artifact
         if: github.event_name == 'pull_request' || steps.ia.outputs.skipped == '1'
