@@ -30,7 +30,10 @@ BLOCKS = "▁▂▃▄▅▆▇█"
 
 
 def tmux(*args):
-    return subprocess.run(["tmux", *args], capture_output=True, text=True)
+    # -N: never start a tmux server. one started from here has this service's environment
+    # (no WAYLAND_DISPLAY), and every terminal opened after joins it: apps started from
+    # them came up through XWayland, without the theme, cursor or scale
+    return subprocess.run(["tmux", "-N", *args], capture_output=True, text=True)
 
 
 def show(bars):
