@@ -6,7 +6,7 @@ if [[ ! -d /sys/firmware/efi ]]; then
     systemctl poweroff
 fi
 yad --on-top --title="nekozame os" --text-align=center --buttons-layout=center --image=org.fedoraproject.AnacondaInstaller \
-    --text="\n<span size='x-large'>Welcome to nekozame os 🦈</span>\n\nThis live desktop is for installing it. It's Bazzite's, without the drivers:\nnot what nekozame os looks or plays like once it's installed.\n" \
+    --text="\n<span size='x-large'>Welcome to nekozame os 🦈</span>\n\nThis is nekozame os, running from the USB stick: look around, then install it.\nNothing on this computer changes until you do.\n" \
     --button="Install nekozame os:10" --button="Look around first:0"
 [ $? -eq 10 ] && { liveinst & disown; }
 exit 0

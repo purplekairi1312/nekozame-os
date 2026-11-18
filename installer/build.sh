@@ -1,5 +1,5 @@
 #!/usr/bin/bash
-# the live installer, inside Bazzite's image: the nekozame os image to install, Anaconda,
+# the live installer, inside a nekozame os image: the nekozame os image to install, Anaconda,
 # a live boot. From Bazzite's installer/build.sh (Apache-2.0, see NOTICE.md).
 set -exo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -26,9 +26,39 @@ DRACUT_NO_XATTR=1 dracut -v --force --reproducible --no-hostonly \
     --add "dmsquash-live dmsquash-live-autooverlay" \
     "/usr/lib/modules/${kernel}/initramfs.img" "${kernel}"
 
-dnf install -y livesys-scripts
-sed -i "s/^livesys_session=.*/livesys_session=kde/" /etc/sysconfig/livesys
-systemctl enable livesys.service livesys-late.service
+# the live session: nekozame os itself, niri with dms. livesys (Bazzite's way) only knows
+# kde and gnome, so: a passwordless liveuser, logged straight into niri by greetd
+cat >/usr/libexec/nekozame-liveuser <<'SH'
+#!/usr/bin/bash
+# the live desktop's user: no password, an administrator
+id liveuser >/dev/null 2>&1 && exit 0
+useradd -m -c "nekozame os live" -G wheel liveuser
+passwd -d liveuser
+echo 'liveuser ALL=(ALL) NOPASSWD: ALL' >/etc/sudoers.d/liveuser
+SH
+chmod +x /usr/libexec/nekozame-liveuser
+cat >/etc/systemd/system/nekozame-liveuser.service <<'UNIT'
+[Unit]
+Description=nekozame os live: the live user
+Before=greetd.service systemd-user-sessions.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/nekozame-liveuser
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+systemctl enable nekozame-liveuser.service
+printf '\n[initial_session]\nuser = "liveuser"\ncommand = "niri-session"\n' >>/etc/greetd/config.toml
+# the installer and anything else it asks for, without a password prompt
+cat >/etc/polkit-1/rules.d/49-nekozame-live.rules <<'JS'
+polkit.addRule(function (action, subject) {
+    if (subject.user == "liveuser") return polkit.Result.YES;
+});
+JS
+# nekozame's own setup is for after installing, not the live desktop
+rm -f /etc/xdg/autostart/nekozame-setup.desktop
 
 "$SCRIPT_DIR/hook_postrootfs.sh"
 

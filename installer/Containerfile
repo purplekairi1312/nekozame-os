@@ -1,7 +1,7 @@
-# nekozame os's live installer: a live desktop (Bazzite's KDE image) that installs a
-# nekozame os image. Adapted from Bazzite's installer (Apache-2.0, see NOTICE.md here).
+# nekozame os's live installer: nekozame os itself, live (niri with dms), carrying the
+# nekozame os image it installs. Adapted from Bazzite's installer (Apache-2.0, see NOTICE.md).
 # run with --cap-add sys_admin --security-opt label=disable
-ARG BASE_IMAGE=ghcr.io/ublue-os/bazzite:stable
+ARG BASE_IMAGE=ghcr.io/purplekairi1312/nekozame-os:stable
 ARG INSTALL_IMAGE_PAYLOAD=ghcr.io/purplekairi1312/nekozame-os:stable
 
 FROM $BASE_IMAGE
