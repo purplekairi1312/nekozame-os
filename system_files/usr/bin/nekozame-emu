@@ -1128,8 +1128,12 @@ def make_boxes(systems=None, again=False):
 
 def new_boxes():
     """3d boxes for covers that came since the last look (from scraping in the frontend,
-    say): only the systems whose covers folder changed are gone through."""
+    say): only the systems whose covers folder changed are gone through. only with
+    "autoBoxes": true in emulation.json; the frontend's scraper brings screenscraper's own
+    3d boxes, which look better (nekozame-emu boxes makes them by hand)."""
     s = settings()
+    if not s.get("autoBoxes", False):
+        return
     # a share that isn't there yet (just after boot, away from home): left alone this
     # round. looking into each system's folder would ask for it to be mounted again and
     # again, until systemd gives up on it
@@ -1662,8 +1666,8 @@ def fetch_art(systems=None):
     os.makedirs(os.path.dirname(MISSES), exist_ok=True)
     json.dump(sorted(misses), open(MISSES, "w"))
     say(f"  art for {found} of {len(todo)} (nekozame-emu steam refresh puts it in steam)")
-    if got_systems:
-        make_boxes(sorted(got_systems))  # 3d boxes from the new covers
+    if got_systems and settings().get("autoBoxes", False):
+        make_boxes(sorted(got_systems))  # 3d boxes from the new covers, if you want them made
 
 
 # --- es-de ---------------------------------------------------------------------------

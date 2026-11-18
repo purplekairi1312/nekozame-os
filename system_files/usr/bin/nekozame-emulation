@@ -128,10 +128,9 @@ if ask "Pick some to install now? (later: ujust nekozame-ports; you're told when
     nekozame-ports
 fi
 
-step "Covers and 3D boxes"
-if ask "Fetch covers for games without, and make 3D boxes from them? (a while, for a big library)" false; then
+step "Covers"
+if ask "Fetch covers for games without? (a while, for a big library; 3D boxes: the frontend's scraper brings ScreenScraper's)" false; then
     nekozame-emu art
-    nekozame-emu boxes
 fi
 
 echo; pink "all set <3"
