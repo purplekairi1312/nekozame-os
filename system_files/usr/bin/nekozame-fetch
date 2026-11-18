@@ -3,18 +3,32 @@
 # can show images (kitty graphics: ghostty, kitty), a text one everywhere else
 # (the tty, most ssh clients). the image is tied to placeholder text (kitty-logo),
 # so inside tmux it stays with its tab and comes back when you switch back.
+# over ssh the terminal is asked whether it shows images (kitty-logo --probe); a client
+# can also say so with LC_TERMINAL=ghostty or kitty (ssh sends LC_* along).
 # your own logo: NEKOZAME_FETCH_LOGO (a png) and NEKOZAME_FETCH_WIDTH (columns)
+#   nekozame-fetch --logo   only the logo (the login banner shows it)
 D=/usr/share/nekozame-os/fastfetch
 PINK="38;2;255;192;229"
 args=(-c "$D/config.jsonc")
 if [ "${TERM:-}" = linux ]; then
     # the text console only has its 16 colours (nekozame's, set at boot)
-    args+=(--logo-type file-raw --logo "$D/logo-tty.txt" --logo-width 34 --logo-height 16 --color magenta)
+    logo=("$D/logo-tty.txt" 34 16) color=magenta
 elif term="${TERM:-}"; [ -n "${TMUX:-}" ] && term=$(tmux display -p '#{client_termname}' 2>/dev/null)
-     [[ "$term" == *ghostty* || "$term" == *kitty* || -n "${KITTY_WINDOW_ID:-}" ]] \
+     { [[ "$term" == *ghostty* || "$term" == *kitty* || -n "${KITTY_WINDOW_ID:-}" ]] ||
+       [[ "${LC_TERMINAL:-}" == ghostty || "${LC_TERMINAL:-}" == kitty ]] ||
+       { [ -t 0 ] && [ -t 1 ] && [ "$term" != dumb ] && kitty-logo --probe; }; } \
      && l=($(kitty-logo "${NEKOZAME_FETCH_LOGO:-$D/logo.png}" "${NEKOZAME_FETCH_WIDTH:-30}" 2>/dev/null)); then
-    args+=(--logo-type file-raw --logo "${l[0]}" --logo-width "${l[1]}" --logo-height "${l[2]}" --color "$PINK")
+    logo=("${l[@]}") color="$PINK"
 else
-    args+=(--logo-type file-raw --logo "$D/logo-color.txt" --logo-width 34 --logo-height 16 --color "$PINK")
+    logo=("$D/logo-color.txt" 34 16) color="$PINK"
 fi
-exec /usr/bin/fastfetch "${args[@]}" "$@"
+if [ "${1:-}" = --logo ]; then
+    # only the logo, a little in from the left like the banner under it
+    echo
+    [ "$color" = magenta ] && printf '\033[35m'
+    sed 's/^/  /' "${logo[0]}"
+    printf '\033[0m\n'
+    exit 0
+fi
+exec /usr/bin/fastfetch "${args[@]}" --logo-type file-raw --logo "${logo[0]}" \
+    --logo-width "${logo[1]}" --logo-height "${logo[2]}" --color "$color" "$@"
