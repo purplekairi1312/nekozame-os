@@ -1,0 +1,119 @@
+#!/bin/bash
+# nekozame-display: your screens in niri (scale, refresh rate, variable refresh) and the
+# size of dms's bar. asked by nekozame-setup; run it again any time (ujust nekozame-display).
+# the screens go in niri's dms/outputs.kdl, the file dms's own Displays settings use too (the
+# old one is kept as outputs.kdl.bak); niri picks it up straight away, no logging out
+set -euo pipefail
+[ -n "${NIRI_SOCKET:-}" ] || { echo "nekozame-display is for niri: run it in a niri session (in KDE: System Settings → Display)"; exit 1; }
+OUTPUTS="${XDG_CONFIG_HOME:-$HOME/.config}/niri/dms/outputs.kdl"
+
+pink() { gum style --foreground "#ffc0e5" --bold "$*"; }
+ok() { echo "  ✓ $*"; }
+
+# one line per screen: id|what it is|resolution|refresh rates, highest first|vrr supported|
+# vrr on|scale now|suggested scale
+screens=$(niri msg --json outputs | python3 -c '
+import json, math, sys
+for name, o in json.load(sys.stdin).items():
+    modes = o["modes"]
+    if not modes:
+        continue
+    best = next((m for m in modes if m["is_preferred"]), max(modes, key=lambda m: m["width"] * m["height"]))
+    w, h = best["width"], best["height"]
+    rates = sorted({m["refresh_rate"] for m in modes if (m["width"], m["height"]) == (w, h)}, reverse=True)
+    pw, ph = o["physical_size"] or (0, 0)
+    # the suggested scale: about 96 dpi looks right at 1, a little bigger reads better
+    # (a 34" 3440x1440 is 109 dpi: 1.25)
+    scale = 1.0
+    if pw:
+        dpi = w / (pw / 25.4)
+        scale = min(3.0, max(1.0, round(dpi / 96 * 1.1 * 4) / 4))
+    inches = f"{math.hypot(pw, ph) / 25.4:.0f}\" " if pw else ""
+    what = " ".join(x for x in (o["make"], o["model"]) if x and x != "Unknown")
+    # by make, model and serial when it has one: still the same screen on another port
+    ident = " ".join(x for x in (o["make"], o["model"], o["serial"]) if x) if o["serial"] else name
+    print("|".join(str(x) for x in (ident, f"{inches}{what or name} ({name})", f"{w}x{h}",
+        " ".join(f"{r / 1000:.3f}" for r in rates), o["vrr_supported"], o["vrr_enabled"],
+        (o["logical"] or {}).get("scale", 1), scale)))
+')
+[ -n "$screens" ] || { echo "niri sees no screens"; exit 1; }
+
+blocks=""
+while IFS='|' read -r ident what res rates vrr_ok vrr_on now suggested; do
+    echo; pink "▸ $what"
+    # scale: everything, apps and the bar, bigger
+    choices="" sel=""
+    for s in 1 1.25 1.5 1.75 2 2.5 3; do
+        c="$s ($(python3 -c "print(round($s * 100))")%)"
+        [ "$s" = "$(python3 -c "s=$suggested; print(int(s) if s == int(s) else s)")" ] && c="$c, suggested" && sel="$c"
+        choices="$choices$c
+"
+    done
+    scale=$(printf '%s' "$choices" | gum choose --header "Scale (everything bigger; now $now):" --selected="$sel")
+    scale="${scale%% *}"
+    # refresh rate: the highest unless you pick another
+    top="${rates%% *}"
+    rate=$(printf '%s Hz\n' $rates | gum choose --header "Refresh rate at $res:" --selected="$top Hz")
+    rate="${rate%% *}"
+    vrr=false
+    if [ "$vrr_ok" = True ]; then
+        [ "$vrr_on" = True ] && d=true || d=false
+        gum confirm --default=$d "Variable refresh rate? Smoother games, no tearing (a few screens flicker with it: then turn it off here)" && vrr=true
+    fi
+    blocks="$blocks
+output \"$ident\" {
+    mode \"$res@$rate\"
+    scale $scale$( [ "$vrr" = true ] && printf '\n    variable-refresh-rate' )
+}"
+    ok "scale $scale, $rate Hz$( [ "$vrr" = true ] && echo ", variable refresh")"
+done <<< "$screens"
+
+# into outputs.kdl: these screens' old blocks out, the new ones in; other screens (not
+# connected now) and comments stay
+mkdir -p "$(dirname "$OUTPUTS")"
+[ -f "$OUTPUTS" ] && cp "$OUTPUTS" "$OUTPUTS.bak"
+python3 - "$OUTPUTS" "$blocks" <<'EOF'
+import re, sys
+path, new = sys.argv[1], sys.argv[2]
+names = set(re.findall(r'^output "([^"]+)"', new, re.M))
+try:
+    lines = open(path).read().split("\n")
+except OSError:
+    lines = []
+out, depth, skipping = [], 0, False
+for line in lines:
+    m = re.match(r'^output "([^"]+)"', line)
+    if depth == 0 and m and m.group(1) in names:
+        skipping = True
+    if skipping:
+        depth += line.count("{") - line.count("}")
+        if depth <= 0:
+            skipping, depth = False, 0
+        continue
+    if line == "// nekozame-display":
+        continue
+    out.append(line)
+text = "\n".join(out).rstrip("\n")
+open(path, "w").write((text + "\n" if text else "") + "\n// nekozame-display" + new + "\n")
+EOF
+niri validate >/dev/null 2>&1 || {
+    echo "  niri didn't take it: the old file is back"; [ -f "$OUTPUTS.bak" ] && cp "$OUTPUTS.bak" "$OUTPUTS"; exit 1; }
+
+# the bar: on top of the scale, dms's own spacing and its text size
+echo; pink "▸ The bar"
+if dms ipc call settings get density >/dev/null 2>&1; then
+    cur=$(dms ipc call settings get density | tr -d '"')
+    SP="Spacious" CO="Comfortable (dms's own)" CM="Compact" DE="Dense"
+    case "$cur" in spacious) sel=$SP ;; compact) sel=$CM ;; dense) sel=$DE ;; *) sel=$CO ;; esac
+    case "$(gum choose --header "Spacing in the bar and its popups:" --selected="$sel" "$SP" "$CO" "$CM" "$DE")" in
+        "$SP") d=spacious ;; "$CM") d=compact ;; "$DE") d=dense ;; *) d=comfortable ;; esac
+    dms ipc call settings set density "$d" >/dev/null
+    cur=$(dms ipc call settings get fontScale)
+    sel=$(python3 -c "print(f'{round(float($cur) * 100)}%')")
+    case " 90% 100% 110% 125% 150% " in *" $sel "*) ;; *) sel="100%" ;; esac
+    f=$(printf '%s\n' 90% 100% 110% 125% 150% | gum choose --header "Text in the bar and its popups:" --selected="$sel")
+    dms ipc call settings set fontScale "$(python3 -c "print(${f%\%} / 100)")" >/dev/null
+    ok "$d, text at $f"
+else
+    echo "  dms isn't running: the bar's size is in its settings, under Bar"
+fi

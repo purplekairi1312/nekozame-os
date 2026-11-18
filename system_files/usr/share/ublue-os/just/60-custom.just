@@ -30,6 +30,11 @@ nekozame-decky:
 nekozame-music-production:
     /usr/bin/nekozame-music-production
 
+# Your screens in niri: scale, refresh rate, variable refresh, and the bar's size
+[group('nekozame')]
+nekozame-display:
+    /usr/bin/nekozame-display
+
 # Your editor: doom (default), neovim, helix, micro, nano or any command
 [group('nekozame')]
 nekozame-editor EDITOR="":

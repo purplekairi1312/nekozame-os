@@ -3,7 +3,7 @@
 # login; run it again any time with ujust nekozame-setup. what's done stays done.
 #   on for everyone: zen with the privacy extensions, tailscale, sunshine,
 #   doom emacs, the theme and wallpaper, and the theme in zen, discord and bitwig
-#   asked: logging in automatically, emulation, evil mode or another editor, music
+#   asked: your screens (niri), logging in automatically, emulation, evil mode or another editor, music
 #   production, helium
 set -uo pipefail
 STATE="${XDG_STATE_HOME:-$HOME/.local/state}/nekozame"
@@ -35,6 +35,15 @@ step "Shortcuts"
 if [ -f /etc/greetd/config.toml ]; then
     nekozame-keys
     echo "  Super works like Cmd (Super+C/V/X), Ctrl+Alt moves windows. Super+Shift+/ shows them all"
+fi
+
+if [ -n "${NIRI_SOCKET:-}" ]; then
+    step "Your screens: scale, refresh rate, the bar's size"
+    if [ -e "$STATE/display-done" ]; then
+        ok "set (change it: ujust nekozame-display)"
+    else
+        nekozame-display && touch "$STATE/display-done"
+    fi
 fi
 
 step "Zen browser"
