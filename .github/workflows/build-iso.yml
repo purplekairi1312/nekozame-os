@@ -69,18 +69,18 @@ jobs:
             --build-arg INSTALL_IMAGE_PAYLOAD="$image" \
             -t localhost/payload:latest installer/
 
-      - name: Where it goes
-        run: mkdir -p upload  # titanoboa moves the ISO here, into a folder that must be there
-
       - name: Build the ISO
         id: build
         uses: ublue-os/titanoboa@5c457c3d0518bd17e754be0fd98a60d29d26abb4
         with:
           image-ref: localhost/payload:latest
-          iso-dest: ${{ github.workspace }}/upload/${{ matrix.image }}.iso
+          iso-dest: ${{ matrix.image }}.iso
 
       - name: Its checksum
         run: |
+          # titanoboa says where it put the ISO
+          mkdir -p upload
+          mv "${{ steps.build.outputs.iso-dest }}" "upload/${{ matrix.image }}.iso"
           cd upload
           sha256sum "${{ matrix.image }}.iso" > "${{ matrix.image }}.iso-CHECKSUM"
           ls -la
