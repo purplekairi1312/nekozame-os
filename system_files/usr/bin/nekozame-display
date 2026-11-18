@@ -114,7 +114,7 @@ niri validate >/dev/null 2>&1 || {
 # cursor theme comes in, so it stays sharp. in dms's cursor file (its settings use it too)
 echo; pink "▸ The mouse pointer"
 theme=$(sed -n 's/^ *xcursor-theme "\(.*\)"/\1/p' "$CURSOR" 2>/dev/null)
-theme="${theme:-${XCURSOR_THEME:-nekozame-cursors}}"
+theme="${theme:-nekozame-cursors}"
 now=$(sed -n 's/^ *xcursor-size \([0-9]*\)/\1/p' "$CURSOR" 2>/dev/null)
 now="${now:-24}"
 case "$now" in 24|32) sel="32 (suggested)" ;; *) sel="$now" ;; esac
@@ -124,7 +124,23 @@ size="${size%% *}"
 printf '// nekozame-display\ncursor {\n    xcursor-theme "%s"\n    xcursor-size %s\n}\n' "$theme" "$size" > "$CURSOR"
 if niri validate >/dev/null 2>&1; then
     gsettings set org.gnome.desktop.interface cursor-size "$size" 2>/dev/null || true
-    ok "$theme at $size (apps already open pick it up when restarted)"
+    gsettings set org.gnome.desktop.interface cursor-theme "$theme" 2>/dev/null || true
+    # apps through XWayland (virt-manager...) draw their own pointer: gtk 3 ones from
+    # settings.ini, the rest from XCURSOR_THEME and XCURSOR_SIZE (from the next login; and
+    # for what starts from now on)
+    ini="${XDG_CONFIG_HOME:-$HOME/.config}/gtk-3.0/settings.ini"
+    [ -f "$ini" ] || printf '[Settings]\n' > "$ini"
+    for kv in "gtk-cursor-theme-name=$theme" "gtk-cursor-theme-size=$size"; do
+        k="${kv%%=*}"
+        if grep -q "^$k=" "$ini"; then sed -i "s|^$k=.*|$kv|" "$ini"
+        else sed -i "0,/^\[Settings\]$/s||[Settings]\n$kv|" "$ini"; fi
+    done
+    envd="${XDG_CONFIG_HOME:-$HOME/.config}/environment.d"
+    mkdir -p "$envd"
+    printf '# the mouse pointer, for apps that draw their own (nekozame-display)\nXCURSOR_THEME=%s\nXCURSOR_SIZE=%s\n' "$theme" "$size" > "$envd/60-nekozame-cursor.conf"
+    systemctl --user set-environment XCURSOR_THEME="$theme" XCURSOR_SIZE="$size" 2>/dev/null || true
+    dbus-update-activation-environment --systemd XCURSOR_THEME XCURSOR_SIZE 2>/dev/null || true
+    ok "$theme at $size, in every app (the ones already open: once restarted)"
 else
     echo "  niri didn't take it: the old one is back"
     if [ -f "$CURSOR.bak" ]; then cp "$CURSOR.bak" "$CURSOR"; else rm -f "$CURSOR"; fi
