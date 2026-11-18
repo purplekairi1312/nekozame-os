@@ -36,7 +36,8 @@ jobs:
             url="https://downloads.sourceforge.net/project/$SF_PROJECT/$iso"
             echo "== $iso"
             curl -fsSL --retry 5 -o "out/$iso-CHECKSUM" "$url-CHECKSUM" || { echo "not on SourceForge yet: skipped"; continue; }
-            curl -fsSL --retry 5 -o "$iso" "$url"
+            # still uploading (or on its way to the mirrors): next time
+            curl -fsSL --retry 5 -o "$iso" "$url" || { echo "not downloadable yet: skipped"; rm -f "$iso" "out/$iso-CHECKSUM"; continue; }
             sha256sum -c "out/$iso-CHECKSUM"   # what was built, whole
             # 16 MiB pieces (right for 10 GB); open trackers, and SourceForge as a web seed
             mktorrent -l 24 -n "$iso" -o "out/$iso.torrent" \
