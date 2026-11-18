@@ -3,7 +3,8 @@ name: Torrents
 
 # a torrent for each installer ISO on the internet archive, in the "installers" release on
 # GitHub (the ISOs are too big for GitHub itself: 2 GB a file at most). each torrent has the
-# archive's download as a web seed, so it works even when nobody else is sharing it.
+# archive's and SourceForge's downloads as web seeds, so it works even when nobody else is
+# sharing it.
 # runs after the ISOs are built, or by hand
 on:
   workflow_run:
@@ -30,7 +31,17 @@ jobs:
       - name: mktorrent
         run: sudo apt-get update -q && sudo apt-get install -yq mktorrent
 
-      - name: A torrent for each ISO
+      - name: SourceForge's upload key
+        env:
+          SF_SSH_KEY: ${{ secrets.SF_SSH_KEY }}
+        run: |
+          [ -n "$SF_SSH_KEY" ] || { echo "no SourceForge key: the ISOs stay on the archive only"; exit 0; }
+          mkdir -p ~/.ssh && printf '%s\n' "$SF_SSH_KEY" > ~/.ssh/sf && chmod 600 ~/.ssh/sf
+          ssh-keyscan -t ed25519,rsa frs.sourceforge.net >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: A torrent for each ISO (and each ISO on SourceForge)
+        env:
+          SF_USER: ${{ secrets.SF_USER }}
         run: |
           mkdir -p out
           isos=$(curl -fsSL "https://archive.org/metadata/$IA_ITEM" | jq -r '.files[].name | select(endswith(".iso"))')
@@ -45,11 +56,20 @@ jobs:
               -a udp://tracker.opentrackr.org:1337/announce \
               -a udp://open.demonii.com:1337/announce \
               -a udp://tracker.torrent.eu.org:451/announce \
-              -w "$url" \
+              -w "$url" -w "https://downloads.sourceforge.net/project/nekozame-os/$iso" \
               -c "nekozame os installer: https://github.com/${{ github.repository }}" \
               "$iso"
+            # the same ISO on SourceForge, a second place to download it from (mirrors worldwide)
+            if [ -f ~/.ssh/sf ] && [ -n "$SF_USER" ]; then
+              for try in 1 2 3; do
+                rsync -e "ssh -i $HOME/.ssh/sf" --partial "$iso" "out/$iso-CHECKSUM" \
+                  "$SF_USER@frs.sourceforge.net:/home/frs/project/nekozame-os/" && break
+                sleep 120
+              done
+            fi
             rm -f "$iso"
           done
+          rm -f ~/.ssh/sf
           ls -la out
 
       - name: Into the installers release
