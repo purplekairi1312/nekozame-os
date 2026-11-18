@@ -34,6 +34,23 @@ for g in gtk-3.0 gtk-4.0; do
     fi
     put "$S/gtk/$g.css" "$C/$g/gtk.css"
 done
+# gtk 3 apps through XWayland (virt-manager...) don't get the theme from the desktop: they
+# read settings.ini. the theme name goes in when there's none (kde leaves it empty), the
+# rest of the file stays
+ini="$C/gtk-3.0/settings.ini"
+if [ -d /usr/share/themes/adw-gtk3-dark ] && ! grep -q '^gtk-theme-name=.' "$ini" 2>/dev/null; then
+    mkdir -p "$(dirname "$ini")"
+    if [ ! -f "$ini" ]; then
+        printf '[Settings]\ngtk-theme-name=adw-gtk3-dark\ngtk-application-prefer-dark-theme=true\n' > "$ini"
+    elif grep -q '^gtk-theme-name=' "$ini"; then
+        sed -i 's/^gtk-theme-name=$/gtk-theme-name=adw-gtk3-dark/' "$ini"
+    elif grep -q '^\[Settings\]' "$ini"; then
+        sed -i 's/^\[Settings\]$/[Settings]\ngtk-theme-name=adw-gtk3-dark/' "$ini"
+    else
+        printf '[Settings]\ngtk-theme-name=adw-gtk3-dark\n' >> "$ini"
+    fi
+    ok "${ini/#$HOME/~}: adw-gtk3-dark"
+fi
 
 # qt: kvantum with the nekozame theme. kde uses it as its widget style; elsewhere
 # (niri) qt apps get it through qt6ct and qt5ct
