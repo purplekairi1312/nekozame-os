@@ -11,7 +11,7 @@ LIB=/usr/local/lib/nekozame-iso
 rm -rf "$LIB" && mkdir -p "$LIB"
 cp -r "$HERE/iso" "$HERE/installer" "$LIB/"
 chown -R root:root "$LIB" && chmod -R go-w "$LIB"
-mkdir -p "$OUT" && chown "$USER_" "$OUT"
+mkdir -p "$OUT" && chown "$USER_" "$OUT" 2>/dev/null || true   # (not on NTFS or exFAT: no owners there)
 HOME_="$(getent passwd "$USER_" | cut -d: -f6)"
 cat > /etc/systemd/system/nekozame-iso.service <<UNIT
 [Unit]
@@ -22,7 +22,7 @@ Wants=network-online.target
 [Service]
 Type=oneshot
 ExecStart=$LIB/iso/build $OUT
-ExecStartPost=/bin/chown -R $USER_ $OUT
+ExecStartPost=-/bin/chown -R $USER_ $OUT
 ExecStartPost=/usr/sbin/runuser -u $USER_ -- /bin/sh -c 'set -a; . $HOME_/.config/nekozame-iso.env; exec $LIB/iso/publish $OUT'
 UNIT
 cat > /etc/systemd/system/nekozame-iso.timer <<UNIT
