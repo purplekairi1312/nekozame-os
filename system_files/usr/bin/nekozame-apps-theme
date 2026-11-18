@@ -97,7 +97,8 @@ EOF
 
 zen() {
     local found="" prof pref
-    for prof in "$HOME/.var/app/app.zen_browser.zen/.zen"/*/; do
+    # zen's profiles: config/zen since late 2026, .zen before
+    for prof in "$HOME/.var/app/app.zen_browser.zen/config/zen"/*/ "$HOME/.var/app/app.zen_browser.zen/.zen"/*/; do
         [ -f "$prof/prefs.js" ] || continue
         found=1
         put "$T/zen/userChrome.css" "$prof/chrome/userChrome.css" "nekozame for zen"
