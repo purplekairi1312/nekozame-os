@@ -1,0 +1,111 @@
+---
+name: Build ISOs
+
+# the live installers, from the :stable images, uploaded to the internet archive (free,
+# with a torrent for each file): https://archive.org/download/nekozame-os-iso
+# built like Bazzite's: titanoboa makes a live system from installer/ (Bazzite's KDE image,
+# with Anaconda), carrying the nekozame os image it installs.
+# without the IA_ACCESS_KEY and IA_SECRET_KEY secrets they stay as job artifacts.
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'installer/**'
+      - '.github/workflows/build-iso.yml'
+
+env:
+  IMAGE_REGISTRY: "ghcr.io/${{ github.repository_owner }}"
+  # the live desktop: Bazzite's, as their own ISOs use (no NVIDIA driver: it's for installing)
+  LIVE_IMAGE: "ghcr.io/ublue-os/bazzite:stable"
+  IA_ITEM: "nekozame-os-iso"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: ISO (${{ matrix.image }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [nekozame-os, nekozame-os-nvidia, nekozame-os-deck]
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Free disk space
+        uses: jlumbroso/free-disk-space@ceedf095f4ec1a097402bc6bd80831f2e1a6fde6 # v2.0.0
+        with:
+          tool-cache: true
+
+      # (from Bazzite's workflow) the images are big: container storage on a compressed loop disk
+      - name: Container storage on a bigger disk
+        run: |
+          sudo truncate -s 110G /mnt/podman-storage.img
+          sudo mkfs.btrfs -f -m single -d single /mnt/podman-storage.img
+          sudo podman system reset --force
+          sudo systemctl stop podman.service
+          LOOP=$(sudo losetup --find --show --direct-io=on /mnt/podman-storage.img)
+          sudo mkdir -p /mnt/podman-storage
+          sudo mount -o compress-force=zstd:2,discard=async,noatime "$LOOP" /mnt/podman-storage
+          sudo mkdir -p /mnt/podman-storage/storage /mnt/podman-storage/tmp
+          sudo mount --bind /mnt/podman-storage/storage /var/lib/containers/storage
+          sudo systemctl start podman.service
+
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: The live system, carrying the image
+        run: |
+          image="${IMAGE_REGISTRY,,}/${{ matrix.image }}:stable"
+          sudo env TMPDIR=/mnt/podman-storage/tmp podman build \
+            --cap-add sys_admin --security-opt label=disable \
+            --build-arg BASE_IMAGE="$LIVE_IMAGE" \
+            --build-arg INSTALL_IMAGE_PAYLOAD="$image" \
+            -t localhost/payload:latest installer/
+
+      - name: Build the ISO
+        id: build
+        uses: ublue-os/titanoboa@5c457c3d0518bd17e754be0fd98a60d29d26abb4
+        with:
+          image-ref: localhost/payload:latest
+          iso-dest: ${{ github.workspace }}/upload/${{ matrix.image }}.iso
+
+      - name: Its checksum
+        run: |
+          cd upload
+          sha256sum "${{ matrix.image }}.iso" > "${{ matrix.image }}.iso-CHECKSUM"
+          ls -la
+
+      - name: Upload to the internet archive
+        id: ia
+        if: github.event_name != 'pull_request'
+        env:
+          IA_ACCESS_KEY_ID: ${{ secrets.IA_ACCESS_KEY }}
+          IA_SECRET_ACCESS_KEY: ${{ secrets.IA_SECRET_KEY }}
+        run: |
+          [ -n "$IA_ACCESS_KEY_ID" ] || { echo "no internet archive keys: keeping it as a job artifact"; echo "skipped=1" >> "$GITHUB_OUTPUT"; exit 0; }
+          pip install --quiet internetarchive
+          printf '[s3]\naccess = %s\nsecret = %s\n' "$IA_ACCESS_KEY_ID" "$IA_SECRET_ACCESS_KEY" > ia.ini
+          cd upload
+          ia --config-file ../ia.ini upload "$IA_ITEM" "${{ matrix.image }}.iso" "${{ matrix.image }}.iso-CHECKSUM" \
+            --metadata="mediatype:software" --metadata="title:nekozame os installers" \
+            --metadata="description:Live installers for nekozame os: https://github.com/${{ github.repository }}" \
+            --metadata="licenseurl:https://www.gnu.org/licenses/gpl-3.0.html" \
+            --retries 20 --no-derive
+          rm -f ../ia.ini
+
+      - name: Keep it as a job artifact
+        if: github.event_name == 'pull_request' || steps.ia.outputs.skipped == '1'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ matrix.image }}-iso
+          path: upload/${{ matrix.image }}.iso*
+          if-no-files-found: error
+          retention-days: 3
+          compression-level: 0

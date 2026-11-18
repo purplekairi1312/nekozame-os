@@ -1,0 +1,10 @@
+label: "nekozame-Live"
+grub2:
+  timeout: 5
+  entries:
+    - name: "Install nekozame os"
+      linux: "/images/pxeboot/vmlinuz quiet rhgb root=live:CDLABEL=nekozame-Live enforcing=0 rd.live.image"
+      initrd: "/images/pxeboot/initrd.img"
+    - name: "Install nekozame os (basic graphics)"
+      linux: "/images/pxeboot/vmlinuz quiet rhgb root=live:CDLABEL=nekozame-Live enforcing=0 rd.live.image nomodeset"
+      initrd: "/images/pxeboot/initrd.img"

@@ -1,0 +1,5 @@
+[Desktop Entry]
+Name=nekozame os installer
+Exec=/usr/bin/nekozame-live
+Icon=org.fedoraproject.AnacondaInstaller
+Type=Application
