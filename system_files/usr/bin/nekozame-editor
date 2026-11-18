@@ -4,6 +4,7 @@
 # user and offers to remove doom (your ~/.config/doom stays). neovim, helix and
 # micro come from homebrew. no argument: asks.
 set -euo pipefail
+[ -r /usr/share/nekozame-os/colors.sh ] && . /usr/share/nekozame-os/colors.sh  # gum in nekozame's colours
 CONF="$HOME/.config/nekozame/editor"
 pick="${1:-}"
 if [ -z "$pick" ]; then

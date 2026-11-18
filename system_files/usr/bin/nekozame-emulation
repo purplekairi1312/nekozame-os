@@ -5,6 +5,7 @@
 # covers and 3d boxes. run it again any time: what's done stays done.
 # the whole story: https://github.com/purplekairi1312/nekozame-os/blob/main/docs/emulation.md
 set -uo pipefail
+[ -r /usr/share/nekozame-os/colors.sh ] && . /usr/share/nekozame-os/colors.sh  # gum in nekozame's colours
 CONF="$HOME/.config/nekozame/emulation.json"
 # next to this one: /usr/libexec on nekozame os, or this repo's system_files/usr/libexec
 LIBEXEC="$(cd "$(dirname "$(readlink -f "$0")")/../libexec" && pwd)"

@@ -195,6 +195,9 @@ sed -i -e 's/^PRETTY_NAME=.*/PRETTY_NAME="nekozame os"/' \
 # Terminal welcome: same layout and ujust table, nekozame os title.
 # Terminal welcome: nekozame's own (system_files/usr/share/nekozame-os/motd.md)
 cp /usr/share/nekozame-os/motd.md /usr/share/ublue-os/motd/template.md
+# and its style: bazzite's, in nekozame's colours (MOTD_FORCE_THEME, colors.sh)
+jq '.heading.color="#ffc0e5" | .strong.color="#ffc0e5" | .hr.color="#8a76a8" | .code.color="#ffc0e5" | .link.color="#b8e4ff"' \
+    /usr/share/ublue-os/motd/themes/purple.json > /usr/share/ublue-os/motd/themes/nekozame.json
 
 ### Animated wallpaper: mpvpaper, compiled in its own stage (see Containerfile);
 ### nekozame-wallpaper in system_files runs it. It only needs libmpv here.

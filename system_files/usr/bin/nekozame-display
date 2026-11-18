@@ -4,6 +4,7 @@
 # the screens go in niri's dms/outputs.kdl, the file dms's own Displays settings use too (the
 # old one is kept as outputs.kdl.bak); niri picks it up straight away, no logging out
 set -euo pipefail
+[ -r /usr/share/nekozame-os/colors.sh ] && . /usr/share/nekozame-os/colors.sh  # gum in nekozame's colours
 # in tmux or over ssh, niri's variables aren't passed on: found from its socket
 export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
 if [ -z "${NIRI_SOCKET:-}" ]; then

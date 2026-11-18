@@ -56,6 +56,7 @@ check "greenboot login screen check" 'test -x /etc/greenboot/check/required.d/50
 check "kitty-logo (the fetch logo as text)" 'kitty-logo /usr/share/nekozame-os/fastfetch/logo.png 30 | grep -q " 30 "'
 check "nekozame-fetch with its logos" 'test -x /usr/bin/nekozame-fetch && test -s /usr/share/nekozame-os/fastfetch/logo-tty.txt && test -s /usr/share/nekozame-os/fastfetch/logo.png'
 check "nekozame terminal welcome" 'grep -q "nekozame" /usr/share/ublue-os/motd/template.md'
+check "nekozame colours for the welcome and gum" 'jq -e ".heading.color == \"#ffc0e5\"" /usr/share/ublue-os/motd/themes/nekozame.json && test -r /usr/share/nekozame-os/colors.sh'
 check "bazaar" 'rpm -q bazaar'
 if [ "$V" = deck ]; then
     check "kde for desktop mode" 'rpm -q plasma-workspace'

@@ -18,6 +18,7 @@
 # packages get layered onto the system (rpm-ostree): they need a reboot, and
 # updates take a bit longer the more you pick.
 set -euo pipefail
+[ -r /usr/share/nekozame-os/colors.sh ] && . /usr/share/nekozame-os/colors.sh  # gum in nekozame's colours
 D=/usr/share/nekozame-os/audinux
 CAT="$D/catalog.tsv"
 OPT="$HOME/.local/opt"

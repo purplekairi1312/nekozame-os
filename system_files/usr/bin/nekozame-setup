@@ -6,6 +6,7 @@
 #   asked: your screens (niri), logging in automatically, emulation, evil mode or another editor, music
 #   production, helium
 set -uo pipefail
+[ -r /usr/share/nekozame-os/colors.sh ] && . /usr/share/nekozame-os/colors.sh  # gum in nekozame's colours
 STATE="${XDG_STATE_HOME:-$HOME/.local/state}/nekozame"
 DONE="$STATE/setup-done"
 
