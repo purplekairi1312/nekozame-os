@@ -1,13 +1,25 @@
 #!/bin/bash
-# first niri login, before niri starts: dankmaterialshell's niri config instead of
-# niri's stock one (waybar, alacritty), plus the one-time nekozame dms defaults
+# before niri starts. first niri login: dankmaterialshell's niri config instead of niri's
+# stock one (waybar, alacritty). then, once (also for a config from before nekozame did
+# this): nekozame's shortcuts instead of dms's, and the one-time nekozame dms defaults
 set -euo pipefail
-dms setup headless --compositor niri --no-systemd
-# nekozame's shortcuts instead of dms's (Super for apps, Ctrl+Alt for windows)
-sed -i 's|^include optional=true "dms/binds.kdl"|include "/usr/share/nekozame-os/niri/binds.kdl"  // nekozame shortcuts (was dms/binds.kdl)|' \
-    "${XDG_CONFIG_HOME:-$HOME/.config}/niri/config.kdl"
-cat >> "${XDG_CONFIG_HOME:-$HOME/.config}/niri/config.kdl" <<'KDL'
+CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/niri/config.kdl"
+DONE="${XDG_STATE_HOME:-$HOME/.local/state}/nekozame/niri-config"
+[ -f "$CONFIG" ] || dms setup headless --compositor niri --no-systemd
+[ -e "$DONE" ] && exit 0
+mkdir -p "$(dirname "$DONE")"
+cp "$CONFIG" "$CONFIG.before-nekozame"
+# nekozame's shortcuts (Super for apps, Ctrl+Alt for windows)
+sed -i 's|^include optional=true "dms/binds.kdl"|include optional=true "/usr/share/nekozame-os/niri/binds.kdl"  // nekozame shortcuts (was dms/binds.kdl)|' "$CONFIG"
+# dms already themed (an older setup): its theme and wallpaper stay as they are
+if grep -q '"currentThemeName"' "${XDG_CONFIG_HOME:-$HOME/.config}/dms/settings.json" 2>/dev/null; then
+    touch "$(dirname "$DONE")/dms-defaults"
+fi
+if ! grep -q nekozame-dms-defaults "$CONFIG"; then
+    cat >> "$CONFIG" <<'KDL'
 
 // nekozame os: theme + wallpaper in dms, once (nekozame-dms-defaults)
 spawn-at-startup "nekozame-dms-defaults"
 KDL
+fi
+mkdir -p "$(dirname "$DONE")" && touch "$DONE"

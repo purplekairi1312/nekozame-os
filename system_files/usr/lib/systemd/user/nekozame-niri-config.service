@@ -1,9 +1,9 @@
-# on a first niri login, give niri the dankmaterialshell config before niri starts,
-# so it never writes its stock one (waybar, alacritty)
+# before niri starts: on a first niri login, the dankmaterialshell config, so niri never
+# writes its stock one (waybar, alacritty); and nekozame's shortcuts in it, once
 [Unit]
 Description=nekozame os: DankMaterialShell config for niri
 Before=niri.service
-ConditionPathExists=!%h/.config/niri/config.kdl
+ConditionPathExists=!%h/.local/state/nekozame/niri-config
 
 [Service]
 Type=oneshot
