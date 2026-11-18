@@ -1,0 +1,39 @@
+#!/bin/bash
+# iso/build OUT [IMAGE...]: nekozame os's live installer ISOs, built here (as root: making a
+# disk image needs it), into OUT, each with its checksum (IMAGE.iso-CHECKSUM). The same way
+# GitHub would build them: installer/ makes a live system (Bazzite's KDE image, with Anaconda)
+# carrying the image it installs, and titanoboa (Universal Blue's) makes the ISO from it.
+#   iso/build /mnt/Megalodon/nekozame-iso                    all three
+#   iso/build /mnt/Megalodon/nekozame-iso nekozame-os-deck   just that one
+set -euo pipefail
+[ "$(id -u)" = 0 ] || { echo "iso/build needs root (sudo)" >&2; exit 1; }
+OUT="${1:?where the ISOs go}"; shift
+[ $# -gt 0 ] && IMAGES=("$@") || IMAGES=(nekozame-os nekozame-os-nvidia nekozame-os-deck)
+REGISTRY="${REGISTRY:-ghcr.io/purplekairi1312}"
+LIVE="${LIVE:-ghcr.io/ublue-os/bazzite:stable}"
+TITANOBOA="5c457c3d0518bd17e754be0fd98a60d29d26abb4"   # the same titanoboa GitHub's builds used
+HERE="$(cd "$(dirname "$0")/.." && pwd)"
+mkdir -p "$OUT"
+# the big temporary files next to the ISOs, not on the system disk
+WORK="$(mktemp -d "$OUT/.build.XXXX")"
+trap 'rm -rf "$WORK"' EXIT
+export TMPDIR="$WORK"
+
+curl -fsSL "https://github.com/ublue-os/titanoboa/archive/$TITANOBOA.tar.gz" | tar -xz -C "$WORK"
+BOA="$WORK/titanoboa-$TITANOBOA"
+
+for image in "${IMAGES[@]}"; do
+    echo "== $image"
+    payload="$REGISTRY/$image:stable"
+    podman build --cap-add sys_admin --security-opt label=disable \
+        --build-arg BASE_IMAGE="$LIVE" --build-arg INSTALL_IMAGE_PAYLOAD="$payload" \
+        -t localhost/nekozame-iso-payload:latest "$HERE/installer"
+    rm -rf "$WORK/output"
+    iso=$(cd "$BOA" && TITANOBOA_OUTPUT_DIR="$WORK/output" ./main.sh localhost/nekozame-iso-payload:latest)
+    mv "$iso" "$OUT/$image.iso.part"
+    mv "$OUT/$image.iso.part" "$OUT/$image.iso"
+    (cd "$OUT" && sha256sum "$image.iso" > "$image.iso-CHECKSUM")
+    podman rmi -f localhost/nekozame-iso-payload:latest >/dev/null 2>&1 || true
+    echo "   $OUT/$image.iso"
+done
+podman image prune -af >/dev/null 2>&1 || true   # the live system's image too: ~10 GB

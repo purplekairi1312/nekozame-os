@@ -1,19 +1,17 @@
 ---
 name: Torrents
 
-# a torrent for each installer ISO on the internet archive, in the "installers" release on
-# GitHub (the ISOs are too big for GitHub itself: 2 GB a file at most). each torrent has the
-# archive's and SourceForge's downloads as web seeds, so it works even when nobody else is
-# sharing it.
-# runs after the ISOs are built, or by hand
+# a torrent for each installer ISO on SourceForge, in the "installers" release on GitHub
+# (the ISOs are too big for GitHub itself: 2 GB a file at most). each one has SourceForge's
+# download as its web seed, so it works even when nobody else is sharing it. the ISOs are
+# built on the 1st and the 15th (iso/build), so this runs the day after; or by hand
 on:
-  workflow_run:
-    workflows: [Build ISOs]
-    types: [completed]
+  schedule:
+    - cron: '0 12 2,16 * *'
   workflow_dispatch:
 
 env:
-  IA_ITEM: "nekozame-os-iso"
+  SF_PROJECT: "nekozame-os"
   GH_REPO: ${{ github.repository }}
 
 permissions:
@@ -31,51 +29,32 @@ jobs:
       - name: mktorrent
         run: sudo apt-get update -q && sudo apt-get install -yq mktorrent
 
-      - name: SourceForge's upload key
-        env:
-          SF_SSH_KEY: ${{ secrets.SF_SSH_KEY }}
-        run: |
-          [ -n "$SF_SSH_KEY" ] || { echo "no SourceForge key: the ISOs stay on the archive only"; exit 0; }
-          mkdir -p ~/.ssh && printf '%s\n' "$SF_SSH_KEY" > ~/.ssh/sf && chmod 600 ~/.ssh/sf
-          ssh-keyscan -t ed25519,rsa frs.sourceforge.net >> ~/.ssh/known_hosts 2>/dev/null
-
-      - name: A torrent for each ISO (and each ISO on SourceForge)
-        env:
-          SF_USER: ${{ secrets.SF_USER }}
+      - name: A torrent for each ISO
         run: |
           mkdir -p out
-          isos=$(curl -fsSL "https://archive.org/metadata/$IA_ITEM" | jq -r '.files[].name | select(endswith(".iso"))')
-          for iso in $isos; do
-            url="https://archive.org/download/$IA_ITEM/$iso"
+          for iso in nekozame-os.iso nekozame-os-nvidia.iso nekozame-os-deck.iso; do
+            url="https://downloads.sourceforge.net/project/$SF_PROJECT/$iso"
             echo "== $iso"
+            curl -fsSL --retry 5 -o "out/$iso-CHECKSUM" "$url-CHECKSUM" || { echo "not on SourceForge yet: skipped"; continue; }
             curl -fsSL --retry 5 -o "$iso" "$url"
-            curl -fsSL --retry 5 -o "out/$iso-CHECKSUM" "$url-CHECKSUM"
-            sha256sum -c "out/$iso-CHECKSUM"   # the download is the ISO that was built
-            # 16 MiB pieces (right for 10 GB); open trackers, and the archive as a web seed
+            sha256sum -c "out/$iso-CHECKSUM"   # what was built, whole
+            # 16 MiB pieces (right for 10 GB); open trackers, and SourceForge as a web seed
             mktorrent -l 24 -n "$iso" -o "out/$iso.torrent" \
               -a udp://tracker.opentrackr.org:1337/announce \
               -a udp://open.demonii.com:1337/announce \
               -a udp://tracker.torrent.eu.org:451/announce \
-              -w "$url" -w "https://downloads.sourceforge.net/project/nekozame-os/$iso" \
+              -w "$url" \
               -c "nekozame os installer: https://github.com/${{ github.repository }}" \
               "$iso"
-            # the same ISO on SourceForge, a second place to download it from (mirrors worldwide)
-            if [ -f ~/.ssh/sf ] && [ -n "$SF_USER" ]; then
-              for try in 1 2 3; do
-                rsync -e "ssh -i $HOME/.ssh/sf" --partial "$iso" "out/$iso-CHECKSUM" \
-                  "$SF_USER@frs.sourceforge.net:/home/frs/project/nekozame-os/" && break
-                sleep 120
-              done
-            fi
             rm -f "$iso"
           done
-          rm -f ~/.ssh/sf
           ls -la out
 
       - name: Into the installers release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release view installers >/dev/null 2>&1 || gh release create installers --title "Installers" --latest=false \
-            --notes "Live installer ISOs for nekozame os. Download one with its torrent (it also downloads straight from the Internet Archive when nobody else is sharing), or directly: https://archive.org/download/$IA_ITEM . Check it against its CHECKSUM file, then write it to a USB stick."
+          ls out/*.torrent >/dev/null 2>&1 || { echo "no ISOs on SourceForge yet"; exit 0; }
+          gh release view installers >/dev/null 2>&1 || gh release create installers --title "Installers" --latest=false --notes "x"
+          gh release edit installers --notes "Live installer ISOs for nekozame os, new on the 1st and the 15th of every month. Download one with its torrent (it also downloads straight from SourceForge when nobody else is sharing it), or directly from https://sourceforge.net/projects/$SF_PROJECT/files/ . Check it against its CHECKSUM file, then write it to a USB stick."
           gh release upload installers out/* --clobber

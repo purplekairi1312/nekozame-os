@@ -1,0 +1,22 @@
+#!/bin/bash
+# iso/publish DIR: the ISOs in DIR (and their checksums) up to SourceForge, where people
+# download them and where the torrents' web seed points. Run as whoever has the upload key:
+#   SF_USER  your SourceForge username        SF_KEY  its SSH key (~/.ssh/sourceforge)
+#   SF_PROJECT  the project (nekozame-os)
+set -euo pipefail
+DIR="${1:?the folder with the ISOs}"
+SF_USER="${SF_USER:?your SourceForge username}"
+SF_KEY="${SF_KEY:-$HOME/.ssh/sourceforge}"
+SF_PROJECT="${SF_PROJECT:-nekozame-os}"
+cd "$DIR"
+for iso in *.iso; do
+    [ -f "$iso-CHECKSUM" ] || { echo "$iso has no checksum: skipped" >&2; continue; }
+    sha256sum -c --status "$iso-CHECKSUM" || { echo "$iso doesn't match its checksum: not uploaded" >&2; continue; }
+    for try in 1 2 3; do
+        rsync -e "ssh -i $SF_KEY -o StrictHostKeyChecking=accept-new" --partial \
+            "$iso" "$iso-CHECKSUM" "$SF_USER@frs.sourceforge.net:/home/frs/project/$SF_PROJECT/" && break
+        echo "upload of $iso stopped (try $try): again in 2 minutes" >&2
+        sleep 120
+    done
+    echo "on SourceForge: $iso"
+done

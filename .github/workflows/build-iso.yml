@@ -1,11 +1,10 @@
 ---
 name: Build ISOs
 
-# the live installers, from the :stable images, uploaded to the internet archive (free,
-# with a torrent for each file): https://archive.org/download/nekozame-os-iso
-# built like Bazzite's: titanoboa makes a live system from installer/ (Bazzite's KDE image,
-# with Anaconda), carrying the nekozame os image it installs.
-# without the IA_ACCESS_KEY and IA_SECRET_KEY secrets they stay as job artifacts.
+# the live installers, built on GitHub: a fallback, and a check that installer/ builds.
+# the real ones are built on agartha and put on SourceForge (iso/build, iso/publish); these
+# stay a few days as the run's artifacts. titanoboa makes a live system from installer/
+# (Bazzite's KDE image, with Anaconda), carrying the nekozame os image it installs.
 on:
   workflow_dispatch:
     inputs:
@@ -23,7 +22,6 @@ env:
   IMAGE_REGISTRY: "ghcr.io/${{ github.repository_owner }}"
   # the live desktop: Bazzite's, as their own ISOs use (no NVIDIA driver: it's for installing)
   LIVE_IMAGE: "ghcr.io/ublue-os/bazzite:stable"
-  IA_ITEM: "nekozame-os-iso"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref || github.run_id }}
@@ -89,33 +87,7 @@ jobs:
           sha256sum "${{ matrix.image }}.iso" > "${{ matrix.image }}.iso-CHECKSUM"
           ls -la
 
-      - name: Upload to the internet archive
-        id: ia
-        if: github.event_name != 'pull_request'
-        env:
-          IA_ACCESS_KEY_ID: ${{ secrets.IA_ACCESS_KEY }}
-          IA_SECRET_ACCESS_KEY: ${{ secrets.IA_SECRET_KEY }}
-        run: |
-          [ -n "$IA_ACCESS_KEY_ID" ] || { echo "no internet archive keys: keeping it as a job artifact"; echo "skipped=1" >> "$GITHUB_OUTPUT"; exit 0; }
-          pip install --quiet internetarchive
-          printf '[s3]\naccess = %s\nsecret = %s\n' "$IA_ACCESS_KEY_ID" "$IA_SECRET_ACCESS_KEY" > ia.ini
-          cd upload
-          # the ISOs go up at the same time: while the first one is still making the archive's
-          # item, the others are told its name "is not available". once it's there, they go up
-          for try in 1 2 3 4 5; do
-            ia --config-file ../ia.ini upload "$IA_ITEM" "${{ matrix.image }}.iso" "${{ matrix.image }}.iso-CHECKSUM" \
-              --metadata="mediatype:software" --metadata="title:nekozame os installers" \
-              --metadata="description:Live installers for nekozame os: https://github.com/${{ github.repository }}" \
-              --metadata="licenseurl:https://www.gnu.org/licenses/gpl-3.0.html" \
-              --retries 20 --no-derive && ok=1 && break
-            echo "upload refused (try $try): again in $((try * 2)) minutes"
-            sleep $((try * 120))
-          done
-          rm -f ../ia.ini
-          [ "${ok:-}" = 1 ]
-
       - name: Keep it as a job artifact
-        if: github.event_name == 'pull_request' || steps.ia.outputs.skipped == '1'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ${{ matrix.image }}-iso

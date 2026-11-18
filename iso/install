@@ -1,0 +1,42 @@
+#!/bin/bash
+# sudo iso/install OUT USER: build the ISOs here on the 1st and the 15th of every month, into
+# OUT, then USER puts them on SourceForge (iso/publish, with USER's ~/.config/nekozame-iso.env:
+# SF_USER=... and the key in ~/.ssh/sourceforge). Run it again after updating this repo.
+# The build runs as root from a copy only root can change (/usr/local/lib/nekozame-iso).
+set -euo pipefail
+[ "$(id -u)" = 0 ] || { echo "run it with sudo" >&2; exit 1; }
+OUT="${1:?where the ISOs go}"; USER_="${2:?who uploads them}"
+HERE="$(cd "$(dirname "$0")/.." && pwd)"
+LIB=/usr/local/lib/nekozame-iso
+rm -rf "$LIB" && mkdir -p "$LIB"
+cp -r "$HERE/iso" "$HERE/installer" "$LIB/"
+chown -R root:root "$LIB" && chmod -R go-w "$LIB"
+mkdir -p "$OUT" && chown "$USER_" "$OUT"
+HOME_="$(getent passwd "$USER_" | cut -d: -f6)"
+cat > /etc/systemd/system/nekozame-iso.service <<UNIT
+[Unit]
+Description=nekozame os: the installer ISOs built, then put on SourceForge
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=$LIB/iso/build $OUT
+ExecStartPost=/bin/chown -R $USER_ $OUT
+ExecStartPost=/usr/sbin/runuser -u $USER_ -- /bin/sh -c 'set -a; . $HOME_/.config/nekozame-iso.env; exec $LIB/iso/publish $OUT'
+UNIT
+cat > /etc/systemd/system/nekozame-iso.timer <<UNIT
+[Unit]
+Description=nekozame os: new installer ISOs on the 1st and the 15th
+
+[Timer]
+OnCalendar=*-*-01,15 03:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+UNIT
+systemctl daemon-reload
+systemctl enable --now nekozame-iso.timer
+echo "next build: $(systemctl list-timers nekozame-iso.timer --no-pager | sed -n 2p | awk '{print $1, $2, $3}')"
+echo "now: sudo systemctl start --no-block nekozame-iso.service"

@@ -1,0 +1,34 @@
+#!/bin/bash
+# iso/seed/install ISO_DIR: seed the installer ISOs in ISO_DIR, as you (no sudo): the
+# Transmission container, and a daily look for new torrents in GitHub's Installers release
+set -euo pipefail
+ISO_DIR="${1:?the folder with the ISOs}"
+HERE="$(cd "$(dirname "$0")" && pwd)"
+Q="$HOME/.config/containers/systemd" U="$HOME/.config/systemd/user" BIN="$HOME/.local/bin"
+mkdir -p "$Q" "$U" "$BIN" "$HOME/.local/share/nekozame-iso-seed/config" "$HOME/.local/share/nekozame-iso-seed/watch"
+sed "s|ISO_DIR|$ISO_DIR|" "$HERE/nekozame-iso-seed.container" > "$Q/nekozame-iso-seed.container"
+install -m 755 "$HERE/fetch" "$BIN/nekozame-iso-seed-fetch"
+cat > "$U/nekozame-iso-seed-fetch.service" <<UNIT
+[Unit]
+Description=nekozame os installer torrents, from GitHub, for the seeder
+
+[Service]
+Type=oneshot
+ExecStart=$BIN/nekozame-iso-seed-fetch
+UNIT
+cat > "$U/nekozame-iso-seed-fetch.timer" <<'UNIT'
+[Unit]
+Description=nekozame os installer torrents, looked for daily
+
+[Timer]
+OnCalendar=daily
+RandomizedDelaySec=1h
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+UNIT
+systemctl --user daemon-reload
+systemctl --user start nekozame-iso-seed.service
+systemctl --user enable --now nekozame-iso-seed-fetch.timer
+echo "seeding what's in $ISO_DIR (Transmission's page: http://localhost:9091)"

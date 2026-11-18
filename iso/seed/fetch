@@ -1,0 +1,14 @@
+#!/bin/bash
+# iso/seed/fetch: the torrents from GitHub's Installers release into the seeder's watch folder
+# (Transmission checks them against the ISOs here and seeds them). Daily, from a timer
+set -euo pipefail
+REPO="${REPO:-purplekairi1312/nekozame-os}"
+WATCH="${WATCH:-$HOME/.local/share/nekozame-iso-seed/watch}"
+mkdir -p "$WATCH"
+curl -fsSL "https://api.github.com/repos/$REPO/releases/tags/installers" |
+    python3 -c 'import json,sys; [print(a["browser_download_url"]) for a in json.load(sys.stdin).get("assets", []) if a["name"].endswith(".torrent")]' |
+    while read -r url; do
+        name="$(basename "$url")"
+        # a new one (a new ISO) replaces the old; the same one isn't added twice
+        curl -fsSL -o "$WATCH/.$name" "$url" && { cmp -s "$WATCH/.$name" "$WATCH/$name.added" 2>/dev/null && rm -f "$WATCH/.$name" || mv "$WATCH/.$name" "$WATCH/$name"; }
+    done

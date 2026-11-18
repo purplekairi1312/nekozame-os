@@ -1,0 +1,22 @@
+# the installer ISOs seeded, all the time (Transmission, in a container). iso/seed/install
+# puts this in ~/.config/containers/systemd/ with the ISOs' folder set; it seeds the torrents
+# iso/seed/fetch puts in its watch folder. forward port 51413 (TCP and UDP) to this machine
+[Unit]
+Description=nekozame os installer ISOs, seeded
+
+[Container]
+Image=lscr.io/linuxserver/transmission:4.0.6
+ContainerName=nekozame-iso-seed
+Network=host
+# root in the container is you outside it
+Environment=PUID=0 PGID=0
+Volume=%h/.local/share/nekozame-iso-seed/config:/config
+Volume=%h/.local/share/nekozame-iso-seed/watch:/watch
+Volume=ISO_DIR:/downloads/complete:ro
+
+[Service]
+Restart=always
+RestartSec=30
+
+[Install]
+WantedBy=default.target
