@@ -38,7 +38,7 @@ RUN dnf -y install rpm-build git && \
 # nekozame-ports, from its own repo (anyone can use it): the program and its catalog
 FROM registry.fedoraproject.org/fedora:45 AS ports
 # renovate: datasource=git-refs depName=https://github.com/purplekairi1312/nekozame-ports
-ARG PORTS=6d93500bd4d0351607c20f3d208825e4c2565902
+ARG PORTS=0253c26c6feeae65176bfbb07a4d10d1117e3bd3
 RUN dnf -y install git && \
     git clone -q https://github.com/purplekairi1312/nekozame-ports /src && cd /src && git checkout -q "${PORTS}" && \
     install -Dm755 nekozame-ports /out/usr/bin/nekozame-ports && \
