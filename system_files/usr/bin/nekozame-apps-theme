@@ -140,6 +140,9 @@ discord() {
             && $as "$tmp/vencord" -install -branch auto </dev/null >/dev/null \
             || { note "vencord didn't install: run this again"; rm -rf "$tmp"; return; }
         rm -rf "$tmp"
+        # after a discord update, nekozame-vencord puts it back by itself (for a system-wide
+        # discord, a root timer does: this says it's wanted)
+        [ -z "$as" ] || { sudo mkdir -p /var/lib/nekozame && sudo touch /var/lib/nekozame/vencord; }
     fi
     put "$T/discord/nekozame.theme.css" "$vc/themes/nekozame.theme.css" "@name nekozame"
     # turned on, next to any other themes you have on

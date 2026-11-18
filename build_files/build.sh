@@ -175,6 +175,9 @@ systemctl --global enable nekozame-ports-check.timer
 # cava's bars on tmux's status bar (every image, the deck's too: it has tmux)
 rpm -q cava >/dev/null || retry dnf5 -y install cava
 systemctl --global enable nekozame-cava-tmux.service
+# vencord back into discord after discord updates
+systemctl --global enable nekozame-vencord.timer
+systemctl enable nekozame-vencord-system.timer
 # kde: the plasma style (panel, popups) and the window decorations (round buttons)
 mkdir -p /usr/share/plasma/desktoptheme /usr/share/aurorae/themes
 cp -r "$T/plasma/nekozame" /usr/share/plasma/desktoptheme/nekozame

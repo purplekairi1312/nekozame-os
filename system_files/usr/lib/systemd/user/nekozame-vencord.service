@@ -1,0 +1,7 @@
+[Unit]
+Description=nekozame: Vencord back into Discord after it updates
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/nekozame-vencord

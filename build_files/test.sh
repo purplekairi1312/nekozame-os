@@ -27,6 +27,7 @@ check "the nekozame pointer, the default" 'test -e /usr/share/icons/nekozame-cur
 check "nekozame in steam" 'test -s /usr/share/nekozame-os/steam/nekozame.css && test -x /usr/libexec/nekozame-steam-theme && test -L /etc/systemd/user/default.target.wants/nekozame-steam-theme.service'
 check "emulation" 'test -x /usr/bin/nekozame-emu && /usr/bin/nekozame-emu systems >/dev/null'
 check "the network share helper, for the first boot" 'test -x /usr/libexec/nekozame-mount-share && test -s /usr/share/polkit-1/actions/org.nekozame.mount-share.policy'
+check "vencord after discord updates" 'test -x /usr/libexec/nekozame-vencord && test -L /etc/systemd/user/timers.target.wants/nekozame-vencord.timer && test -L /etc/systemd/system/timers.target.wants/nekozame-vencord-system.timer'
 check "cava in tmux" 'command -v cava && test -x /usr/libexec/nekozame-cava-tmux && test -L /etc/systemd/user/default.target.wants/nekozame-cava-tmux.service'
 check "ports" 'test -x /usr/bin/nekozame-ports && python3 -c "import ast, json; ast.parse(open(\"/usr/bin/nekozame-ports\").read()); assert json.load(open(\"/usr/share/nekozame-ports/catalog.json\"))[\"ports\"]" && test -L /etc/systemd/user/timers.target.wants/nekozame-ports-check.timer'
 check "emulation setup" 'test -x /usr/bin/nekozame-emulation && bash -n /usr/bin/nekozame-emulation'

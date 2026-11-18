@@ -1,0 +1,24 @@
+#!/bin/bash
+# nekozame-vencord: Vencord back into Discord after Discord updates (an update replaces the
+# files Vencord hooks into, and Discord comes back black, without its theme). Only where
+# Vencord was put in before (nekozame-apps-theme discord), and Discord is never closed:
+# it takes from Discord's next start.
+#   nekozame-vencord          Discord installed for you (nekozame-vencord.timer, a user timer)
+#   nekozame-vencord system   Discord installed for everyone (nekozame-vencord-system.timer, as root)
+set -uo pipefail
+APP=com.discordapp.Discord
+if [ "${1:-}" = system ]; then
+    [ -e /var/lib/nekozame/vencord ] || exit 0  # nobody asked for it
+    loc=$(flatpak info --system --show-location "$APP" 2>/dev/null) || exit 0
+else
+    [ -d "$HOME/.var/app/$APP/config/Vencord" ] || exit 0
+    loc=$(flatpak info --user --show-location "$APP" 2>/dev/null) || exit 0
+fi
+res="$loc/files/discord/resources"
+[ -f "$res/_app.asar" ] && exit 0  # still in
+[ -w "$res" ] || exit 0
+tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT
+curl -fsSL -o "$tmp/vencord" https://github.com/Vendicated/VencordInstaller/releases/latest/download/VencordInstallerCli-linux || exit 1
+chmod +x "$tmp/vencord"
+"$tmp/vencord" -install -location "$loc/files/discord" </dev/null >/dev/null && echo "vencord is back in discord (from its next start)"
