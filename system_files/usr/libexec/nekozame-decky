@@ -4,6 +4,7 @@
 #   nekozame music  tauon's controls and youtube without ads
 #   SteamGridDB     pick art for any game or app in your library
 #   TabMaster       your own library tabs (nekozame-emu sets up Apps and Emulation)
+#   ProtonDB Badges how well each game runs, on its page (tap it for ProtonDB's reports)
 # run again, it updates the plugins. decky updates itself.
 set -euo pipefail
 user="$(id -nu "${PKEXEC_UID:-${SUDO_UID:?run it with pkexec}}")"
@@ -51,6 +52,7 @@ for p in json.load(sys.stdin):
 }
 from_store SteamGridDB decky-steamgriddb || echo "  SteamGridDB: not this time (try again later)"
 from_store TabMaster TabMaster || echo "  TabMaster: not this time (try again later)"
+from_store "ProtonDB Badges" protondb-badges || echo "  ProtonDB Badges: not this time (try again later)"
 # your emulated games' tabs, if nekozame-emu put games in steam
 runuser -u "$user" -- env HOME="$home" /usr/bin/nekozame-emu steam tabs 2>/dev/null || true
 

@@ -20,7 +20,7 @@ nekozame-ports:
 nekozame-audio LATENCY="status":
     /usr/bin/nekozame-audio {{ LATENCY }}
 
-# Decky, with nekozame music (Tauon and YouTube without ads in Quick Access) and SteamGridDB
+# Decky, with nekozame music (Tauon and YouTube without ads in Quick Access), SteamGridDB, TabMaster and ProtonDB Badges
 [group('nekozame')]
 nekozame-decky:
     pkexec /usr/libexec/nekozame-decky
