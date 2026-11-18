@@ -1,0 +1,61 @@
+---
+name: Torrents
+
+# a torrent for each installer ISO on the internet archive, in the "installers" release on
+# GitHub (the ISOs are too big for GitHub itself: 2 GB a file at most). each torrent has the
+# archive's download as a web seed, so it works even when nobody else is sharing it.
+# runs after the ISOs are built, or by hand
+on:
+  workflow_run:
+    workflows: [Build ISOs]
+    types: [completed]
+  workflow_dispatch:
+
+env:
+  IA_ITEM: "nekozame-os-iso"
+  GH_REPO: ${{ github.repository }}
+
+permissions:
+  contents: write
+
+jobs:
+  torrents:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Free disk space
+        uses: jlumbroso/free-disk-space@ceedf095f4ec1a097402bc6bd80831f2e1a6fde6 # v2.0.0
+        with:
+          tool-cache: true
+
+      - name: mktorrent
+        run: sudo apt-get update -q && sudo apt-get install -yq mktorrent
+
+      - name: A torrent for each ISO
+        run: |
+          mkdir -p out
+          isos=$(curl -fsSL "https://archive.org/metadata/$IA_ITEM" | jq -r '.files[].name | select(endswith(".iso"))')
+          for iso in $isos; do
+            url="https://archive.org/download/$IA_ITEM/$iso"
+            echo "== $iso"
+            curl -fsSL --retry 5 -o "$iso" "$url"
+            curl -fsSL --retry 5 -o "out/$iso-CHECKSUM" "$url-CHECKSUM"
+            sha256sum -c "out/$iso-CHECKSUM"   # the download is the ISO that was built
+            # 16 MiB pieces (right for 10 GB); open trackers, and the archive as a web seed
+            mktorrent -l 24 -n "$iso" -o "out/$iso.torrent" \
+              -a udp://tracker.opentrackr.org:1337/announce \
+              -a udp://open.demonii.com:1337/announce \
+              -a udp://tracker.torrent.eu.org:451/announce \
+              -w "$url" \
+              -c "nekozame os installer: https://github.com/${{ github.repository }}" \
+              "$iso"
+            rm -f "$iso"
+          done
+          ls -la out
+
+      - name: Into the installers release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release view installers >/dev/null 2>&1 || gh release create installers --title "Installers" --latest=false \
+            --notes "Live installer ISOs for nekozame os. Download one with its torrent (it also downloads straight from the Internet Archive when nobody else is sharing), or directly: https://archive.org/download/$IA_ITEM . Check it against its CHECKSUM file, then write it to a USB stick."
+          gh release upload installers out/* --clobber
