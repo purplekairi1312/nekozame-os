@@ -977,8 +977,9 @@ def art(system, rom, s):
 
 # --- 3d boxes ------------------------------------------------------------------------
 # a game's 3d box made from its cover, for games with a cover and no scraped box: the
-# cover on the front, a spine in the colours of the cover's edge, seen from a little to
-# the left, lit, with a soft shadow. what the case is follows the system (how deep, how
+# cover on the front, a spine in the colours of the cover's edge with the game's logo down
+# it (its marquee, when there is one), seen from the left so the spine shows, lit, with a
+# soft shadow. what the case is follows the system (how deep, how
 # glossy, a keep case's plastic rim); its shape follows the cover, so a super famicom's
 # box stays wide and a snes's tall.
 BOXES = os.path.join(HOME, ".local/state/nekozame/boxes.json")  # the boxes nekozame made
@@ -1014,7 +1015,7 @@ def box_face(pg, dest, src, x0, x1, top0, bot0, top1, bot1, shade):
         dest.blit(col, (x0 + i, int(round(top))))
 
 
-def box_render(pg, cover_path, system, out_path, height=900):
+def box_render(pg, cover_path, system, out_path, height=900, logo_path=None):
     kind = BOX_CASE.get(system, "cardboard")
     case = BOX_CASES[kind]
     cover = pg.image.load(cover_path).convert_alpha()
@@ -1026,8 +1027,9 @@ def box_render(pg, cover_path, system, out_path, height=900):
         cover = framed
     cw, ch = cover.get_size()
     fw = int(height * cw / ch)
-    spine_w = max(6, int(fw * case["depth"] * 0.55))  # the spine seen at an angle: narrower than deep
-    front_w = int(fw * 0.82)  # the front, foreshortened
+    # turned enough that the spine reads, even a jewel case's thin one
+    spine_w = max(8, int(fw * max(0.13, case["depth"]) * 0.9))
+    front_w = int(fw * 0.8)  # the front, foreshortened
     persp, margin = 0.06, int(height * 0.08)  # how much the far edges shrink; room for the shadow
     W, H = spine_w + front_w + 2 * margin, height + 2 * margin
     out = pg.Surface((W, H), pg.SRCALPHA)
@@ -1040,9 +1042,20 @@ def box_render(pg, cover_path, system, out_path, height=900):
     # the spine: the colours of the cover's left edge, row by row (a real spine has its own
     # art: its colours read true, its words wouldn't), darker, its far edge shrunk
     edge = cover.subsurface((0, 0, max(2, cw // 30), ch)).copy()
-    strip = pg.transform.smoothscale(pg.transform.smoothscale(edge, (1, max(8, ch // 6))), (24, ch))
+    sw_ = max(24, int(ch * spine_w / height))  # the spine at the cover's scale
+    strip = pg.transform.smoothscale(pg.transform.smoothscale(edge, (1, max(8, ch // 6))), (sw_, ch))
+    if logo_path:  # the game's logo, read from top to bottom like a spine's title
+        try:
+            logo = pg.transform.rotate(pg.image.load(logo_path).convert_alpha(), -90)
+            logo = logo.subsurface(logo.get_bounding_rect(min_alpha=8)).copy()
+            lw, lh = logo.get_size()
+            k = min(sw_ * 0.8 / lw, ch * 0.62 / lh)
+            logo = pg.transform.smoothscale(logo, (max(1, int(lw * k)), max(1, int(lh * k))))
+            strip.blit(logo, ((sw_ - logo.get_width()) // 2, int(ch * 0.2)))
+        except (pg.error, OSError, ValueError):
+            pass
     sh = height * persp * 0.6
-    box_face(pg, out, strip, margin, xj, top_j + sh / 2, bot_j - sh / 2, top_j, bot_j, lambda t: 0.62 + 0.12 * t)
+    box_face(pg, out, strip, margin, xj, top_j + sh / 2, bot_j - sh / 2, top_j, bot_j, lambda t: 0.8 + 0.12 * t)
     sh = height * persp  # the front: the cover, its far edge shrunk, lit from the left
     box_face(pg, out, cover, xj, xj + front_w, top_j, bot_j, top_j + sh / 2, bot_j - sh / 2, lambda t: 1.0 - 0.1 * t)
     if kind == "jewel":  # a dark clear rim round the insert, and the hinge down its left side
@@ -1093,9 +1106,11 @@ def make_boxes(systems=None, again=False):
                            for m in s["media"] for ext in ("png", "jpg"))
                 if have and not (again and out in made):
                     continue  # a scraped box (or one made before): kept
+                logo = next((p for m in s["media"] for ext in ("png", "jpg")
+                             for p in [os.path.join(m, system, "marquees", f"{base}.{ext}")] if os.path.exists(p)), None)
                 os.makedirs(os.path.dirname(out), exist_ok=True)
                 try:
-                    box_render(pg, cover, system, out + ".part.png")
+                    box_render(pg, cover, system, out + ".part.png", logo_path=logo)
                     os.replace(out + ".part.png", out)
                 except (pg.error, OSError, ValueError) as err:
                     say(f"  {system}/{base}: {err}")
