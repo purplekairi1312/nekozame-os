@@ -1,9 +1,10 @@
-// nekozame os shortcuts (nekozame-mac has the same on a Mac, with Cmd as Super and
-// Ctrl+Option as Ctrl+Alt). this replaces dankmaterialshell's binds file.
-//   Super      apps, like Cmd on a Mac: Super+C/V/X copy, paste, cut, and the
-//              rest of the usual app keys (xremap turns them into what each
-//              app expects), plus launching things
-//   Ctrl+Alt   windows: focus, move, size, workspaces
+// nekozame os shortcuts (nekozame-mac has the same on a Mac, with Cmd as Super).
+// this replaces dankmaterialshell's binds file.
+//   Super      windows: focus, move, size (Super+F maximize, Super+arrows focus), and
+//              apps, like Cmd on a Mac: Super+C/V/X/Z/S/W copy, paste, cut, undo,
+//              save, close tab (xremap turns them into what each app expects), plus
+//              launching things. window actions on those letters take Super+Alt
+//   Alt+1-9    workspaces
 binds {
     // === Apps (Super) ===
     Super+Return hotkey-overlay-title="Terminal" { spawn "ghostty"; }
@@ -42,39 +43,40 @@ binds {
     Super+Shift+4 hotkey-overlay-title="Screenshot: region" { spawn "dms" "screenshot"; }
     Super+Shift+5 hotkey-overlay-title="Screenshot: window" { spawn "dms" "screenshot" "window"; }
 
-    // === Windows (Ctrl+Alt) ===
-    Ctrl+Alt+Left  { focus-column-left; }
-    Ctrl+Alt+Right { focus-column-right; }
-    Ctrl+Alt+Up    { focus-window-up; }
-    Ctrl+Alt+Down  { focus-window-down; }
-    Ctrl+Alt+Shift+Left  { move-column-left; }
-    Ctrl+Alt+Shift+Right { move-column-right; }
-    Ctrl+Alt+Shift+Up    { move-window-up; }
-    Ctrl+Alt+Shift+Down  { move-window-down; }
-    Ctrl+Alt+Home { focus-column-first; }
-    Ctrl+Alt+End  { focus-column-last; }
-    Ctrl+Alt+Shift+Home { move-column-to-first; }
-    Ctrl+Alt+Shift+End  { move-column-to-last; }
-    Ctrl+Alt+Return       hotkey-overlay-title="Maximize" { maximize-column; }
-    Ctrl+Alt+Shift+Return hotkey-overlay-title="Fullscreen" { fullscreen-window; }
-    Ctrl+Alt+R       { switch-preset-column-width; }
-    Ctrl+Alt+Shift+R { switch-preset-window-height; }
-    Ctrl+Alt+Minus       { set-column-width "-10%"; }
-    Ctrl+Alt+Equal       { set-column-width "+10%"; }
-    Ctrl+Alt+Shift+Minus { set-window-height "-10%"; }
-    Ctrl+Alt+Shift+Equal { set-window-height "+10%"; }
-    Ctrl+Alt+C { center-column; }
-    Ctrl+Alt+BracketLeft  { consume-or-expel-window-left; }
-    Ctrl+Alt+BracketRight { consume-or-expel-window-right; }
-    Ctrl+Alt+W { toggle-column-tabbed-display; }
-    Ctrl+Alt+Space       hotkey-overlay-title="Float" { toggle-window-floating; }
-    Ctrl+Alt+Shift+Space { switch-focus-between-floating-and-tiling; }
-    Ctrl+Alt+O hotkey-overlay-title="Overview" { toggle-overview; }
+    // === Windows (Super) ===
+    Super+Left  { focus-column-left; }
+    Super+Right { focus-column-right; }
+    Super+Up    { focus-window-up; }
+    Super+Down  { focus-window-down; }
+    Super+Shift+Left  { move-column-left; }
+    Super+Shift+Right { move-column-right; }
+    Super+Shift+Up    { move-window-up; }
+    Super+Shift+Down  { move-window-down; }
+    Super+Home { focus-column-first; }
+    Super+End  { focus-column-last; }
+    Super+Shift+Home { move-column-to-first; }
+    Super+Shift+End  { move-column-to-last; }
+    Super+F       hotkey-overlay-title="Maximize" { maximize-column; }
+    Super+Shift+F hotkey-overlay-title="Fullscreen" { fullscreen-window; }
+    Super+R       { switch-preset-column-width; }
+    Super+Shift+R { switch-preset-window-height; }
+    Super+Minus       { set-column-width "-10%"; }
+    Super+Equal       { set-column-width "+10%"; }
+    Super+Shift+Minus { set-window-height "-10%"; }
+    Super+Shift+Equal { set-window-height "+10%"; }
+    Super+BracketLeft  { consume-or-expel-window-left; }
+    Super+BracketRight { consume-or-expel-window-right; }
+    Super+O hotkey-overlay-title="Overview" { toggle-overview; }
+    // on letters that stay the apps' (Super+C copy, Super+W close tab, Super+Space launcher)
+    Super+Alt+C { center-column; }
+    Super+Alt+W { toggle-column-tabbed-display; }
+    Super+Alt+Space       hotkey-overlay-title="Float" { toggle-window-floating; }
+    Super+Alt+Shift+Space { switch-focus-between-floating-and-tiling; }
     // workspaces
-    Ctrl+Alt+Page_Down { focus-workspace-down; }
-    Ctrl+Alt+Page_Up   { focus-workspace-up; }
-    Ctrl+Alt+Shift+Page_Down { move-column-to-workspace-down; }
-    Ctrl+Alt+Shift+Page_Up   { move-column-to-workspace-up; }
+    Super+Page_Down { focus-workspace-down; }
+    Super+Page_Up   { focus-workspace-up; }
+    Super+Shift+Page_Down { move-column-to-workspace-down; }
+    Super+Shift+Page_Up   { move-column-to-workspace-up; }
     // Alt+number: workspace 1-9 (Shift takes the window along)
     Alt+1 { focus-workspace 1; }
     Alt+2 { focus-workspace 2; }
@@ -94,18 +96,17 @@ binds {
     Alt+Shift+7 { move-column-to-workspace 7; }
     Alt+Shift+8 { move-column-to-workspace 8; }
     Alt+Shift+9 { move-column-to-workspace 9; }
-    Ctrl+Alt+WheelScrollDown cooldown-ms=150 { focus-workspace-down; }
-    Ctrl+Alt+WheelScrollUp   cooldown-ms=150 { focus-workspace-up; }
-    // monitors: add Super
-    Ctrl+Alt+Super+Left  { focus-monitor-left; }
-    Ctrl+Alt+Super+Right { focus-monitor-right; }
-    Ctrl+Alt+Super+Up    { focus-monitor-up; }
-    Ctrl+Alt+Super+Down  { focus-monitor-down; }
-    Ctrl+Alt+Super+Shift+Left  { move-column-to-monitor-left; }
-    Ctrl+Alt+Super+Shift+Right { move-column-to-monitor-right; }
-    Ctrl+Alt+Super+Shift+Up    { move-column-to-monitor-up; }
-    Ctrl+Alt+Super+Shift+Down  { move-column-to-monitor-down; }
-
+    Super+WheelScrollDown cooldown-ms=150 { focus-workspace-down; }
+    Super+WheelScrollUp   cooldown-ms=150 { focus-workspace-up; }
+    // monitors: add Ctrl
+    Super+Ctrl+Left  { focus-monitor-left; }
+    Super+Ctrl+Right { focus-monitor-right; }
+    Super+Ctrl+Up    { focus-monitor-up; }
+    Super+Ctrl+Down  { focus-monitor-down; }
+    Super+Ctrl+Shift+Left  { move-column-to-monitor-left; }
+    Super+Ctrl+Shift+Right { move-column-to-monitor-right; }
+    Super+Ctrl+Shift+Up    { move-column-to-monitor-up; }
+    Super+Ctrl+Shift+Down  { move-column-to-monitor-down; }
     // === Audio Controls ===
     XF86AudioRaiseVolume allow-when-locked=true {
         spawn "dms" "ipc" "call" "audio" "increment" "3";
