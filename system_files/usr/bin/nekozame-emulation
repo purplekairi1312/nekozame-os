@@ -64,6 +64,9 @@ if [ -n "$ROOT" ] && [ -d "$ROOT" ] && ! ask "They're in $ROOT. Change that?" fa
     ok "$ROOT"
 else
     HERE="On this machine (~/Emulation)"; SHARE="On a network share (a NAS)"; ELSE="In another folder"
+    echo "  this machine: a folder here. a NAS: nekozame connects to it for you, quick with"
+    echo "  big libraries and after sleep (the best for a NAS). another folder: a second drive,"
+    echo "  or a share you already connect to yourself"
     case "$(gum choose --header "Where are your games?" --selected="$HERE" "$HERE" "$SHARE" "$ELSE")" in
         "$HERE") ROOT="$HOME/Emulation" ;;
         "$SHARE") mount_share || exit 1 ;;

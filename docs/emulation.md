@@ -4,6 +4,7 @@ Your games with their emulators, art and saves, in Steam and in a frontend.
 
 - The library can be in a folder on the machine (`~/Emulation` by default) or on a network share, like a NAS.
 - With a share, every machine plays from the same library, and only the emulators are installed on each one.
+- For a NAS, pick "On a network share" in the setup: nekozame connects to it for you, quick with big libraries and after sleep. "In another folder" is for a second drive, or a share you already connect to yourself.
 - Saves sync between your machines: start a game on the Deck, keep going on the PC.
 
 | Part | What it does |
