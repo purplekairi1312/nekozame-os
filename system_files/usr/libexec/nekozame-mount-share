@@ -22,9 +22,12 @@ if ! grep -q " $mnt cifs " /etc/fstab; then
     echo "//$server/$share $mnt cifs credentials=$creds,iocharset=utf8,actimeo=600,echo_interval=10,uid=$uid,gid=$gid,_netdev,nofail,x-systemd.automount,x-systemd.mount-timeout=20 0 0" >> /etc/fstab
 fi
 systemctl daemon-reload
-unit="$(systemd-escape -p --suffix=automount "$mnt")"
+# systemd names it after the real path (on nekozame os /mnt is /var/mnt)
+unit="$(systemd-escape -p --suffix=automount "$(realpath "$mnt")")"
 systemctl restart "$unit" 2>/dev/null || true
-if ls "$mnt" >/dev/null 2>&1; then
+# connected: looking inside mounts it, and then it's a mount point (an empty folder isn't)
+ls "$mnt" >/dev/null 2>&1
+if mountpoint -q "$mnt"; then
     echo "$mnt"
 else
     echo "the share didn't answer: check the NAS's name, the folder and the login" >&2
