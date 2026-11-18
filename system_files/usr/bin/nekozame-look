@@ -22,8 +22,18 @@ case "$(gsettings get org.gnome.desktop.interface icon-theme 2>/dev/null)" in  #
     "'Adwaita'"|"'breeze'"|"'breeze-dark'"|"") gsettings set org.gnome.desktop.interface icon-theme Tela-pink-dark 2>/dev/null ;;
 esac
 gsettings set org.gnome.desktop.interface cursor-theme nekozame-cursors 2>/dev/null
-put "$S/gtk/gtk-3.0.css" "$C/gtk-3.0/gtk.css"
-put "$S/gtk/gtk-4.0.css" "$C/gtk-4.0/gtk.css"
+for g in gtk-3.0 gtk-4.0; do
+    # kde's own (only its colours, written when you pick a colour scheme in kde) isn't
+    # yours: nekozame's goes in its place, kde's is kept as gtk.css.kde
+    case "$(tr -d '[:space:]' < "$C/$g/gtk.css" 2>/dev/null)" in
+        "@import'colors.css';"|"@import'colors.css';@import'kde_window_geometry.css';") kde=1 ;;
+        *) kde= ;;
+    esac
+    if [ -z "$force" ] && [ -n "$kde" ]; then
+        mv "$C/$g/gtk.css" "$C/$g/gtk.css.kde"
+    fi
+    put "$S/gtk/$g.css" "$C/$g/gtk.css"
+done
 
 # qt: kvantum with the nekozame theme. kde uses it as its widget style; elsewhere
 # (niri) qt apps get it through qt6ct and qt5ct
