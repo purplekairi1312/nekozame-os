@@ -39,7 +39,7 @@ if [ -f /etc/greetd/config.toml ]; then
 fi
 
 if [ -n "${NIRI_SOCKET:-}" ] || ls "${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"/niri.wayland-*.sock >/dev/null 2>&1; then
-    step "Your screens: scale, refresh rate, the bar's size"
+    step "Your screens: scale, refresh rate, the pointer's and the bar's size"
     if [ -e "$STATE/display-done" ]; then
         ok "set (change it: ujust nekozame-display)"
     else

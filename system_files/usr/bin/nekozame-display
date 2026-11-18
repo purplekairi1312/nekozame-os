@@ -1,6 +1,6 @@
 #!/bin/bash
-# nekozame-display: your screens in niri (scale, refresh rate, variable refresh) and the
-# size of dms's bar. asked by nekozame-setup; run it again any time (ujust nekozame-display).
+# nekozame-display: your screens in niri (scale, refresh rate, variable refresh), the size
+# of the mouse pointer and of dms's bar. asked by nekozame-setup; run it again any time (ujust nekozame-display).
 # the screens go in niri's dms/outputs.kdl, the file dms's own Displays settings use too (the
 # old one is kept as outputs.kdl.bak); niri picks it up straight away, no logging out
 set -euo pipefail
@@ -16,6 +16,7 @@ if [ -z "${WAYLAND_DISPLAY:-}" ] && [ -n "${NIRI_SOCKET:-}" ]; then  # niri.wayl
 fi
 [ -n "${NIRI_SOCKET:-}" ] || { echo "nekozame-display is for niri: log in to niri first (in KDE: System Settings → Display)"; exit 1; }
 OUTPUTS="${XDG_CONFIG_HOME:-$HOME/.config}/niri/dms/outputs.kdl"
+CURSOR="${XDG_CONFIG_HOME:-$HOME/.config}/niri/dms/cursor.kdl"
 
 pink() { gum style --foreground "#ffc0e5" --bold "$*"; }
 ok() { echo "  ✓ $*"; }
@@ -108,6 +109,26 @@ open(path, "w").write((text + "\n" if text else "") + "\n// nekozame-display" + 
 EOF
 niri validate >/dev/null 2>&1 || {
     echo "  niri didn't take it: the old file is back"; [ -f "$OUTPUTS.bak" ] && cp "$OUTPUTS.bak" "$OUTPUTS"; exit 1; }
+
+# the mouse pointer: its size in niri (everywhere), with the scale on top. the sizes the
+# cursor theme comes in, so it stays sharp. in dms's cursor file (its settings use it too)
+echo; pink "▸ The mouse pointer"
+theme=$(sed -n 's/^ *xcursor-theme "\(.*\)"/\1/p' "$CURSOR" 2>/dev/null)
+theme="${theme:-${XCURSOR_THEME:-nekozame-cursors}}"
+now=$(sed -n 's/^ *xcursor-size \([0-9]*\)/\1/p' "$CURSOR" 2>/dev/null)
+now="${now:-24}"
+case "$now" in 24|32) sel="32 (suggested)" ;; *) sel="$now" ;; esac
+size=$(printf '%s\n' 24 "32 (suggested)" 48 64 | gum choose --header "Pointer size (now $now):" --selected="$sel")
+size="${size%% *}"
+[ -f "$CURSOR" ] && cp "$CURSOR" "$CURSOR.bak"
+printf '// nekozame-display\ncursor {\n    xcursor-theme "%s"\n    xcursor-size %s\n}\n' "$theme" "$size" > "$CURSOR"
+if niri validate >/dev/null 2>&1; then
+    gsettings set org.gnome.desktop.interface cursor-size "$size" 2>/dev/null || true
+    ok "$theme at $size (apps already open pick it up when restarted)"
+else
+    echo "  niri didn't take it: the old one is back"
+    if [ -f "$CURSOR.bak" ]; then cp "$CURSOR.bak" "$CURSOR"; else rm -f "$CURSOR"; fi
+fi
 
 # the bar: on top of the scale, dms's own spacing and its text size
 echo; pink "▸ The bar"

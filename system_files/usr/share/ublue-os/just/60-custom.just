@@ -30,7 +30,7 @@ nekozame-decky:
 nekozame-music-production:
     /usr/bin/nekozame-music-production
 
-# Your screens in niri: scale, refresh rate, variable refresh, and the bar's size
+# Your screens in niri: scale, refresh rate, variable refresh, the pointer's and the bar's size
 [group('nekozame')]
 nekozame-display:
     /usr/bin/nekozame-display
