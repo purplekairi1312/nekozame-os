@@ -33,7 +33,7 @@ your saves synced everywhere (nekozame-saves).
   nekozame-emu achievements       retroachievements: login, hardcore, on or off
 
 settings (~/.config/nekozame/emulation.json), all optional:
-  "roms":  ["~/Emulation/roms", "/mnt/nas/Emulation/roms"]   where your games are
+  "roms":  ["~/Emulation/roms", "/mnt/mynas/Emulation/roms"]   where your games are
   "bios":  "~/Emulation/bios"                                 bios and firmware
   "media": ["~/Emulation/tools/downloaded_media"]             es-de's scraped art
   "steam": {"roms": ["~/Emulation/roms"],     whose games go in steam (big libraries

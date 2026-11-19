@@ -11,7 +11,7 @@ nothing ever thrown away.
 
 your saves are ~/Emulation/saves (one folder per emulator, like agartha or emudeck
 lay them out). they sync with one place every machine reaches:
-  a folder   any mounted share (smb, nfs...), e.g. /mnt/nas/Emulation/saves
+  a folder   any mounted share (smb, nfs...), e.g. /mnt/mynas/Emulation/saves
   webdav     a webdav server. when retroarch's cloud sync is set up, its server and
              login are used, in a folder of its own (nekozame-saves/)
 retroarch's own saves are left to retroarch's cloud sync when that's on.
@@ -466,7 +466,7 @@ def setup():
         say(f"  {i}. {label}")
     pick = options[int(input("> ").strip() or "1") - 1][1]
     if pick == "folder":
-        pick = {"type": "folder", "path": input("the folder (e.g. /mnt/nas/Emulation/saves): ").strip()}
+        pick = {"type": "folder", "path": input("the folder (e.g. /mnt/mynas/Emulation/saves): ").strip()}
     elif pick == "webdav":
         import getpass
         pick = {"type": "webdav", "url": input("address: ").strip(), "user": input("user: ").strip(),

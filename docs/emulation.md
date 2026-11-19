@@ -98,13 +98,13 @@ What the names do:
 Skip this with a local library. nekozame reads the library straight from the share; nothing is copied to the machine. Mount it once, for good, with a line in `/etc/fstab`. For an SMB share:
 
 ```
-//nas.example/Emulation  /mnt/nas/Emulation  cifs  credentials=/etc/nekozame/smb-credentials,iocharset=utf8,actimeo=600,echo_interval=10,uid=1000,gid=1000,_netdev,nofail,x-systemd.automount,x-systemd.mount-timeout=20  0 0
+//mynas/Emulation  /mnt/mynas/Emulation  cifs  credentials=/etc/nekozame/smb-credentials,iocharset=utf8,actimeo=600,echo_interval=10,uid=1000,gid=1000,_netdev,nofail,x-systemd.automount,x-systemd.mount-timeout=20  0 0
 ```
 
 And the login, readable only by root:
 
 ```sh
-sudo mkdir -p /etc/nekozame /mnt/nas/Emulation
+sudo mkdir -p /etc/nekozame /mnt/mynas/Emulation
 printf 'username=YOU\npassword=YOUR-PASSWORD\n' | sudo tee /etc/nekozame/smb-credentials >/dev/null
 sudo chmod 600 /etc/nekozame/smb-credentials
 sudo systemctl daemon-reload
@@ -132,10 +132,10 @@ The settings are in `~/.config/nekozame/emulation.json`, all of them optional. A
 
 ```json
 {
-  "roms":  ["/mnt/nas/Emulation/roms"],
-  "bios":  "/mnt/nas/Emulation/bios",
-  "media": ["/mnt/nas/Emulation/tools/downloaded_media"],
-  "steam": {"roms": ["/mnt/nas/Emulation/roms"], "names": "file"},
+  "roms":  ["/mnt/mynas/Emulation/roms"],
+  "bios":  "/mnt/mynas/Emulation/bios",
+  "media": ["/mnt/mynas/Emulation/tools/downloaded_media"],
+  "steam": {"roms": ["/mnt/mynas/Emulation/roms"], "names": "file"},
   "drawings": "both"
 }
 ```
@@ -226,7 +226,7 @@ Achievements from [RetroAchievements](https://retroachievements.org) in RetroArc
 nekozame-saves setup
 ```
 
-Pick where your saves live: a folder on the share (`/mnt/nas/Emulation/saves`) or a WebDAV server. Every machine syncs with that one place.
+Pick where your saves live: a folder on the share (`/mnt/mynas/Emulation/saves`) or a WebDAV server. Every machine syncs with that one place.
 
 - How a save wins: nekozame remembers each save as it was at the last sync. Changed on one side only, that side's copy goes to the other. Changed on both (you played on two machines in between), the newest wins, the other is kept, and you're told.
 - Nothing is thrown away: before a save is replaced, on either side, the old one goes into its history (the last 20). `nekozame-saves history PATH` lists them, `nekozame-saves restore PATH VERSION` puts one back.

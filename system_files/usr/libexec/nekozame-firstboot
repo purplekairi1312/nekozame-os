@@ -542,7 +542,7 @@ class Nas(Rows):
             self.state = (p.stderr.strip().splitlines() or ["couldn't mount it"])[-1]
 
     def draw(self, look, t):
-        look.title("your NAS", "mounted at /mnt/nas/<folder>, and every time the deck starts")
+        look.title("your NAS", "mounted at /mnt/<its name>/<folder>, and every time the deck starts")
         for i, (r, (key, name, desc, secret)) in enumerate(zip(self.layout(look, int(150 * look.s)), self.rows())):
             on = i == self.focus
             if key == "go":

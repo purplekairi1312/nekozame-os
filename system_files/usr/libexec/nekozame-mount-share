@@ -1,26 +1,52 @@
 #!/bin/bash
 # nekozame-mount-share SERVER SHARE USER (the password on stdin): a network share with your
-# games, mounted at /mnt/nas/SHARE for good. Its login goes in a file only root can read,
-# with the options that keep a big library quick and come back after sleep (docs/emulation.md
-# says why). Run by pkexec from nekozame-firstboot (its polkit rule allows whoever is at the
+# games, mounted for good at /mnt/SERVER/SHARE (named after the computer it's on, so a second
+# one never gets mixed up with it; a /mnt folder for that computer that's already there, in
+# any capitals, is used). Its login goes in a file only root can read, with the options that
+# keep a big library quick and come back after sleep (docs/emulation.md says why). The same
+# share already in /etc/fstab another way is taken over: that line is commented out, not
+# deleted. Run by pkexec from nekozame-firstboot (its polkit rule allows whoever is at the
 # machine) and by sudo from nekozame-emulation; the mount belongs to that user.
 set -euo pipefail
-server="${1:?the NAS}" share="${2:?the shared folder}" user="${3:?the user}"
+server="${1:?the computer with the share}" share="${2:?the shared folder}" user="${3:?the user}"
 uid="${PKEXEC_UID:-${SUDO_UID:?run it with pkexec or sudo}}"
 gid="$(id -g "$uid")"
 # a name, not a path or options: the share and server go into /etc/fstab
 [[ "$share" =~ ^[A-Za-z0-9._-]+$ ]] || { echo "the shared folder's name can only have letters, numbers, . _ and -" >&2; exit 2; }
-[[ "$server" =~ ^[A-Za-z0-9.:_-]+$ ]] || { echo "the NAS's name can only have letters, numbers, . : _ and -" >&2; exit 2; }
+[[ "$server" =~ ^[A-Za-z0-9.:_-]+$ ]] || { echo "the computer's name can only have letters, numbers, . : _ and -" >&2; exit 2; }
 [[ "$user" =~ ^[^,=[:space:]]+$ ]] || { echo "the user can't have spaces, commas or =" >&2; exit 2; }
 IFS= read -r pass || true
 
-mnt="/mnt/nas/$share"
-creds="/etc/nekozame/smb-$share-credentials"
+# /mnt/SERVER, or the folder for that computer already there (/mnt/Agartha for agartha)
+base="/mnt/$server"
+for d in /mnt/*/; do
+    d="${d%/}"
+    [ "${d,,}" = "/mnt/${server,,}" ] && base="$d" && break
+done
+mnt="$base/$share"
+creds="/etc/nekozame/smb-${server,,}-$share"
 mkdir -p /etc/nekozame "$mnt"
 ( umask 077; printf 'username=%s\npassword=%s\n' "$user" "$pass" > "$creds" )
-if ! grep -q " $mnt cifs " /etc/fstab; then
-    echo "//$server/$share $mnt cifs credentials=$creds,iocharset=utf8,actimeo=600,echo_interval=10,uid=$uid,gid=$gid,_netdev,nofail,x-systemd.automount,x-systemd.mount-timeout=20 0 0" >> /etc/fstab
-fi
+
+# the same share connected another way (or before, elsewhere): taken over, not mounted twice
+cp /etc/fstab /etc/nekozame/fstab.before-mount-share
+old=$(awk -v src="//${server,,}/${share,,}" -v mnt="$mnt" '
+    $0 !~ /^[[:space:]]*#/ && $3 == "cifs" {
+        s = tolower($1); sub(/\/$/, "", s)
+        if (s == src && $2 != mnt) print $2
+    }' /etc/fstab)
+for m in $old; do
+    umount -l "$m" 2>/dev/null || true
+done
+awk -v src="//${server,,}/${share,,}" -v mnt="$mnt" '
+    $0 !~ /^[[:space:]]*#/ && $3 == "cifs" {
+        s = tolower($1); sub(/\/$/, "", s)
+        if (s == src || $2 == mnt) { print "# taken over by nekozame-mount-share: " $0; next }
+    }
+    { print }' /etc/fstab > /etc/fstab.nekozame && cat /etc/fstab.nekozame > /etc/fstab && rm -f /etc/fstab.nekozame
+umount -l "$mnt" 2>/dev/null || true  # an old connection there, with other options
+echo "//$server/$share $mnt cifs credentials=$creds,iocharset=utf8,actimeo=600,echo_interval=10,uid=$uid,gid=$gid,_netdev,nofail,x-systemd.automount,x-systemd.mount-timeout=20 0 0" >> /etc/fstab
+
 systemctl daemon-reload
 # systemd names it after the real path (on nekozame os /mnt is /var/mnt)
 unit="$(systemd-escape -p --suffix=automount "$(realpath "$mnt")")"
@@ -30,6 +56,6 @@ ls "$mnt" >/dev/null 2>&1
 if mountpoint -q "$mnt"; then
     echo "$mnt"
 else
-    echo "the share didn't answer: check the NAS's name, the folder and the login" >&2
+    echo "the share didn't answer: check the computer's name, the folder and the login" >&2
     exit 1
 fi
