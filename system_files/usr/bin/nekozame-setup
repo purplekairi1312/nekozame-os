@@ -106,6 +106,15 @@ xdg-mime default com.github.taiko2k.tauonmb.desktop audio/mpeg audio/flac audio/
 echo "  your navidrome or jellyfin goes in its settings. in game mode, ujust nekozame-decky"
 echo "  puts it (and youtube without ads) in the quick access menu"
 
+if [ "$(cat /usr/share/nekozame-os/variant 2>/dev/null)" != deck ]; then  # the deck asks in its first boot
+    step "Steam: Decky and its plugins (in Steam's Big Picture and Game Mode)"
+    if [ -d "$HOME/homebrew/plugins" ] && [ -n "$(ls "$HOME/homebrew/plugins" 2>/dev/null)" ]; then
+        ok "installed (update: ujust nekozame-decky)"
+    elif ask "Install Decky with nekozame's plugins? (nekozame music, SteamGridDB for art, TabMaster for your library's tabs, ProtonDB Badges)" false; then
+        pkexec /usr/libexec/nekozame-decky && ok "installed: in Steam's quick access menu (Big Picture, or Game Mode from the login screen)"
+    fi
+fi
+
 step "Tailscale"
 if tailscale status >/dev/null 2>&1; then
     ok "logged in"
