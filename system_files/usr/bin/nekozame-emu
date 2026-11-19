@@ -363,6 +363,10 @@ def launch(system, rom):
     e = EMULATORS[emu]
     if emu == "retroarch":
         cmd = ["flatpak", "run", RA, "-f", "-L", core(core_name), rom]
+        try:
+            game_preset(system, rom)
+        except OSError as err:
+            say(f"this game's display preset wasn't written: {err}")
     else:
         cmd = ["flatpak", "run", e["flatpak"]] + [a.replace("{rom}", rom) for a in e["run"]]
     try:
@@ -797,6 +801,29 @@ def write_preset(path, name, preset):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w") as f:
         f.write(text)
+
+
+def game_preset(system, rom, s=None):
+    """with the real display look: this game's preset, written as it starts (a new game
+    plays on its display straight away, before the daily tidy-up has seen it)."""
+    s = s or settings()
+    v = video_settings(s)
+    if v.get("look") != "real" or system not in ERAS or emulator_of(system)[0] != "retroarch":
+        return
+    core = core_dir(emulator_of(system)[1])
+    if not core:
+        return
+    base = os.path.join(VAR, RA, "config/retroarch")
+    home = home_region(v)
+    light = machine()[1] != "dgpu"
+    mine = display_for(system, FOLDER_REGION.get(system, home))
+    d = display_for(system, region_of(os.path.basename(rom), system, home))
+    roots = [os.path.join(r, system) for r in (s.get("roms") or [])]
+    if d and (d != mine or os.path.dirname(rom) not in roots):
+        stem = os.path.splitext(os.path.basename(rom))[0]
+        write_preset(os.path.join(base, "config", core, f"{stem}.glslp"), d, DISPLAYS[d][light])
+    if mine and os.path.dirname(rom) in roots:
+        write_preset(os.path.join(base, "config", core, f"{system}.glslp"), mine, DISPLAYS[mine][light])
 
 
 def retroarch_shaders(v, m, s, base):

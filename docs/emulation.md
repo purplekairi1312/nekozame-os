@@ -198,7 +198,7 @@ Arcade games get an arcade monitor; the C64 a Commodore 1702 monitor; the Amiga 
 
 The picture is nekozame's wallpaper at its own pixels (`art/looks/scene.py`), shown through RetroArch's own shaders by `art/looks/render`; the setup shows it too, in terminals that draw pictures.
 
-RetroArch picks them itself: one per folder, and one per game for games that differ from their folder (or have a folder of their own). They follow the library: a few minutes after login and every 6 hours, new games get theirs and removed ones lose theirs (`nekozame-emu video refresh` does it right away).
+RetroArch picks them itself: one per folder, and one per game for games that differ from their folder (or have a folder of their own). They follow the library: a game started from Steam or the frontend gets its own as it starts, and every 6 hours (and after login) the rest are tidied up: presets for games that are gone go, and games started from RetroArch's own menu get theirs (`nekozame-emu video refresh` does it right away).
 
 - **Shaders per system:** each for the systems you choose. They're RetroArch's own, so they cover the systems RetroArch plays (PCSX2, Dolphin and PPSSPP have their own filters). Systems with a CRT shader stay at their native resolution, since that's what CRT shaders are made for. Those cores are switched to OpenGL, which the shaders need.
 
