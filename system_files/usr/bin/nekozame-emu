@@ -647,6 +647,18 @@ def region_of(name, system, home):
     return FOLDER_REGION.get(system, home)
 
 
+def game_region(name, system, v):
+    """the region a game is shown in: its own, or yours ("imports": "home", as an import
+    played on your own display)"""
+    home = home_region(v)
+    return home if v.get("imports") == "home" else region_of(name, system, home)
+
+
+def folder_region(system, v):
+    home = home_region(v)
+    return home if v.get("imports") == "home" else FOLDER_REGION.get(system, home)
+
+
 def display_for(system, region):
     """the display this system's games were seen on in REGION, or None."""
     era, width = ERAS.get(system, (None, 0))
@@ -816,8 +828,8 @@ def game_preset(system, rom, s=None):
     base = os.path.join(VAR, RA, "config/retroarch")
     home = home_region(v)
     light = machine()[1] != "dgpu"
-    mine = display_for(system, FOLDER_REGION.get(system, home))
-    d = display_for(system, region_of(os.path.basename(rom), system, home))
+    mine = display_for(system, folder_region(system, v))
+    d = display_for(system, game_region(os.path.basename(rom), system, v))
     roots = [os.path.join(r, system) for r in (s.get("roms") or [])]
     if d and (d != mine or os.path.dirname(rom) not in roots):
         stem = os.path.splitext(os.path.basename(rom))[0]
@@ -847,11 +859,11 @@ def retroarch_shaders(v, m, s, base):
                 if not core or not os.path.isdir(folder):
                     continue
                 cores.add(core)
-                mine = display_for(system, FOLDER_REGION.get(system, home))
+                mine = display_for(system, folder_region(system, v))
                 if mine:
                     want[os.path.join(base, "config", core, f"{system}.glslp")] = (mine, DISPLAYS[mine][light])
                 for g in games(root, system):
-                    d = display_for(system, region_of(os.path.basename(g), system, home))
+                    d = display_for(system, game_region(os.path.basename(g), system, v))
                     # a game unlike its folder, or in a folder of its own (a game's discs)
                     if d and (d != mine or os.path.dirname(g) != folder):
                         stem = os.path.splitext(os.path.basename(g))[0]
@@ -909,6 +921,8 @@ def video(argv):
         v["look"] = argv[1]
     elif argv[:1] == ["region"] and argv[1:2] and argv[1] in LOOK_REGIONS:
         v["region"] = argv[1]
+    elif argv[:1] == ["imports"] and argv[1:2] and argv[1] in ("own", "home"):
+        v["imports"] = argv[1]
     elif argv[:1] == ["shader"] and argv[1:2] == ["suggested"]:
         v["look"] = "manual"
         v["shaders"] = {x: name for x, name in SUGGESTED.items() if x in SYSTEMS}
@@ -931,6 +945,7 @@ def video(argv):
     elif argv[:1] != ["show"]:
         say(video.__doc__ + "\n  nekozame-emu video look real|clean|manual|none\n"
             "  nekozame-emu video region eu|us|jp       yours, for games that came out everywhere\n"
+            "  nekozame-emu video imports own|home      other regions' games on their display, or yours\n"
             "  nekozame-emu video refresh               the shaders again for new, renamed or removed games\n"
             "  nekozame-emu video aspect console|wide|stretch\n"
             "  nekozame-emu video resolution recommended|native|NUMBER\n"
@@ -949,7 +964,8 @@ def video(argv):
     say("  resolution: " + ", ".join(f"{SYSTEMS[x][0]} {scale_for(x, v, m)}x" for x in ("psx", "n64", "ps2", "gc", "psp")))
     look = v.get("look", "manual")
     if look == "real":
-        say(f"  shaders: real display look per region and platform ({LOOK_REGIONS[home_region(v)]})")
+        imports = ", imports on yours" if v.get("imports") == "home" else ""
+        say(f"  shaders: real display look per region and platform ({LOOK_REGIONS[home_region(v)]}{imports})")
     elif look == "clean":
         say("  shaders: sharp pixels, no CRT shader")
     elif look == "manual":
@@ -1017,6 +1033,11 @@ def video_menu(v, m):
         r = gum("choose", "--header", "Where did you grow up playing? Games sold everywhere look like they did there.",
                 "--selected", LOOK_REGIONS[home], *LOOK_REGIONS.values())
         v["region"] = next((k for k, n in LOOK_REGIONS.items() if n == r), home)
+        OWN = "On their own region's display (recommended)"
+        HOME = "On my region's display, like an import"
+        r = gum("choose", "--header", "Games from other regions:",
+                "--selected", HOME if v.get("imports") == "home" else OWN, OWN, HOME)
+        v["imports"] = "home" if r == HOME else "own"
         say("  Each game now gets the display it was most likely played on, per region and platform.")
         return v
     if pick in (CLEAN, NONE):

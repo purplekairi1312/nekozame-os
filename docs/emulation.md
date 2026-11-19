@@ -183,7 +183,7 @@ A menu for this machine's aspect ratio, resolution and shaders. Each machine has
 ![The console's own shape with bars at the sides, widescreen showing more of the scene, and stretched](../system_files/usr/share/nekozame-os/emulation/shapes.png)
 
 - **Resolution:** for the 3D consoles (PS1, N64, PS2, GameCube, Wii, PSP). "Recommended" is picked from this machine's screen and graphics: high enough to fill the screen, but no higher than the machine runs at full speed. On a Steam Deck: PS1 2x, N64 3x, PS2 1x, GameCube 2x, PSP 3x. "Native" is the console's own; a number picks the scale yourself.
-- **Shaders:** the real display look (recommended), sharp pixels, a shader chosen per system, or none. The real display look gives each game the display it was most likely played on, per region and platform (a TV, an arcade monitor, a computer monitor, a handheld's own screen), plugged in the way most people did back then. The region comes from the game's name ("(Europe)", "(Japan)"), or its folder (`megadrivejp`, `genesis`), or where you grew up playing, for games and folders sold everywhere. "Sharp pixels" has no CRT shader; handhelds keep their screen's grid.
+- **Shaders:** the real display look (recommended), sharp pixels, a shader chosen per system, or none. The real display look gives each game the display it was most likely played on, per region and platform (a TV, an arcade monitor, a computer monitor, a handheld's own screen), plugged in the way most people did back then. The region comes from the game's name ("(Europe)", "(Japan)"), or its folder (`megadrivejp`, `genesis`), or where you grew up playing, for games and folders sold everywhere. Games from other regions can play on their own region's display (the default) or on yours, as an import would have. "Sharp pixels" has no CRT shader; handhelds keep their screen's grid.
 
 | | USA | Japan | Europe |
 |---|---|---|---|
@@ -221,7 +221,7 @@ The Royale ones are heavy, but a Steam Deck runs them at the consoles' native re
 
 "Suggested" sets what the emulation community most often uses for each system: Guest's CRT for the 8 and 16-bit consoles, Royale NTSC for PS1, Saturn, N64, 3DO and Jaguar, CRT Lottes for arcade games, and each handheld's own screen.
 
-Without the menu: `nekozame-emu video look real` (or `clean`, `manual`, `none`), `nekozame-emu video region eu` (or `us`, `jp`), `nekozame-emu video aspect wide`, `nekozame-emu video resolution 4`, `nekozame-emu video shader crt-pal psx saturn n64`, `nekozame-emu video shader suggested`, `nekozame-emu video shader off`. `nekozame-emu video shaders` lists them.
+Without the menu: `nekozame-emu video look real` (or `clean`, `manual`, `none`), `nekozame-emu video region eu` (or `us`, `jp`), `nekozame-emu video imports home` (or `own`), `nekozame-emu video aspect wide`, `nekozame-emu video resolution 4`, `nekozame-emu video shader crt-pal psx saturn n64`, `nekozame-emu video shader suggested`, `nekozame-emu video shader off`. `nekozame-emu video shaders` lists them.
 
 ### RetroAchievements
 
