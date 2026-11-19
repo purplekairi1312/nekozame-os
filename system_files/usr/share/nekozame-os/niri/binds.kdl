@@ -1,8 +1,8 @@
 // nekozame os shortcuts (nekozame-mac has the same on a Mac, with Cmd as Super).
 // this replaces dankmaterialshell's binds file.
-//   Super      windows: focus, move, size (Super+F maximize, Super+arrows focus), and
-//              apps, like Cmd on a Mac: Super+C/V/X/Z/S/W copy, paste, cut, undo,
-//              save, close tab (xremap turns them into what each app expects), plus
+//   Super      windows: focus, move, size (Super+Ctrl+F maximize, Super+arrows focus), and
+//              apps, like Cmd on a Mac: Super+C/V/X/Z/S/W/F copy, paste, cut, undo,
+//              save, close tab, find (xremap turns them into what each app expects), plus
 //              launching things. window actions on those letters take Super+Alt
 //   Alt+1-9    workspaces
 binds {
@@ -56,8 +56,8 @@ binds {
     Super+End  { focus-column-last; }
     Super+Shift+Home { move-column-to-first; }
     Super+Shift+End  { move-column-to-last; }
-    Super+F       hotkey-overlay-title="Maximize" { maximize-column; }
-    Super+Shift+F hotkey-overlay-title="Fullscreen" { fullscreen-window; }
+    Super+Ctrl+F       hotkey-overlay-title="Maximize" { maximize-column; }
+    Super+Ctrl+Shift+F hotkey-overlay-title="Fullscreen" { fullscreen-window; }
     Super+R       { switch-preset-column-width; }
     Super+Shift+R { switch-preset-window-height; }
     Super+Minus       { set-column-width "-10%"; }
