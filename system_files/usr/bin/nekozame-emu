@@ -928,6 +928,21 @@ def gum(*args):
     return r.stdout.strip() if r.returncode == 0 else None
 
 
+def show_picture(path, cols=60):
+    """a picture in the terminal (kitty graphics, through tmux too: kitty-logo); where the
+    terminal can't, where it is instead."""
+    if not os.path.exists(path):
+        return
+    if shutil.which("kitty-logo") and subprocess.run(["kitty-logo", "--probe"], capture_output=True).returncode == 0:
+        r = subprocess.run(["kitty-logo", path, str(cols)], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+        rows = r.stdout.split()[0] if r.returncode == 0 and r.stdout.split() else None
+        if rows and os.path.exists(rows):
+            sys.stdout.write(open(rows).read() + "\n")
+            sys.stdout.flush()
+            return
+    say(f"  (how each one looks: {path})")
+
+
 def video_menu(v, m):
     (w, h), tier, what = m
     rec = ", ".join(f"{SYSTEMS[x][0]} {scale_for(x, {**v, 'resolution': 'recommended', 'shader': 'off'}, m)}x"
@@ -954,6 +969,7 @@ def video_menu(v, m):
     MANUAL = "Per system: pick the shaders yourself"
     NONE = "None: as the emulators draw them"
     sel = {"real": REAL, "clean": CLEAN, "manual": MANUAL}.get(v.get("look"), REAL)
+    show_picture(os.path.join(USR, "share/nekozame-os/emulation/looks.png"))
     say("  like back then: Europe on RGB SCART TVs (PAL for the early ones), Japan over S-Video")
     say("  (the Mega Drive on RGB), America over composite; arcade monitors, computer monitors,")
     say("  handheld screens. by each game's region, and lighter on handhelds")

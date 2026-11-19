@@ -192,6 +192,10 @@ A menu for this machine's aspect ratio, resolution and shaders. Each machine has
 
 Arcade games get an arcade monitor; the C64 a Commodore 1702 monitor; the Amiga and Amstrad CPC an RGB monitor; PC-88, PC-98 and DOS a sharp monitor; the Vectrex a vector screen; each handheld its own LCD. The NTSC ones match the console's picture width (256 or 320 pixels). On a Steam Deck or built-in graphics, each display has a lighter version.
 
+![The same picture through each display: composite, S-Video, RGB SCART, the Sony KV-M1420B, a PAL TV, an arcade monitor, the Commodore 1702, the Game Boy Advance's screen, and clean](../system_files/usr/share/nekozame-os/emulation/looks.png)
+
+The picture is drawn by `art/looks/scene.py` and shown through RetroArch's own shaders by `art/looks/render`; the setup shows it too, in terminals that draw pictures.
+
 RetroArch picks them itself: one per folder, and one per game for games that differ from their folder (or have a folder of their own).
 
 - **Shaders per system:** each for the systems you choose. They're RetroArch's own, so they cover the systems RetroArch plays (PCSX2, Dolphin and PPSSPP have their own filters). Systems with a CRT shader stay at their native resolution, since that's what CRT shaders are made for. Those cores are switched to OpenGL, which the shaders need.

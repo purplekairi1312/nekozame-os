@@ -1,0 +1,90 @@
+#!/usr/bin/env python3
+# render OUT.png: the "like back then" displays side by side, for the setup's menu and the
+# emulation guide. each one is the scene (scene.py) shown through RetroArch's own shader for
+# it (RetroArch's image viewer, a few frames, a screenshot), the same close-up cut from each,
+# with its name under it. run where RetroArch's flatpak is, in a desktop session (a window
+# opens for a moment per display).
+import os
+import subprocess
+import sys
+import tempfile
+from PIL import Image, ImageDraw, ImageFont
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+GLSL = "/app/share/libretro/shaders/shaders_glsl"
+# what the tile says, the shader, the scene (its width)
+TILES = [
+    ("USA · composite", "crt/crt-royale-ntsc-320px-composite", 320),
+    ("Japan · S-Video", "crt/crt-royale-ntsc-320px-svideo", 320),
+    ("Europe · RGB SCART", "crt/crt-royale", 320),
+    ("Japan · RGB, Sony KV-M1420B", "crt/crt-yo6-KV-M1420B", 320),
+    ("Europe · PAL TV (8-bit)", "crt/crt-royale-pal-r57shell", 256),
+    ("Arcade monitor", "crt/crt-lottes", 320),
+    ("Commodore 1702 (C64)", "presets/c64-monitor", 320),
+    ("Game Boy Advance screen", "handheld/lcd-grid-v2-gba-color", 240),
+    ("Clean", "interpolation/sharp-bilinear-simple", 320),
+]
+TILE = (640, 480)
+LABEL = 40
+COLS = 3
+BG, TEXT = (67, 58, 85), (255, 212, 238)
+CFG = """video_driver = "gl"
+video_fullscreen = "false"
+video_scale = "4.000000"
+video_gpu_screenshot = "true"
+notification_show_screenshot = "false"
+video_font_enable = "false"
+pause_nonactive = "false"
+menu_enable_widgets = "false"
+"""
+
+
+def render(tmp, shader, width):
+    out = os.path.join(tmp, "shot.png")
+    if os.path.exists(out):
+        os.remove(out)
+    subprocess.run(["flatpak", "run", f"--filesystem={tmp}", "org.libretro.RetroArch",
+                    f"--appendconfig={tmp}/cfg", f"--set-shader={GLSL}/{shader}.glslp",
+                    "--max-frames=120", "--max-frames-ss", f"--max-frames-ss-path={out}",
+                    os.path.join(tmp, f"scene-{width}.png")],
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=120)
+    im = Image.open(out).convert("RGB")
+    # the picture without the window's black bars around it
+    box = im.point(lambda v: 255 if v > 12 else 0).convert("L").getbbox() or (0, 0, *im.size)
+    im = im.crop(box)
+    # nearly all of it (the edges are where some displays curve and darken)
+    w, h = im.size
+    if width == 240:
+        return im.resize(TILE, Image.LANCZOS)
+    crop = im.crop((int(w * 0.04), int(h * 0.04), int(w * 0.96), int(h * 0.96)))
+    return crop.resize(TILE, Image.LANCZOS)
+
+
+def font(size):
+    for f in ("/usr/share/fonts/dejavu-sans-fonts/DejaVuSans-Bold.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+              "/usr/share/fonts/google-noto/NotoSans-Bold.ttf"):
+        if os.path.exists(f):
+            return ImageFont.truetype(f, size)
+    return ImageFont.load_default()
+
+
+def main():
+    out = sys.argv[1] if len(sys.argv) > 1 else "looks.png"
+    with tempfile.TemporaryDirectory() as tmp:
+        subprocess.run([sys.executable, os.path.join(HERE, "scene.py"), tmp], check=True, stdout=subprocess.DEVNULL)
+        open(os.path.join(tmp, "cfg"), "w").write(CFG)
+        rows = -(-len(TILES) // COLS)
+        sheet = Image.new("RGB", (COLS * TILE[0], rows * (TILE[1] + LABEL)), BG)
+        d, f = ImageDraw.Draw(sheet), font(24)
+        for i, (label, shader, width) in enumerate(TILES):
+            x, y = (i % COLS) * TILE[0], (i // COLS) * (TILE[1] + LABEL)
+            sheet.paste(render(tmp, shader, width), (x, y))
+            d.text((x + 12, y + TILE[1] + 6), label, fill=TEXT, font=f)
+            print("  ✓", label)
+    # small enough for a terminal and the repo: what a terminal shows is about this wide
+    sheet = sheet.resize((1440, sheet.height * 1440 // sheet.width), Image.LANCZOS)
+    sheet.save(out, optimize=True)
+    print(out, sheet.size, os.path.getsize(out) // 1024, "KB")
+
+
+main()
