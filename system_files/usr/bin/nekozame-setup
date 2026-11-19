@@ -3,7 +3,7 @@
 # login; run it again any time with ujust nekozame-setup. what's done stays done.
 #   on for everyone: zen with the privacy extensions, tailscale, sunshine,
 #   doom emacs, the theme and wallpaper, and the theme in zen, discord and bitwig
-#   asked: your screens (niri), logging in automatically, emulation, evil mode or another editor, music
+#   asked: your screens and the dock (niri), fonts, logging in automatically, emulation, evil mode or another editor, music
 #   production, helium
 set -uo pipefail
 [ -r /usr/share/nekozame-os/colors.sh ] && . /usr/share/nekozame-os/colors.sh  # gum in nekozame's colours
@@ -52,6 +52,18 @@ if [ -s "${XDG_CONFIG_HOME:-$HOME/.config}/nekozame/fonts" ]; then
     ok "set (change them: ujust nekozame-fonts)"
 else
     nekozame-fonts || true
+fi
+
+# the dock: dms's own, off unless you want it (dms remembers the choice)
+if [ -n "${NIRI_SOCKET:-}" ] || ls "${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"/niri.wayland-*.sock >/dev/null 2>&1; then
+    step "The dock"
+    NODOCK="No dock (recommended)"; DOCK="A dock at the bottom"; HIDING="A dock that hides until the mouse reaches it"
+    case "$(dms ipc call dock status 2>/dev/null)" in visible) now="$DOCK" ;; *) now="$NODOCK" ;; esac
+    case "$(gum choose --header "A dock for your apps?" --selected="$now" "$NODOCK" "$DOCK" "$HIDING")" in
+        "$DOCK") dms ipc call dock reveal >/dev/null && dms ipc call dock manualHide >/dev/null && ok "a dock at the bottom" ;;
+        "$HIDING") dms ipc call dock reveal >/dev/null && dms ipc call dock autoHide >/dev/null && ok "a dock that hides" ;;
+        "$NODOCK") dms ipc call dock hide >/dev/null; ok "no dock (change it: DMS's settings, Super+,)" ;;
+    esac
 fi
 
 step "Zen browser"
