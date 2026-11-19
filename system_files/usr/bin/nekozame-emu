@@ -909,9 +909,9 @@ def video(argv):
     say("  resolution: " + ", ".join(f"{SYSTEMS[x][0]} {scale_for(x, v, m)}x" for x in ("psx", "n64", "ps2", "gc", "psp")))
     look = v.get("look", "manual")
     if look == "real":
-        say(f"  look: like on an old TV ({LOOK_REGIONS[home_region(v)]})")
+        say(f"  shaders: real CRT look per region ({LOOK_REGIONS[home_region(v)]})")
     elif look == "clean":
-        say("  look: sharp pixels, no TV effect")
+        say("  shaders: sharp pixels, no CRT shader")
     elif look == "manual":
         by = {}
         for x, name in v["shaders"].items():
@@ -964,20 +964,20 @@ def video_menu(v, m):
     elif pick:
         v["resolution"] = next(k for k, n in SHARP.items() if n == pick)
     # the look: an old TV, sharp pixels, per system, or none
-    REAL = "Like on an old TV (recommended)"
-    CLEAN = "Sharp pixels, no TV effect"
-    MANUAL = "Choose for each system"
-    NONE = "No filter"
+    REAL = "Real CRT look: the TV each game was played on in its region (recommended)"
+    CLEAN = "Sharp pixels, no CRT shader"
+    MANUAL = "Choose a shader for each system"
+    NONE = "No shader"
     sel = {"real": REAL, "clean": CLEAN, "manual": MANUAL}.get(v.get("look"), REAL)
     show_picture(os.path.join(USR, "share/nekozame-os/emulation/looks.png"))
-    pick = gum("choose", "--header", "How should old games look?", "--selected", sel, REAL, CLEAN, MANUAL, NONE)
+    pick = gum("choose", "--header", "Shaders: how should old games look?", "--selected", sel, REAL, CLEAN, MANUAL, NONE)
     if pick == REAL:
         v["look"] = "real"
         home = home_region(v)
         r = gum("choose", "--header", "Where did you grow up playing? Games sold everywhere look like they did there.",
                 "--selected", LOOK_REGIONS[home], *LOOK_REGIONS.values())
         v["region"] = next((k for k, n in LOOK_REGIONS.items() if n == r), home)
-        say("  Each game now looks like it did on a TV in its own country.")
+        say("  Each game now gets the CRT it was played on in its region.")
         return v
     if pick in (CLEAN, NONE):
         v["look"] = "clean" if pick == CLEAN else "none"
