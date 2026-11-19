@@ -14,6 +14,7 @@ check "sunshine, with the screen capture right" 'getcap "$(readlink -f /usr/bin/
 # dms's shell on this quickshell: a dms newer than its quickshell can't start (a black
 # screen after login, 2026-11-19). started without a screen it stops later anyway; what
 # matters is that quickshell understands it (an unknown pragma is an error there)
+check "pygame (the frontend theme's pages, the box covers)" 'python3 -c "import pygame"'
 check "DMS's shell runs on this quickshell" '[ ! -d /usr/share/quickshell/dms ] || { t=$(mktemp -d); env -i HOME=$t XDG_RUNTIME_DIR=$t PATH=/usr/bin QT_QPA_PLATFORM=offscreen timeout 15 qs -p /usr/share/quickshell/dms/shell.qml >$t/out 2>&1; ! grep -q "ERROR.*Unrecognized pragma" $t/out; }'
 check "mpvpaper" 'command -v mpvpaper'
 check "quickemu" 'command -v quickemu && command -v quickget'

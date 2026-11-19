@@ -41,6 +41,9 @@ if [ "${VARIANT:-amd}" != deck ]; then
     retry dnf5 -y install xdg-desktop-portal-gnome
     # dms's media widget draws an audio visualizer on the bar with cava
     retry dnf5 -y install cava
+    # pygame: the frontend theme's magazine pages and the box covers are drawn with it
+    # (the deck gets it with its first-boot setup)
+    retry dnf5 -y install python3-pygame
     dnf5 -y copr disable avengemedia/dms
     dnf5 -y copr disable avengemedia/danklinux || true
 
