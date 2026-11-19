@@ -950,6 +950,7 @@ def video_menu(v, m):
     say(f"  This computer: {w}x{h}, {what}")
     SHAPE = {"console": "The console's own shape (recommended)", "wide": "Widescreen, where the game allows it",
              "stretch": "Stretched to fill the screen"}
+    show_picture(os.path.join(USR, "share/nekozame-os/emulation/shapes.png"))
     pick = gum("choose", "--header", "What shape should the picture be?",
                "--selected", SHAPE.get(v["aspect"], SHAPE["console"]), *SHAPE.values())
     v["aspect"] = next((k for k, n in SHAPE.items() if n == pick), v["aspect"])

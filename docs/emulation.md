@@ -179,7 +179,9 @@ nekozame-emu video
 
 A menu for this machine's aspect ratio, resolution and shaders. Each machine has its own: the settings file isn't shared, so the Deck and the PC can differ.
 
-- **Aspect ratio:** the console's own shape (4:3 for PS1, Saturn, N64, with bars at the sides), widescreen hacks where the emulator has them (PS1, N64, PS2, GameCube), or fill the screen.
+- **Shape:** the console's own shape (4:3 for PS1, Saturn, N64, with bars at the sides), widescreen hacks where the emulator has them (PS1, N64, PS2, GameCube), or fill the screen.
+![The console's own shape with bars at the sides, widescreen showing more of the scene, and stretched](../system_files/usr/share/nekozame-os/emulation/shapes.png)
+
 - **Resolution:** for the 3D consoles (PS1, N64, PS2, GameCube, Wii, PSP). "Recommended" is picked from this machine's screen and graphics: high enough to fill the screen, but no higher than the machine runs at full speed. On a Steam Deck: PS1 2x, N64 3x, PS2 1x, GameCube 2x, PSP 3x. "Native" is the console's own; a number picks the scale yourself.
 - **How old games look:** like on an old TV (recommended), sharp pixels, chosen per system, or no filter. "Like on an old TV" shows each game the way it looked in its own country, on what most people plugged it into back then. The region comes from the game's name ("(Europe)", "(Japan)"), or its folder (`megadrivejp`, `genesis`), or where you grew up playing, for games and folders sold everywhere. "Sharp pixels" has no TV effect; handhelds keep their screen's grid.
 
