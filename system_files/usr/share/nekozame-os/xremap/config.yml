@@ -1,7 +1,7 @@
 # nekozame os: Super works like Cmd on a Mac. xremap turns Super+key into the key
 # each app expects: Ctrl in apps, Ctrl+Shift in terminals (so Ctrl+C there still
 # stops a program). emacs is left alone: doom binds Super+C/V/X itself, and Ctrl+C
-# stays emacs's prefix. Super+T, Super+Q, Super+E, Super+B, the window keys (Super+Ctrl+F,
+# stays emacs's prefix. Super+T, Super+Q, Super+E, Super+B, the window keys (Super+F,
 # Super+R, Super+O, Super+-/=, Super+arrows) and the rest are niri's (../niri/binds.kdl). your own: ~/.config/nekozame/keys.yml
 keymap:
   - name: terminals
@@ -10,7 +10,6 @@ keymap:
     remap:
       Super-c: C-Shift-c
       Super-v: C-Shift-v
-      Super-f: C-Shift-f
       Super-w: C-Shift-w
       Super-n: C-Shift-n
       Super-a: C-Shift-a
@@ -25,7 +24,6 @@ keymap:
       Super-z: C-z
       Super-Shift-z: C-Shift-z
       Super-a: C-a
-      Super-f: C-f
       Super-s: C-s
       Super-Shift-s: C-Shift-s
       Super-w: C-w
