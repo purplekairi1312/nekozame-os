@@ -6,6 +6,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 INSTALL_IMAGE_PAYLOAD=${INSTALL_IMAGE_PAYLOAD:?}
 
 mkdir -p "$(realpath /root)"
+# the desktop's versions now: still the same at the end (checked there)
+desktop_before="$(rpm -q quickshell dms 2>/dev/null || true)"
 # bwrap writes /proc/sys/user/max_user_namespaces, mounted read-only here
 mount -o remount,rw /proc/sys
 
@@ -95,4 +97,11 @@ mkdir /mnt
 
 mkdir -p /usr/lib/bootc-image-builder
 cp /src/iso.yaml /usr/lib/bootc-image-builder/iso.yaml
+# the live desktop as the image had it: a quickshell that dms doesn't match comes up black
+if [ "$(rpm -q quickshell dms 2>/dev/null || true)" != "$desktop_before" ]; then
+    echo "the live desktop changed while the installer was added:" >&2
+    echo "  before: $desktop_before" >&2
+    echo "  after:  $(rpm -q quickshell dms 2>/dev/null)" >&2
+    exit 1
+fi
 dnf clean all

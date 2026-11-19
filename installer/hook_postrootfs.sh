@@ -4,6 +4,9 @@
 set -exo pipefail
 
 dnf -qy versionlock clear
+# the desktop stays the image's own: installing the installer's programs once swapped dms's
+# quickshell for fedora's older one, and the live desktop came up black
+dnf -qy versionlock add quickshell dms
 dnf install -qy --enable-repo=fedora-cisco-openh264 --allowerasing firefox anaconda-live libblockdev-{btrfs,lvm,dm}
 mkdir -p /var/lib/rpm-state  # for Anaconda's web interface
 dnf install -qy --setopt=install_weak_deps=0 qrencode yad
