@@ -183,7 +183,7 @@ A menu for this machine's aspect ratio, resolution and shaders. Each machine has
 ![The console's own shape with bars at the sides, widescreen showing more of the scene, and stretched](../system_files/usr/share/nekozame-os/emulation/shapes.png)
 
 - **Resolution:** for the 3D consoles (PS1, N64, PS2, GameCube, Wii, PSP). "Recommended" is picked from this machine's screen and graphics: high enough to fill the screen, but no higher than the machine runs at full speed. On a Steam Deck: PS1 2x, N64 3x, PS2 1x, GameCube 2x, PSP 3x. "Native" is the console's own; a number picks the scale yourself.
-- **Shaders:** the real CRT look (recommended), sharp pixels, a shader chosen per system, or none. The real CRT look gives each game the TV it was played on, per region and platform, plugged in the way most people did back then. The region comes from the game's name ("(Europe)", "(Japan)"), or its folder (`megadrivejp`, `genesis`), or where you grew up playing, for games and folders sold everywhere. "Sharp pixels" has no CRT shader; handhelds keep their screen's grid.
+- **Shaders:** the real CRT look (recommended), sharp pixels, a shader chosen per system, or none. The real CRT look gives each game the TV it was most likely played on, per region and platform, plugged in the way most people did back then. The region comes from the game's name ("(Europe)", "(Japan)"), or its folder (`megadrivejp`, `genesis`), or where you grew up playing, for games and folders sold everywhere. "Sharp pixels" has no CRT shader; handhelds keep their screen's grid.
 
 | | USA | Japan | Europe |
 |---|---|---|---|

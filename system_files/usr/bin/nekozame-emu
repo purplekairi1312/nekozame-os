@@ -964,7 +964,7 @@ def video_menu(v, m):
     elif pick:
         v["resolution"] = next(k for k, n in SHARP.items() if n == pick)
     # the look: an old TV, sharp pixels, per system, or none
-    REAL = "Real CRT look: the TV each game was played on, per region and platform (recommended)"
+    REAL = "Real CRT look: the TV each game was most likely played on, per region and platform (recommended)"
     CLEAN = "Sharp pixels, no CRT shader"
     MANUAL = "Choose a shader for each system"
     NONE = "No shader"
@@ -977,7 +977,7 @@ def video_menu(v, m):
         r = gum("choose", "--header", "Where did you grow up playing? Games sold everywhere look like they did there.",
                 "--selected", LOOK_REGIONS[home], *LOOK_REGIONS.values())
         v["region"] = next((k for k, n in LOOK_REGIONS.items() if n == r), home)
-        say("  Each game now gets the CRT it was played on, per region and platform.")
+        say("  Each game now gets the CRT it was most likely played on, per region and platform.")
         return v
     if pick in (CLEAN, NONE):
         v["look"] = "clean" if pick == CLEAN else "none"
