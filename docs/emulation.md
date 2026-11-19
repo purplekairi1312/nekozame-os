@@ -181,7 +181,7 @@ A menu for this machine's aspect ratio, resolution and shaders. Each machine has
 
 - **Aspect ratio:** the console's own shape (4:3 for PS1, Saturn, N64, with bars at the sides), widescreen hacks where the emulator has them (PS1, N64, PS2, GameCube), or fill the screen.
 - **Resolution:** for the 3D consoles (PS1, N64, PS2, GameCube, Wii, PSP). "Recommended" is picked from this machine's screen and graphics: high enough to fill the screen, but no higher than the machine runs at full speed. On a Steam Deck: PS1 2x, N64 3x, PS2 1x, GameCube 2x, PSP 3x. "Native" is the console's own; a number picks the scale yourself.
-- **How games look:** "like back then" (recommended), "clean", per system, or none. Like back then draws each game the way it looked where it was sold, with what most people plugged it into. The region comes from the game's name ("(Europe)", "(Japan)"), or its folder (`megadrivejp`, `genesis`), or yours for games and folders that came out everywhere. "Clean" is crisp pixels, with handhelds on their own screens.
+- **How old games look:** like on an old TV (recommended), sharp pixels, chosen per system, or no filter. "Like on an old TV" shows each game the way it looked in its own country, on what most people plugged it into back then. The region comes from the game's name ("(Europe)", "(Japan)"), or its folder (`megadrivejp`, `genesis`), or where you grew up playing, for games and folders sold everywhere. "Sharp pixels" has no TV effect; handhelds keep their screen's grid.
 
 | | USA | Japan | Europe |
 |---|---|---|---|
@@ -192,9 +192,9 @@ A menu for this machine's aspect ratio, resolution and shaders. Each machine has
 
 Arcade games get an arcade monitor; the C64 a Commodore 1702 monitor; the Amiga and Amstrad CPC an RGB monitor; PC-88, PC-98 and DOS a sharp monitor; the Vectrex a vector screen; each handheld its own LCD. The NTSC ones match the console's picture width (256 or 320 pixels). On a Steam Deck or built-in graphics, each display has a lighter version.
 
-![The same picture through each display: composite, S-Video, RGB SCART, the Sony KV-M1420B, a PAL TV, an arcade monitor, the Commodore 1702, the Game Boy Advance's screen, and clean](../system_files/usr/share/nekozame-os/emulation/looks.png)
+![nekozame's wallpaper through each display: composite, S-Video, RGB SCART, the Sony KV-M1420B, a PAL TV, an arcade monitor, the Commodore 1702, the Game Boy Advance's screen, and clean](../system_files/usr/share/nekozame-os/emulation/looks.png)
 
-The picture is drawn by `art/looks/scene.py` and shown through RetroArch's own shaders by `art/looks/render`; the setup shows it too, in terminals that draw pictures.
+The picture is nekozame's wallpaper at its own pixels (`art/looks/scene.py`), shown through RetroArch's own shaders by `art/looks/render`; the setup shows it too, in terminals that draw pictures.
 
 RetroArch picks them itself: one per folder, and one per game for games that differ from their folder (or have a folder of their own).
 

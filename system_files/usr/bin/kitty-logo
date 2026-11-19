@@ -26,12 +26,35 @@ def cell_ratio():
             pass
     return 2.0
 
+_LAYERS = None
+def tmux_layers():
+    """how many tmux the picture goes through: this machine's ($TMUX), and the one on the
+    other end when someone came in over ssh from their own tmux (what this tmux says their
+    terminal is). without this machine's: the other end's, from $TERM"""
+    global _LAYERS
+    if _LAYERS is None:
+        import subprocess
+        def is_tmux(term):
+            return term.startswith(("tmux", "screen"))
+        if os.environ.get("TMUX"):
+            try:
+                client = subprocess.run(["tmux", "display", "-p", "#{client_termname}"], capture_output=True,
+                                        text=True, timeout=2).stdout.strip()
+            except (OSError, subprocess.SubprocessError):
+                client = ""
+            _LAYERS = 2 if is_tmux(client) else 1
+        else:
+            _LAYERS = 1 if is_tmux(os.environ.get("TERM", "")) else 0
+    return _LAYERS
+
 def through_tmux():
-    """inside tmux: this machine's ($TMUX), or the one you ssh'd in from (its TERM)"""
-    return bool(os.environ.get("TMUX")) or os.environ.get("TERM", "").startswith(("tmux", "screen"))
+    return tmux_layers() > 0
 
 def wrap(cmd):
-    return f"\033Ptmux;{cmd.replace(chr(27), chr(27) * 2)}\033\\" if through_tmux() else cmd
+    """the escape sequence passed through each tmux on the way to the terminal"""
+    for _ in range(tmux_layers()):
+        cmd = f"\033Ptmux;{cmd.replace(chr(27), chr(27) * 2)}\033\\"
+    return cmd
 
 def probe(wait=0.3):
     """ask the terminal for kitty graphics; True if it answers that it has them"""
