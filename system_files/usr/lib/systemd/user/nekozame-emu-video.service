@@ -1,0 +1,8 @@
+# the shaders following the library: presets for new games, none for games gone
+[Unit]
+Description=nekozame's shaders for the games in your library as it is now
+
+[Service]
+Type=oneshot
+Nice=10
+ExecStart=/usr/bin/nekozame-emu video refresh

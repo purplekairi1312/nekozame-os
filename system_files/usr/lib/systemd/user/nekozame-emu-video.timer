@@ -1,0 +1,10 @@
+# a few minutes after login, then every 6 hours
+[Unit]
+Description=nekozame's shaders kept up with your library
+
+[Timer]
+OnStartupSec=5min
+OnUnitActiveSec=6h
+
+[Install]
+WantedBy=timers.target

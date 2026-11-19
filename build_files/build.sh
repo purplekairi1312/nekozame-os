@@ -171,6 +171,7 @@ install -Dm0644 "$T/steam/nekozame.js" /usr/share/nekozame-os/steam/nekozame.js
 systemctl --global enable nekozame-steam-theme.service
 systemctl --global enable nekozame-audio-follow.service
 systemctl --global enable nekozame-emu-collections.service
+systemctl --global enable nekozame-emu-video.timer
 systemctl --global enable nekozame-ports-check.timer
 # cava's bars on tmux's status bar (every image, the deck's too: it has tmux)
 rpm -q cava >/dev/null || retry dnf5 -y install cava

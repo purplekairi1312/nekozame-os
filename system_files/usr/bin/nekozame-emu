@@ -785,12 +785,18 @@ def video_config(emu, s):
 
 
 def write_preset(path, name, preset):
-    """a preset pointing at retroarch's own (yours, if one is there, kept aside)."""
-    if os.path.exists(path) and OURS not in open(path, errors="replace").read():
-        shutil.copyfile(path, path + ".before-nekozame")
+    """a preset pointing at retroarch's own (yours, if one is there, kept aside). written
+    only when it changes: the refresh goes over the whole library every few hours"""
+    text = f'{OURS}: {name}\n#reference "{GLSL}/{preset}.glslp"\n'
+    if os.path.exists(path):
+        old = open(path, errors="replace").read()
+        if old == text:
+            return
+        if OURS not in old:
+            shutil.copyfile(path, path + ".before-nekozame")
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w") as f:
-        f.write(f'{OURS}: {name}\n#reference "{GLSL}/{preset}.glslp"\n')
+        f.write(text)
 
 
 def retroarch_shaders(v, m, s, base):
@@ -866,6 +872,12 @@ def video(argv):
         v["aspect"] = argv[1]
     elif argv[:1] == ["resolution"] and argv[1:2] and (argv[1] in ("native", "recommended") or argv[1].isdigit()):
         v["resolution"] = argv[1] if not argv[1].isdigit() else int(argv[1])
+    elif argv[:1] == ["refresh"]:
+        # the presets again, for the library as it is now (games added, renamed, gone):
+        # the timer runs it after login and every few hours
+        if installed(EMULATORS["retroarch"]["flatpak"]) and s.get("roms"):
+            video_config("retroarch", s)
+        return 0
     elif argv[:1] == ["look"] and argv[1:2] and argv[1] in ("real", "clean", "manual", "none"):
         v["look"] = argv[1]
     elif argv[:1] == ["region"] and argv[1:2] and argv[1] in LOOK_REGIONS:
@@ -892,6 +904,7 @@ def video(argv):
     elif argv[:1] != ["show"]:
         say(video.__doc__ + "\n  nekozame-emu video look real|clean|manual|none\n"
             "  nekozame-emu video region eu|us|jp       yours, for games that came out everywhere\n"
+            "  nekozame-emu video refresh               the shaders again for new, renamed or removed games\n"
             "  nekozame-emu video aspect console|wide|stretch\n"
             "  nekozame-emu video resolution recommended|native|NUMBER\n"
             "  nekozame-emu video shader NAME SYSTEM...   (off SYSTEM..., or off for none)\n"
