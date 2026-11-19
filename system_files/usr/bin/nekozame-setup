@@ -53,7 +53,7 @@ if flatpak info app.zen_browser.zen >/dev/null 2>&1; then
 else
     flatpak install --system -y flathub app.zen_browser.zen && ok "installed"
 fi
-echo "  dark reader, ublock origin, privacy badger, libredirect, clearurls and"
+echo "  dark reader, ublock origin, privacy badger, libredirect and"
 echo "  consent-o-matic come with it; duckduckgo, https-only, no telemetry."
 
 step "Music: Tauon, the player for your music"

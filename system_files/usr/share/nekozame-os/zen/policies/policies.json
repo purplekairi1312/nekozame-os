@@ -17,10 +17,6 @@
         "installation_mode": "normal_installed",
         "install_url": "https://addons.mozilla.org/firefox/downloads/latest/libredirect/latest.xpi"
       },
-      "{74145f27-f039-47ce-a470-a662b129930a}": {
-        "installation_mode": "normal_installed",
-        "install_url": "https://addons.mozilla.org/firefox/downloads/latest/clearurls/latest.xpi"
-      },
       "gdpr@cavi.au.dk": {
         "installation_mode": "normal_installed",
         "install_url": "https://addons.mozilla.org/firefox/downloads/latest/consent-o-matic/latest.xpi"

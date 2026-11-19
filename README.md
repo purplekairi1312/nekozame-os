@@ -5,13 +5,14 @@
 Opinionated immutable distro.
 
 - [niri](https://github.com/niri-wm/niri) with [DankMaterialShell](https://github.com/AvengeMedia/DankMaterialShell), login screen included
-- Mac-style keys: Super works like Cmd (Super+C/V/X to copy and paste, Super+Q to close), Ctrl+Alt moves windows, Alt+1-9 switches workspaces. The same on a Mac with [nekozame-mac](https://git.sr.ht/~purplekairi1312/nekozame-mac). Super+Shift+/ shows them all
+- Mac-style keys: Super works like Cmd (Super+C/V/X to copy and paste, Super+Q to close), and Super moves windows too (Super+F to maximize, Super+arrows to move between them), Alt+1-9 switches workspaces. The same on a Mac with [nekozame-mac](https://git.sr.ht/~purplekairi1312/nekozame-mac), with Cmd. Super+Shift+/ shows them all
 - Gaming, and emulation for a local library or one on a network share, saves synced between machines ([how it works](docs/emulation.md)) (and NVIDIA drivers on the NVIDIA image)
 - Doom Emacs as `$EDITOR`, always running as a daemon, emacs keys (evil mode or another editor if you want)
 - Low-latency audio with realtime priority for everyone, and music production on request: Bitwig, Reaper or Renoise (proprietary, paid), Ardour or LMMS (free software), a checklist of about 700 plugins from Audinux that every DAW finds, and yabridge for Microsoft Windows plugins
 - Sunshine always on, so you can stream it from anywhere over Tailscale with Moonlight
-- Zen, ready for privacy: Dark Reader, uBlock Origin, Privacy Badger, LibRedirect, ClearURLs, Consent-O-Matic and nekojs (LibreJS made simple), DuckDuckGo, HTTPS-only, no telemetry, no WebRTC leaks (Helium optional, with the same)
+- Zen, ready for privacy: Dark Reader, uBlock Origin, Privacy Badger, LibRedirect, Consent-O-Matic and nekojs (LibreJS made simple), DuckDuckGo, HTTPS-only, no telemetry, no WebRTC leaks (Helium optional, with the same)
 - Microsoft Windows VMs with quickemu (`quickget windows 11`) on top of libvirt and virt-manager
+- Other Linux distros' apps with distrobox (an Arch, Ubuntu or Debian box, its apps in your menu)
 - A little catshark swimming as your boot screen and wallpaper, sharp on any screen shape, with the nekozame logo small, big or not at all (`ujust nekozame-wallpaper`) <3
 
 On your first login, a short setup turns all of it on and asks about the optional bits. Run it again with `ujust nekozame-setup`; everything else is under `ujust`.
@@ -30,7 +31,7 @@ Pick the image for your machine:
 
 ### From another Fedora Atomic system
 
-Install [Bazzite](https://bazzite.gg) (or any Universal Blue or Fedora Atomic image) first, then switch to nekozame os. Your files, Flatpaks and settings stay.
+From any Universal Blue or Fedora Atomic image, switch to nekozame os. Your files, Flatpaks and settings stay.
 
 ```sh
 IMAGE=nekozame-os   # or nekozame-os-nvidia, nekozame-os-deck
