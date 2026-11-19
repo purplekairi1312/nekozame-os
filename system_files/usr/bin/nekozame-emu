@@ -544,6 +544,129 @@ SUGGESTED = {
     "gb": "gameboy", "gbc": "lcd-gbc", "gba": "lcd-gba", "nds": "lcd-nds",
     **{x: "lcd" for x in ("gamegear", "ngp", "ngpc", "wonderswan", "wonderswancolor", "atarilynx")},
 }
+# "look": "real" draws each game the way it looked where it was sold, by the console's era
+# and the region (the folder's, or the game's own from its name: "(Europe)", "(Japan)"):
+# what most people plugged it into back then. "clean": crisp pixels, handhelds' screens.
+# "manual": the shaders above, per system. "none". "region": yours, for games and folders
+# that came out everywhere (eu, us, jp)
+# a display: its full preset, its light one (handhelds, built-in graphics), what it is
+DISPLAYS = {
+    "composite-256": ("crt/crt-royale-ntsc-256px-composite", "presets/fakelottes-ntsc-composite", "an NTSC TV over composite or RF"),
+    "composite-320": ("crt/crt-royale-ntsc-320px-composite", "presets/fakelottes-ntsc-composite", "an NTSC TV over composite or RF"),
+    "svideo-256": ("crt/crt-royale-ntsc-256px-svideo", "presets/fakelottes-ntsc-svideo", "an NTSC TV over S-Video"),
+    "svideo-320": ("crt/crt-royale-ntsc-320px-svideo", "presets/fakelottes-ntsc-svideo", "an NTSC TV over S-Video"),
+    "pal": ("crt/crt-royale-pal-r57shell", "crt/gtuv50", "a PAL TV"),
+    "scart": ("crt/crt-royale", "presets/crt-consumer-light", "a TV over RGB SCART"),
+    "jp-rgb": ("crt/crt-yo6-KV-M1420B", "crt/crt-yo6-KV-M1420B-fast", "RGB on a Sony KV-M1420B"),
+    "arcade": ("crt/crt-lottes", "crt/crt-lottes-fast", "an arcade monitor"),
+    "c64": ("presets/c64-monitor", "presets/c64-monitor-fast", "a Commodore 1702 monitor"),
+    "rgb-monitor": ("crt/crt-royale", "crt/crt-guest-dr-venom-fast", "an RGB monitor"),
+    "sharp-monitor": ("interpolation/sharp-bilinear-simple", "interpolation/sharp-bilinear-simple", "a sharp computer monitor"),
+    "vector": ("presets/vector-glow", "presets/vector-glow", "a vector screen"),
+    "lcd": ("handheld/lcd-grid-v2", "handheld/lcd-grid-v2", "its LCD"),
+    "lcd-gbc": ("handheld/lcd-grid-v2-gbc-color", "handheld/lcd-grid-v2-gbc-color", "its LCD and colours"),
+    "lcd-gba": ("handheld/lcd-grid-v2-gba-color", "handheld/lcd-grid-v2-gba-color", "its LCD and colours"),
+    "lcd-nds": ("handheld/lcd-grid-v2-nds-color", "handheld/lcd-grid-v2-nds-color", "its LCDs and colours"),
+    "gameboy": ("handheld/gameboy", "handheld/gameboy", "its green dot matrix"),
+}
+# each system: its era (how it was plugged in), and its picture's width (256 or 320)
+ERAS = {
+    **{x: ("early", 256) for x in ("atari2600", "atari5200", "atari7800", "colecovision", "intellivision",
+                                   "odyssey2", "sg-1000", "nes", "fds", "mastersystem", "uzebox")},
+    **{x: ("16bit", 256) for x in ("snes", "sfc", "pcengine", "pcenginecd", "tg16", "tg-cd")},
+    **{x: ("16bit", 320) for x in ("megadrive", "megadrivejp", "genesis", "segacd", "megacd", "megacdjp",
+                                   "sega32x", "sega32xjp", "sega32xna", "neogeocd")},
+    **{x: ("32bit", 320) for x in ("psx", "saturn", "saturnjp", "n64", "3do", "atarijaguar", "pcfx", "dreamcast")},
+    **{x: ("arcade", 0) for x in ("arcade", "mame", "fbneo", "cps1", "cps2", "cps3", "neogeo", "naomi", "atomiswave")},
+    "c64": ("c64", 0), "amiga": ("rgb-monitor", 0), "amstradcpc": ("rgb-monitor", 0),
+    "msx": ("msx", 256), "msx2": ("msx", 256), "zxspectrum": ("early", 256), "apple2": ("early", 256),
+    **{x: ("sharp-monitor", 0) for x in ("pc88", "pc98", "dos")},
+    "vectrex": ("vector", 0),
+    "gb": ("lcd", "gameboy"), "gbc": ("lcd", "lcd-gbc"), "gba": ("lcd", "lcd-gba"), "nds": ("lcd", "lcd-nds"),
+    **{x: ("lcd", "lcd") for x in ("gamegear", "ngp", "ngpc", "wonderswan", "wonderswancolor", "atarilynx",
+                                   "virtualboy", "pokemini")},
+}
+# what most people saw it on, by era and region (S-Video was on most Japanese TVs by the
+# 90s; SCART RGB was everywhere in Europe; America mostly used composite or RF)
+BY_ERA = {
+    "early": {"us": "composite", "jp": "composite", "eu": "pal"},
+    "16bit": {"us": "composite", "jp": "svideo", "eu": "scart"},
+    "32bit": {"us": "composite", "jp": "svideo", "eu": "scart"},
+    "msx": {"us": "composite", "jp": "jp-rgb", "eu": "scart"},
+}
+# a few machines that were plugged in their own way
+BY_SYSTEM = {
+    ("megadrivejp", "jp"): "jp-rgb", ("megadrive", "jp"): "jp-rgb", ("genesis", "jp"): "jp-rgb",  # sega's own 21-pin RGB cable
+    ("pcengine", "jp"): "composite", ("pcenginecd", "jp"): "composite",  # RF, or the AV booster's composite
+    ("zxspectrum", "us"): "pal", ("zxspectrum", "jp"): "pal",  # a UK machine: a PAL TV
+}
+# a folder's own region (the rest: yours)
+FOLDER_REGION = {
+    **{x: "us" for x in ("genesis", "segacd", "sega32xna", "tg16", "tg-cd", "apple2")},
+    **{x: "jp" for x in ("sfc", "fds", "megadrivejp", "megacdjp", "sega32xjp", "saturnjp", "pcengine",
+                         "pcenginecd", "pcfx", "pc88", "pc98")},
+    **{x: "eu" for x in ("megacd", "zxspectrum", "amstradcpc", "amiga")},
+}
+LOOK_REGIONS = {"eu": "Europe", "us": "USA", "jp": "Japan"}
+EU_TAGS = {"europe", "germany", "france", "spain", "italy", "uk", "united kingdom", "australia", "sweden",
+           "netherlands", "scandinavia", "nordic", "denmark", "finland", "norway", "portugal", "greece",
+           "pal", "austria", "switzerland", "belgium", "poland", "russia", "new zealand"}
+US_TAGS = {"usa", "us", "canada", "brazil", "korea", "asia", "hong kong", "taiwan", "ntsc", "ntsc-u", "mexico"}
+JP_TAGS = {"japan", "jp", "ntsc-j"}
+
+
+def home_region(v=None):
+    """yours: the setting, or a guess from the system's language (en_US, ja_JP...)."""
+    if v and v.get("region") in LOOK_REGIONS:
+        return v["region"]
+    lang = os.environ.get("LC_ALL") or os.environ.get("LANG") or ""
+    if lang.startswith("ja"):
+        return "jp"
+    if re.match(r"(en_US|en_CA|es_MX|es_US|pt_BR|ko|zh_TW)", lang):
+        return "us"
+    return "eu"
+
+
+def region_of(name, system, home):
+    """a game's region from its name's tags ("(USA, Europe)": yours if it's one of them),
+    or its folder's, or yours."""
+    found = []
+    for tag in re.findall(r"\(([^)]*)\)", name):
+        for part in (x.strip().lower() for x in tag.split(",")):
+            r = "eu" if part in EU_TAGS else "us" if part in US_TAGS else "jp" if part in JP_TAGS else None
+            if r and r not in found:
+                found.append(r)
+        if found:
+            break  # the first tag with a region is the region
+    if found:
+        return home if home in found else found[0]
+    return FOLDER_REGION.get(system, home)
+
+
+def display_for(system, region):
+    """the display this system's games were seen on in REGION, or None."""
+    era, width = ERAS.get(system, (None, 0))
+    if era is None:
+        return None
+    if era == "lcd":
+        return width  # the handheld's own screen
+    if era in ("arcade", "c64", "rgb-monitor", "sharp-monitor", "vector"):
+        return era
+    kind = BY_SYSTEM.get((system, region)) or BY_ERA.get(era, {}).get(region, "composite")
+    return f"{kind}-{width}" if kind in ("composite", "svideo") else kind
+
+
+def is_crt_look(system, v):
+    """whether SYSTEM is drawn with a crt (made for the console's own resolution)."""
+    look = v.get("look", "manual")
+    if look == "real":
+        d = display_for(system, home_region(v))
+        return bool(d) and d not in ("sharp-monitor", "vector") and not d.startswith(("lcd", "gameboy"))
+    if look == "manual":
+        return SHADERS.get(v["shaders"].get(system), ("", "", False))[2]
+    return False
+
+
 # the 3d consoles' own picture height, and the scales their emulators offer
 NATIVE = {"psx": 240, "n64": 240, "ps2": 448, "gc": 528, "wii": 528, "psp": 272}
 SCALES = {"psx": [1, 2, 4, 8, 16], "n64": list(range(1, 9)), "ps2": list(range(1, 9)),
@@ -560,6 +683,7 @@ CORE_DIRS = {"mednafen_psx_hw": "Beetle PSX HW", "mednafen_saturn": "Beetle Satu
 
 def video_settings(s=None):
     v = {**VIDEO, "shaders": {}, **(s or settings()).get("video", {})}
+    v.setdefault("look", "manual" if v["shaders"] else "none")
     if "shaderSystems" in v:  # the first version: one shader for a list of systems
         if v.get("shader") in SHADERS:
             v["shaders"] = {**{x: v["shader"] for x in v["shaderSystems"]}, **v["shaders"]}
@@ -604,7 +728,7 @@ def scale_for(system, v, m):
     """the internal resolution scale for SYSTEM: the setting, fitted to what its emulator offers."""
     (w, h), tier, _ = m
     res = v["resolution"]
-    if res == "native" or SHADERS.get(v["shaders"].get(system), ("", "", False))[2]:
+    if res == "native" or is_crt_look(system, v):
         return 1  # a crt shader is made for the console's own resolution
     if res == "recommended":
         want = min(-(-h // NATIVE[system]), CAPS[tier][system])  # enough to fill the screen
@@ -643,31 +767,7 @@ def video_config(emu, s):
         for core, o in opts.items():
             set_cfg(os.path.join(base, "retroarch-core-options.cfg"), o)
             set_cfg(os.path.join(base, "config", core, f"{core}.opt"), o)
-        # the shaders: a preset per core pointing at retroarch's own, and opengl for those
-        # cores (the presets are glsl); a core with none gets nekozame's preset taken out
-        wanted = {}
-        for x, name in v["shaders"].items():
-            if x in SYSTEMS and name in SHADERS and emulator_of(x)[0] == "retroarch":
-                core = core_dir(emulator_of(x)[1])
-                if core:
-                    wanted.setdefault(core, name)  # systems sharing a core: the first one's
-        everything = {core_dir(emulator_of(x)[1]) for x in SYSTEMS if emulator_of(x)[0] == "retroarch"}
-        for core in sorted(c for c in everything if c):
-            preset = os.path.join(base, "config", core, f"{core}.glslp")
-            name = wanted.get(core)
-            if name:
-                if os.path.exists(preset) and OURS not in open(preset, errors="replace").read():
-                    shutil.copyfile(preset, preset + ".before-nekozame")  # yours, kept
-                os.makedirs(os.path.dirname(preset), exist_ok=True)
-                with open(preset, "w") as f:
-                    f.write(f'{OURS}: {name}\n#reference "{GLSL}/{SHADERS[name][0]}.glslp"\n')
-                set_cfg(os.path.join(base, "config", core, f"{core}.cfg"),
-                        {"video_driver": "gl", "video_shader_enable": "true"})
-            elif os.path.exists(preset) and OURS in open(preset, errors="replace").read():
-                os.remove(preset)
-                if os.path.exists(preset + ".before-nekozame"):
-                    os.replace(preset + ".before-nekozame", preset)
-                unset_cfg(os.path.join(base, "config", core, f"{core}.cfg"), {"video_driver", "video_shader_enable"})
+        retroarch_shaders(v, m, s, base)
     elif emu == "pcsx2":
         ini = os.path.join(VAR, "net.pcsx2.PCSX2/config/PCSX2/inis/PCSX2.ini")
         set_ini(ini, "EmuCore/GS", {"upscale_multiplier": scale_for("ps2", v, m),
@@ -684,6 +784,79 @@ def video_config(emu, s):
         set_ini(ini, "DisplayLayout.Landscape", {"DisplayStretch": "True" if aspect == "stretch" else "False"})
 
 
+def write_preset(path, name, preset):
+    """a preset pointing at retroarch's own (yours, if one is there, kept aside)."""
+    if os.path.exists(path) and OURS not in open(path, errors="replace").read():
+        shutil.copyfile(path, path + ".before-nekozame")
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w") as f:
+        f.write(f'{OURS}: {name}\n#reference "{GLSL}/{preset}.glslp"\n')
+
+
+def retroarch_shaders(v, m, s, base):
+    """the presets retroarch picks itself: per game (the game's file name), per folder
+    (roms/megadrivejp: the folder's name), per core. "real" writes a folder's and the
+    games that differ from it; "manual" one per core. the ones nekozame-emu wrote before
+    and doesn't want now go (yours come back)."""
+    import glob
+    light = m[1] != "dgpu"
+    look = v.get("look", "manual")
+    want = {}  # path: (name, preset)
+    cores = set()
+    if look == "real":
+        home = home_region(v)
+        for root in (s.get("roms") or []):
+            for system in SYSTEMS:
+                if emulator_of(system)[0] != "retroarch" or system not in ERAS:
+                    continue
+                core = core_dir(emulator_of(system)[1])
+                folder = os.path.join(root, system)
+                if not core or not os.path.isdir(folder):
+                    continue
+                cores.add(core)
+                mine = display_for(system, FOLDER_REGION.get(system, home))
+                if mine:
+                    want[os.path.join(base, "config", core, f"{system}.glslp")] = (mine, DISPLAYS[mine][light])
+                for g in games(root, system):
+                    d = display_for(system, region_of(os.path.basename(g), system, home))
+                    # a game unlike its folder, or in a folder of its own (a game's discs)
+                    if d and (d != mine or os.path.dirname(g) != folder):
+                        stem = os.path.splitext(os.path.basename(g))[0]
+                        want[os.path.join(base, "config", core, f"{stem}.glslp")] = (d, DISPLAYS[d][light])
+    elif look == "clean":
+        for system in SYSTEMS:
+            if emulator_of(system)[0] == "retroarch" and system in ERAS:
+                core = core_dir(emulator_of(system)[1])
+                era, width = ERAS[system]
+                d = width if era == "lcd" else "sharp-monitor"
+                if core:
+                    cores.add(core)
+                    want[os.path.join(base, "config", core, f"{system}.glslp")] = (d, DISPLAYS[d][light])
+    elif look == "manual":
+        for x, name in v["shaders"].items():
+            if x in SYSTEMS and name in SHADERS and emulator_of(x)[0] == "retroarch":
+                core = core_dir(emulator_of(x)[1])
+                if core:
+                    cores.add(core)
+                    want.setdefault(os.path.join(base, "config", core, f"{core}.glslp"), (name, SHADERS[name][0]))
+    for path, (name, preset) in want.items():
+        write_preset(path, name, preset)
+    # what nekozame-emu wrote before and doesn't want now
+    for path in glob.glob(os.path.join(base, "config", "*", "*.glslp")):
+        if path not in want and OURS in open(path, errors="replace").read():
+            os.remove(path)
+            if os.path.exists(path + ".before-nekozame"):
+                os.replace(path + ".before-nekozame", path)
+    # opengl and shaders on for the cores that have them (the presets are glsl)
+    everything = {core_dir(emulator_of(x)[1]) for x in SYSTEMS if emulator_of(x)[0] == "retroarch"}
+    for core in sorted(c for c in everything if c):
+        cfg = os.path.join(base, "config", core, f"{core}.cfg")
+        if core in cores:
+            set_cfg(cfg, {"video_driver": "gl", "video_shader_enable": "true"})
+        elif os.path.exists(cfg):
+            unset_cfg(cfg, {"video_driver", "video_shader_enable"})
+
+
 def video(argv):
     """nekozame-emu video: how games look on this machine. no arguments: a menu."""
     s = settings()
@@ -693,10 +866,16 @@ def video(argv):
         v["aspect"] = argv[1]
     elif argv[:1] == ["resolution"] and argv[1:2] and (argv[1] in ("native", "recommended") or argv[1].isdigit()):
         v["resolution"] = argv[1] if not argv[1].isdigit() else int(argv[1])
+    elif argv[:1] == ["look"] and argv[1:2] and argv[1] in ("real", "clean", "manual", "none"):
+        v["look"] = argv[1]
+    elif argv[:1] == ["region"] and argv[1:2] and argv[1] in LOOK_REGIONS:
+        v["region"] = argv[1]
     elif argv[:1] == ["shader"] and argv[1:2] == ["suggested"]:
+        v["look"] = "manual"
         v["shaders"] = {x: name for x, name in SUGGESTED.items() if x in SYSTEMS}
     elif argv[:1] == ["shader"] and argv[1:2] and (argv[1] in SHADERS or argv[1] == "off"):
         systems = [x for x in argv[2:] if x in SYSTEMS]
+        v["look"] = "manual"
         if argv[1] == "off" and not argv[2:]:
             v["shaders"] = {}  # off everywhere
         for x in systems:
@@ -711,7 +890,9 @@ def video(argv):
     elif argv[:1] in ([], ["menu"]) and shutil.which("gum") and sys.stdin.isatty():
         v = video_menu(v, m)
     elif argv[:1] != ["show"]:
-        say(video.__doc__ + "\n  nekozame-emu video aspect console|wide|stretch\n"
+        say(video.__doc__ + "\n  nekozame-emu video look real|clean|manual|none\n"
+            "  nekozame-emu video region eu|us|jp       yours, for games that came out everywhere\n"
+            "  nekozame-emu video aspect console|wide|stretch\n"
             "  nekozame-emu video resolution recommended|native|NUMBER\n"
             "  nekozame-emu video shader NAME SYSTEM...   (off SYSTEM..., or off for none)\n"
             "  nekozame-emu video shader suggested        the community's usual one for each system\n"
@@ -726,11 +907,19 @@ def video(argv):
     say(f"this machine: {w}x{h}, {what}")
     say(f"  aspect ratio: {v['aspect']}")
     say("  resolution: " + ", ".join(f"{SYSTEMS[x][0]} {scale_for(x, v, m)}x" for x in ("psx", "n64", "ps2", "gc", "psp")))
-    by = {}
-    for x, name in v["shaders"].items():
-        if x in SYSTEMS:
-            by.setdefault(name, []).append(SYSTEMS[x][0])
-    say("  shaders: " + ("; ".join(f"{name} ({', '.join(sorted(set(xs)))})" for name, xs in by.items()) or "none"))
+    look = v.get("look", "manual")
+    if look == "real":
+        say(f"  shaders: like back then, each game as it looked where it was sold (your region: {LOOK_REGIONS[home_region(v)]})")
+    elif look == "clean":
+        say("  shaders: clean, crisp pixels (handhelds: their screens)")
+    elif look == "manual":
+        by = {}
+        for x, name in v["shaders"].items():
+            if x in SYSTEMS:
+                by.setdefault(name, []).append(SYSTEMS[x][0])
+        say("  shaders: " + ("; ".join(f"{name} ({', '.join(sorted(set(xs)))})" for name, xs in by.items()) or "none"))
+    else:
+        say("  shaders: none")
     return 0
 
 
@@ -759,6 +948,29 @@ def video_menu(v, m):
         v["resolution"] = int(n) if n and n.isdigit() else v["resolution"]
     elif pick:
         v["resolution"] = pick.split(":")[0]
+    # the look: like back then, clean, per system, or none
+    REAL = "Like back then (recommended): each game as it looked where it was sold"
+    CLEAN = "Clean: crisp pixels, no CRT (handhelds keep their screens)"
+    MANUAL = "Per system: pick the shaders yourself"
+    NONE = "None: as the emulators draw them"
+    sel = {"real": REAL, "clean": CLEAN, "manual": MANUAL}.get(v.get("look"), REAL)
+    say("  like back then: Europe on RGB SCART TVs (PAL for the early ones), Japan over S-Video")
+    say("  (the Mega Drive on RGB), America over composite; arcade monitors, computer monitors,")
+    say("  handheld screens. by each game's region, and lighter on handhelds")
+    pick = gum("choose", "--header", "How games look", "--selected", sel, REAL, CLEAN, MANUAL, NONE)
+    if pick == REAL:
+        v["look"] = "real"
+        home = home_region(v)
+        r = gum("choose", "--header", "Your region (for games that came out everywhere)",
+                "--selected", LOOK_REGIONS[home], *LOOK_REGIONS.values())
+        v["region"] = next((k for k, n in LOOK_REGIONS.items() if n == r), home)
+        return v
+    if pick in (CLEAN, NONE):
+        v["look"] = "clean" if pick == CLEAN else "none"
+        return v
+    if pick != MANUAL:
+        return v
+    v["look"] = "manual"
     # shaders, one at a time: pick one, then the systems that get it
     names = {SYSTEMS[x][0]: x for x in SYSTEMS if emulator_of(x)[0] == "retroarch"}
     while True:
@@ -1733,7 +1945,7 @@ def esde_sorting(appimage):
         if not found:
             return False
         xml = open(found[0], errors="replace").read()
-    rank = {r: i for i, r in enumerate(REGIONS, 1)}
+    rank = {r: i for i, r in enumerate(LOOK_REGIONS, 1)}
     began = {}  # each family from its first region's release
     for maker, _, family, _, released in FAMILIES.values():
         began[family] = min(began.get(family, released), released)

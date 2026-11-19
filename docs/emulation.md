@@ -150,7 +150,7 @@ The settings are in `~/.config/nekozame/emulation.json`, all of them optional. A
 | `steam.labels` | `true` | The name printed under each cover in Steam |
 | `loadToRam` | `true` | Disc games (PS1, Saturn, PC Engine CD, PS2, PSP) are read into memory before starting, so reading from the share doesn't interrupt them. Starting takes a bit longer. |
 | `gamelists` | `library` | Where the frontend's game lists live: `library`, `local` or `both` (see "Where the game lists live") |
-| `video` | console, recommended, no shaders | How games look: `aspect`, `resolution`, and `shaders` per system (see "How games look") |
+| `video` | console, recommended, no shaders | How games look: `aspect`, `resolution`, `look` (`real`, `clean`, `manual`, `none`), `region` (`eu`, `us`, `jp`) and `shaders` per system (see "How games look") |
 | `achievements` | `{"enabled": true, "hardcore": false}` | RetroAchievements, once you've logged in |
 | `music` | `true` | The frontend's music |
 | `musicVolume` | `40` | Its volume, 0 to 100 |
@@ -181,7 +181,20 @@ A menu for this machine's aspect ratio, resolution and shaders. Each machine has
 
 - **Aspect ratio:** the console's own shape (4:3 for PS1, Saturn, N64, with bars at the sides), widescreen hacks where the emulator has them (PS1, N64, PS2, GameCube), or fill the screen.
 - **Resolution:** for the 3D consoles (PS1, N64, PS2, GameCube, Wii, PSP). "Recommended" is picked from this machine's screen and graphics: high enough to fill the screen, but no higher than the machine runs at full speed. On a Steam Deck: PS1 2x, N64 3x, PS2 1x, GameCube 2x, PSP 3x. "Native" is the console's own; a number picks the scale yourself.
-- **Shaders:** none unless you pick them, each for the systems you choose. They're RetroArch's own, so they cover the systems RetroArch plays (PCSX2, Dolphin and PPSSPP have their own filters). Systems with a CRT shader stay at their native resolution, since that's what CRT shaders are made for. Those cores are switched to OpenGL, which the shaders need.
+- **How games look:** "like back then" (recommended), "clean", per system, or none. Like back then draws each game the way it looked where it was sold, with what most people plugged it into. The region comes from the game's name ("(Europe)", "(Japan)"), or its folder (`megadrivejp`, `genesis`), or yours for games and folders that came out everywhere. "Clean" is crisp pixels, with handhelds on their own screens.
+
+| | USA | Japan | Europe |
+|---|---|---|---|
+| Atari, ColecoVision, NES, SG-1000, Master System, Spectrum, Apple II | NTSC TV over composite or RF | NTSC TV over composite | PAL TV |
+| SNES, Mega Drive, PC Engine, Sega CD, 32X, Neo Geo CD | composite | S-Video (Mega Drive: RGB on a Sony KV-M1420B; PC Engine: composite) | TV over RGB SCART |
+| PS1, Saturn, N64, 3DO, Jaguar, PC-FX, Dreamcast | composite | S-Video | TV over RGB SCART |
+| MSX | composite | RGB on a Sony KV-M1420B | RGB SCART |
+
+Arcade games get an arcade monitor; the C64 a Commodore 1702 monitor; the Amiga and Amstrad CPC an RGB monitor; PC-88, PC-98 and DOS a sharp monitor; the Vectrex a vector screen; each handheld its own LCD. The NTSC ones match the console's picture width (256 or 320 pixels). On a Steam Deck or built-in graphics, each display has a lighter version.
+
+RetroArch picks them itself: one per folder, and one per game for games that differ from their folder (or have a folder of their own).
+
+- **Shaders per system:** each for the systems you choose. They're RetroArch's own, so they cover the systems RetroArch plays (PCSX2, Dolphin and PPSSPP have their own filters). Systems with a CRT shader stay at their native resolution, since that's what CRT shaders are made for. Those cores are switched to OpenGL, which the shaders need.
 
 | Shader | Look |
 |---|---|
@@ -202,7 +215,7 @@ The Royale ones are heavy, but a Steam Deck runs them at the consoles' native re
 
 "Suggested" sets what the emulation community most often uses for each system: Guest's CRT for the 8 and 16-bit consoles, Royale NTSC for PS1, Saturn, N64, 3DO and Jaguar, CRT Lottes for arcade games, and each handheld's own screen.
 
-Without the menu: `nekozame-emu video aspect wide`, `nekozame-emu video resolution 4`, `nekozame-emu video shader crt-pal psx saturn n64`, `nekozame-emu video shader suggested`, `nekozame-emu video shader off`. `nekozame-emu video shaders` lists them.
+Without the menu: `nekozame-emu video look real` (or `clean`, `manual`, `none`), `nekozame-emu video region eu` (or `us`, `jp`), `nekozame-emu video aspect wide`, `nekozame-emu video resolution 4`, `nekozame-emu video shader crt-pal psx saturn n64`, `nekozame-emu video shader suggested`, `nekozame-emu video shader off`. `nekozame-emu video shaders` lists them.
 
 ### RetroAchievements
 
