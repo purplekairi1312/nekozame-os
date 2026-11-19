@@ -5,11 +5,18 @@
 set -euo pipefail
 CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/niri/config.kdl"
 DONE="${XDG_STATE_HOME:-$HOME/.local/state}/nekozame/niri-config"
-[ -f "$CONFIG" ] || dms setup headless --compositor niri --no-systemd
+if [ ! -f "$CONFIG" ]; then
+    dms setup headless --compositor niri --no-systemd
+    # dms starts as a service with niri (dms.service): not from niri's config too (that was
+    # two of it, two bars)
+    sed -i 's|^spawn-at-startup "dms" "run"|// dms starts as a service (nekozame os): spawn-at-startup "dms" "run"|' "$CONFIG"
+fi
+# dms's own welcome tour: nekozame sets dms up itself (and has its own setup)
+mkdir -p "${XDG_CONFIG_HOME:-$HOME/.config}/dms" && touch "${XDG_CONFIG_HOME:-$HOME/.config}/dms/.firstlaunch"
 [ -e "$DONE" ] && exit 0
 mkdir -p "$(dirname "$DONE")"
 cp "$CONFIG" "$CONFIG.before-nekozame"
-# nekozame's shortcuts (Super for apps, Ctrl+Alt for windows)
+# nekozame's shortcuts (Super for apps and windows)
 sed -i 's|^include optional=true "dms/binds.kdl"|include optional=true "/usr/share/nekozame-os/niri/binds.kdl"  // nekozame shortcuts (was dms/binds.kdl)|' "$CONFIG"
 # dms already themed (an older setup): its theme and wallpaper stay as they are
 if grep -q '"currentThemeName"' "${XDG_CONFIG_HOME:-$HOME/.config}/dms/settings.json" 2>/dev/null; then
