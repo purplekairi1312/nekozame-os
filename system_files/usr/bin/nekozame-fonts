@@ -1,0 +1,150 @@
+#!/bin/bash
+# nekozame-fonts: the fonts, everywhere: one for the interface (apps, dms's bar) and one for
+# code (the terminal, editors). all Nerd Fonts, so icons show wherever they're used; each is
+# downloaded when it's picked, into ~/.local/share/fonts. asked by nekozame-setup; run it
+# again any time (ujust nekozame-fonts). your own settings files are only changed where the
+# font goes, after a backup.
+#   nekozame-fonts                       the questions, with a picture of each font
+#   nekozame-fonts INTERFACE CODE        without them: system|opendyslexic and
+#                                        jetbrains|firacode|hack|opendyslexic
+set -euo pipefail
+[ -r /usr/share/nekozame-os/colors.sh ] && . /usr/share/nekozame-os/colors.sh  # gum in nekozame's colours
+RELEASE="https://github.com/ryanoasis/nerd-fonts/releases/download/v3.5.1"
+FONTS="${XDG_DATA_HOME:-$HOME/.local/share}/fonts/NerdFonts"
+C="${XDG_CONFIG_HOME:-$HOME/.config}"
+STATE="$C/nekozame/fonts"
+PICTURES=/usr/share/nekozame-os/fonts
+
+pink() { gum style --foreground "#ffc0e5" --bold "$*"; }
+ok() { echo "  ✓ $*"; }
+
+# name: the release's archive, the family the interface uses, the one code uses
+declare -A ARCHIVE=([opendyslexic]=OpenDyslexic [jetbrains]=JetBrainsMono [firacode]=FiraCode [hack]=Hack)
+declare -A UI_FAMILY=([opendyslexic]="OpenDyslexic Nerd Font")
+declare -A CODE_FAMILY=([jetbrains]="JetBrainsMono Nerd Font Mono" [firacode]="FiraCode Nerd Font Mono"
+                        [hack]="Hack Nerd Font Mono" [opendyslexic]="OpenDyslexicM Nerd Font Mono")
+
+picture() {  # picture FILE: in the terminal where it draws pictures (kitty-logo), or where it is
+    local rows
+    if command -v kitty-logo >/dev/null && kitty-logo --probe 2>/dev/null &&
+        rows=$(kitty-logo "$1" 60 2>/dev/null | cut -d" " -f1) && [ -f "$rows" ]; then
+        cat "$rows"; echo
+    else
+        echo "  Picture of each font: $1"
+    fi
+}
+
+get() {  # get NAME: the font's files, once (the regular, bold and mono ones; not the rest)
+    local name="${ARCHIVE[$1]}" dir="$FONTS/${ARCHIVE[$1]}"
+    [ -n "$(ls "$dir" 2>/dev/null)" ] && return 0
+    mkdir -p "$dir"
+    echo "  downloading $name (Nerd Font)..."
+    curl -fsSL "$RELEASE/$name.tar.xz" | tar -xJ -C "$dir" --wildcards --no-anchored \
+        '*NerdFont-*' '*NerdFontMono-*' 2>/dev/null || { rm -rf "$dir"; echo "  $name didn't download"; return 1; }
+    fc-cache -f "$FONTS" >/dev/null 2>&1 || true
+}
+
+ini() {  # ini FILE SECTION KEY VALUE: one key set (VALUE empty: taken out), the rest kept
+    python3 - "$@" <<'EOF'
+import os, re, shutil, sys
+path, section, key, value = sys.argv[1:]
+lines = open(path).read().splitlines() if os.path.exists(path) else []
+if os.path.exists(path) and not os.path.exists(path + ".before-nekozame-fonts"):
+    shutil.copyfile(path, path + ".before-nekozame-fonts")
+out, inside, done = [], False, False
+for line in lines:
+    m = re.match(r"\s*\[(.+)\]\s*$", line)
+    if m:
+        if inside and not done and value:
+            out.append(f"{key}={value}"); done = True
+        inside = m.group(1) == section
+    elif inside and line.split("=", 1)[0].strip() == key:
+        if value and not done:
+            out.append(f"{key}={value}")
+        done = True
+        continue
+    out.append(line)
+if not done and value:
+    if not inside:
+        out.append(f"[{section}]")
+    out.append(f"{key}={value}")
+os.makedirs(os.path.dirname(path), exist_ok=True)
+open(path, "w").write("\n".join(out) + "\n")
+EOF
+}
+
+apply() {  # apply INTERFACE CODE
+    local ui=$1 code=$2 ui_family="" code_family
+    get "$code" || return 1
+    code_family="${CODE_FAMILY[$code]}"
+    if [ "$ui" != system ]; then
+        get "$ui" || return 1
+        ui_family="${UI_FAMILY[$ui]}"
+    fi
+    # gtk (and what reads gnome's settings)
+    if [ -n "$ui_family" ]; then
+        gsettings set org.gnome.desktop.interface font-name "$ui_family 11" 2>/dev/null || true
+    else
+        gsettings reset org.gnome.desktop.interface font-name 2>/dev/null || true
+    fi
+    gsettings set org.gnome.desktop.interface monospace-font-name "$code_family 11" 2>/dev/null || true
+    local gtk_font=""
+    [ -z "$ui_family" ] || gtk_font="$ui_family 11"
+    ini "$C/gtk-3.0/settings.ini" Settings gtk-font-name "$gtk_font"
+    # qt apps under niri (qt6ct, qt5ct): qt's font strings, family and size
+    local qt_tail=',11,-1,5,400,0,0,0,0,0,0,0,0,0,0,1"' qt_general=""
+    [ -z "$ui_family" ] || qt_general="\"$ui_family$qt_tail"
+    for q in qt6ct qt5ct; do
+        [ -f "$C/$q/$q.conf" ] || continue
+        ini "$C/$q/$q.conf" Fonts general "$qt_general"
+        ini "$C/$q/$q.conf" Fonts fixed "\"$code_family$qt_tail"
+    done
+    # the terminal: ghostty's font-family line, the rest of its config as it was
+    local g="$C/ghostty/config"
+    if [ -f "$g" ]; then
+        [ -f "$g.before-nekozame-fonts" ] || cp "$g" "$g.before-nekozame-fonts"
+        if grep -q '^font-family' "$g"; then
+            sed -i "s|^font-family.*|font-family = \"$code_family\"|" "$g"
+        else
+            printf 'font-family = "%s"\n' "$code_family" >> "$g"
+        fi
+    else
+        mkdir -p "$(dirname "$g")" && printf 'font-family = "%s"\n' "$code_family" > "$g"
+    fi
+    # dms's bar and panels (when it's running)
+    if command -v dms >/dev/null && dms ipc call settings get fontFamily >/dev/null 2>&1; then
+        dms ipc call settings set fontFamily "${ui_family:-Google Sans Flex}" >/dev/null || true
+        dms ipc call settings set monoFontFamily "$code_family" >/dev/null || true
+    fi
+    mkdir -p "$(dirname "$STATE")" && printf 'interface=%s\ncode=%s\n' "$ui" "$code" > "$STATE"
+    local shown="$ui_family"
+    [ -n "$shown" ] || shown="the system's own"
+    ok "interface: $shown; code: $code_family (apps already open: once restarted)"
+}
+
+if [ $# -eq 2 ]; then
+    [ "$1" = system ] || [ -n "${UI_FAMILY[$1]:-}" ] || { echo "the interface font: system or opendyslexic" >&2; exit 1; }
+    [ -n "${CODE_FAMILY[$2]:-}" ] || { echo "the code font: jetbrains, firacode, hack or opendyslexic" >&2; exit 1; }
+    apply "$1" "$2"
+    exit
+fi
+
+now_ui=system now_code=jetbrains
+[ -f "$STATE" ] && . <(grep -E '^(interface|code)=[a-z]+$' "$STATE" | sed 's/^interface=/now_ui=/; s/^code=/now_code=/')
+
+echo; pink "▸ The interface font: apps and the bar"
+picture "$PICTURES/interface.png"
+declare -A UI_LABEL=([system]="System's own (recommended)" [opendyslexic]="OpenDyslexic")
+pick=$(gum choose --header "Which font for the interface?" --selected="${UI_LABEL[$now_ui]}" \
+    "${UI_LABEL[system]}" "${UI_LABEL[opendyslexic]}") || exit 0
+ui=system; [ "$pick" = "${UI_LABEL[opendyslexic]}" ] && ui=opendyslexic
+
+echo; pink "▸ The code font: the terminal and editors"
+picture "$PICTURES/code.png"
+declare -A CODE_LABEL=([jetbrains]="JetBrains Mono (recommended)" [firacode]="FiraCode" [hack]="Hack"
+                       [opendyslexic]="OpenDyslexic Mono")
+pick=$(gum choose --header "Which font for code?" --selected="${CODE_LABEL[$now_code]}" \
+    "${CODE_LABEL[jetbrains]}" "${CODE_LABEL[firacode]}" "${CODE_LABEL[hack]}" "${CODE_LABEL[opendyslexic]}") || exit 0
+code=jetbrains
+for k in "${!CODE_LABEL[@]}"; do [ "$pick" = "${CODE_LABEL[$k]}" ] && code=$k; done
+apply "$ui" "$code"

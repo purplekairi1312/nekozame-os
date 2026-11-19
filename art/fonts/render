@@ -1,0 +1,66 @@
+#!/usr/bin/env python3
+# render OUTDIR: the font previews nekozame-fonts shows before each question (interface.png
+# and code.png): each font's name and a few lines in it, on nekozame's colours. the fonts
+# come from the Nerd Fonts release nekozame-fonts installs from; the interface's "System's
+# own" is whatever sans this machine has (fc-match sans)
+import io
+import os
+import subprocess
+import sys
+import tarfile
+import tempfile
+import urllib.request
+from PIL import Image, ImageDraw, ImageFont
+
+RELEASE = "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.5.1"
+BG, TEXT, ACCENT, DIM = (90, 79, 110), (255, 217, 239), (255, 192, 229), (217, 184, 214)
+# (label, zip, file to take from it); None: this machine's own sans
+INTERFACE = [("System's own", None, None),
+             ("OpenDyslexic", "OpenDyslexic", "OpenDyslexicNerdFont-Regular.otf")]
+CODE = [("JetBrains Mono", "JetBrainsMono", "JetBrainsMonoNerdFontMono-Regular.ttf"),
+        ("FiraCode", "FiraCode", "FiraCodeNerdFontMono-Regular.ttf"),
+        ("Hack", "Hack", "HackNerdFontMono-Regular.ttf"),
+        ("OpenDyslexic Mono", "OpenDyslexic", "OpenDyslexicMNerdFontMono-Regular.otf")]
+SAMPLES = {
+    "interface": ["The quick brown catshark jumps over the lazy reef",
+                  "Settings  ·  Files  ·  Music  ·  Games          \U000f0297"],
+    "code": ["The quick brown catshark jumps over 0O 1lI",
+             "if (fin => shark) { swim != sink; }         "],
+}
+
+
+def font_file(zipname, name, tmp):
+    """the font file NAME from the release's ZIPNAME.tar.xz"""
+    path = os.path.join(tmp, name)
+    if not os.path.exists(path):
+        data = urllib.request.urlopen(f"{RELEASE}/{zipname}.tar.xz").read()
+        with tarfile.open(fileobj=io.BytesIO(data), mode="r:xz") as t:
+            t.extract(next(m for m in t.getmembers() if os.path.basename(m.name) == name), tmp, filter="data")
+            os.replace(os.path.join(tmp, next(m.name for m in t.getmembers() if os.path.basename(m.name) == name)), path)
+    return path
+
+
+def sheet(rows, samples, out, tmp):
+    W, PAD, ROW = 1200, 28, 150
+    im = Image.new("RGB", (W, PAD + len(rows) * ROW), BG)
+    d = ImageDraw.Draw(im)
+    for i, (label, zipname, name) in enumerate(rows):
+        path = font_file(zipname, name, tmp) if zipname else \
+            subprocess.run(["fc-match", "-f", "%{file}", "sans"], capture_output=True, text=True).stdout
+        y = PAD + i * ROW
+        d.text((PAD, y), label, font=ImageFont.truetype(path, 30), fill=ACCENT)
+        for j, line in enumerate(samples):
+            if not zipname:  # a plain system font has no nerd icons: they'd show as boxes
+                line = line.split("    ")[0]
+            d.text((PAD, y + 44 + j * 34), line, font=ImageFont.truetype(path, 24), fill=TEXT if j == 0 else DIM)
+        if i < len(rows) - 1:
+            d.line([(PAD, y + ROW - 14), (W - PAD, y + ROW - 14)], fill=(122, 108, 148), width=1)
+    im.save(out, optimize=True)
+    print(out, im.size, os.path.getsize(out) // 1024, "KB")
+
+
+out = sys.argv[1] if len(sys.argv) > 1 else "."
+os.makedirs(out, exist_ok=True)
+with tempfile.TemporaryDirectory() as tmp:
+    sheet(INTERFACE, SAMPLES["interface"], os.path.join(out, "interface.png"), tmp)
+    sheet(CODE, SAMPLES["code"], os.path.join(out, "code.png"), tmp)
