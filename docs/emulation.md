@@ -285,12 +285,12 @@ What it sets up:
 - Systems by maker and year, each console's regional versions together in the order they came out, with the region next to the name. Under Sega: Mega Drive | Japan (1988), Genesis | North America (1989), Mega Drive | Europe (1990), then the Game Gear, then the Mega-CD family.
 - Your file names as the game names, also after scraping.
 - nekozame's launcher as each system's first emulator, so saves sync. ES-DE's other emulators are still available per game.
-- The nekozame theme: each system is a page in the style of an ocean-themed 90s Japanese magazine, printed on your machine from public-domain photos and your games' screenshots. Each page has a text about the console in English or Japanese (UI Settings → Theme language).
+- The nekozame theme: each system is a page in the style of an ocean-themed 90s Japanese magazine, printed on your machine from public-domain photos and your games' screenshots by the frontend's own printer (`nekozame-theme`, with pygame; without pygame the theme comes without its pages). Each page has a text about the console in English or Japanese (UI Settings → Theme language).
 - Color schemes (UI Settings → Color scheme): nekozame, lilac, sakura, ocean, sunset.
 - Layouts (UI Settings → Theme variant): game list, cover grid, review page, filmstrip, contents, each with screenshot, title screen, cover, 3D box, disc or cartridge, or video.
 - The drawings on top, set with `"drawings"`.
 - Menu colors: nekozame and nekozame light (UI Settings → Menu color scheme).
-- Music: "dolphin sanctuary" by [purplekairi1312](https://passedrecordings.bandcamp.com/track/dolphin-sanctuary), an ocean-themed ambient track released by [Passed Recordings](https://passedrecordings.co.uk/) on [Passed Oceans](https://passedrecordings.bandcamp.com/album/passed-oceans), plays while you browse and pauses during games and the screensaver. `"music": false` turns it off. Buy it on [Bandcamp](https://passedrecordings.bandcamp.com/track/dolphin-sanctuary) or [Ampwall](https://ampwall.com/a/passedrecordings/album/passed-oceans), or listen on [YouTube](https://www.youtube.com/watch?v=-QDAa7hzcGU&t=7730s). © 2026 purplekairi1312, all rights reserved; it isn't under nekozame os's license (see its `LICENSE`).
+- Music: "dolphin sanctuary" by [purplekairi1312](https://passedrecordings.bandcamp.com/track/dolphin-sanctuary), an ocean-themed ambient track released by [Passed Recordings](https://passedrecordings.co.uk/) on [Passed Oceans](https://passedrecordings.bandcamp.com/album/passed-oceans), plays while you browse and pauses during games and the screensaver. `"music": false` turns it off. Buy it on [Bandcamp](https://passedrecordings.bandcamp.com/track/dolphin-sanctuary) or [Ampwall](https://ampwall.com/a/passedrecordings/album/passed-oceans), or listen on [YouTube](https://www.youtube.com/watch?v=-QDAa7hzcGU&t=7730s). © 2026 purplekairi1312, all rights reserved; it isn't under nekozame os's license, and comes with the frontend (see [its license](https://github.com/purplekairi1312/nekozame-emu-frontend/blob/main/nekozame/music/LICENSE)).
 - The screensaver is a slideshow of screenshots, since the video one can freeze the frontend on a network share.
 
 After adding games or changing `"drawings"`, print the pages again:
@@ -368,4 +368,4 @@ Shows them, the newest first, and installs the ones you pick. They go in Steam's
 - The frontend's photos are from NOAA (public domain).
 - The sharks and rays were painted by Kawahara Keiga (川原慶賀) for Philipp Franz von Siebold in the 1820s; the scans are from the Naturalis Biodiversity Center (public domain).
 - The photos of the consoles are by Evan-Amos (public domain, a few CC BY-SA).
-- Each file's source and license is in `/usr/share/nekozame-os/es-de/photos/CREDITS.txt`.
+- They're the frontend's, with its theme: each file's source and license is in [its credits](https://github.com/purplekairi1312/nekozame-emu-frontend/blob/main/docs/credits.md).

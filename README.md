@@ -74,23 +74,10 @@ systemctl reboot
 ## Credits
 
 - Based on [Bazzite](https://bazzite.gg) and the Universal Blue [image template](https://github.com/ublue-os/image-template).
-
-The emulation frontend:
-
-- Photos of the sea: [NOAA](https://www.noaa.gov/), its [Photo Library](https://www.flickr.com/photos/noaaphotolib/) and [National Marine Sanctuaries](https://sanctuaries.noaa.gov/), and the US National Park Service. Public domain, via [Wikimedia Commons](https://commons.wikimedia.org/).
-- The sharks and rays: painted by Kawahara Keiga (川原慶賀) for Philipp Franz von Siebold, 1823-1829. Scans from the [Naturalis Biodiversity Center](https://www.naturalis.nl/), public domain. The paper of the spines is from one of his sheets.
-- Photos of the consoles: [Evan-Amos](https://commons.wikimedia.org/wiki/User:Evan-Amos), via Wikimedia Commons. Public domain, apart from a few under CC BY-SA 3.0.
-- Patent drawings of the consoles: from US patents, public domain.
-- Flags: Wikimedia Commons, public domain.
-- Fonts: Noto Sans and Noto Sans CJK JP by Google, SIL Open Font License.
-- Music: "dolphin sanctuary" by purplekairi1312, released by [Passed Recordings](https://passedrecordings.co.uk/).
-- The frontend itself: a fork of [ES-DE](https://es-de.org), by Leon Styhre, Northwestern Software and its contributors.
-
-Every image and drawing, one by one, with its source and license: [Credits](docs/credits.md).
+- The emulation frontend and its theme (the photos, the sharks and rays, the console photos, the music) credit their own: [nekozame-emu-frontend's credits](https://github.com/purplekairi1312/nekozame-emu-frontend/blob/main/nekozame/CREDITS.md).
+- nekozame os's own art, one by one: [Credits](docs/credits.md).
 
 ## License
 
 - Code: [GPL-3.0-or-later](LICENSE).
 - Art (logo, catshark, boot animation, wallpapers): © 2026 purplekairi1312, [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) ([LICENSE-ART](LICENSE-ART)).
-- The emulation frontend's photos: public domain (NOAA, Kawahara Keiga's paintings from the Naturalis Biodiversity Center, most of Evan-Amos's console photos); a few console photos are CC BY-SA 3.0. Each one's source and license: [CREDITS.txt](system_files/usr/share/nekozame-os/es-de/photos/CREDITS.txt).
-- The music, "dolphin sanctuary": © 2026 purplekairi1312, all rights reserved, not under the GPL ([its license](system_files/usr/share/nekozame-os/es-de/music/LICENSE)). Buy it on [Bandcamp](https://passedrecordings.bandcamp.com/track/dolphin-sanctuary).
