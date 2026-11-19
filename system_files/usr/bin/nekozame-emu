@@ -773,7 +773,7 @@ def video_menu(v, m):
             v["shaders"] = {x: n for x, n in SUGGESTED.items() if x in SYSTEMS}
             continue
         chosen = [SYSTEMS[x][0] for x, n in v["shaders"].items() if n == name and x in SYSTEMS]
-        pick = gum("choose", "--no-limit", "--header", f"The systems with {name} (space to pick)",
+        pick = gum("choose", "--no-limit", "--header", f"The systems with {name} (tab to pick, enter when done)",
                    "--selected", ",".join(chosen), *sorted(names))
         if pick is None:
             continue

@@ -42,7 +42,7 @@ if [ -e "$HOME/.local/bin/renoise" ]; then had+=("$RENOISE"); fi
 if is_layered ardour9; then had+=("$ARDOUR"); fi
 if is_layered lmms; then had+=("$LMMS"); fi
 sel=$(IFS=,; echo "${had[*]+"${had[*]}"}")
-mapfile -t daws < <(gum choose --no-limit --header "DAWs (space to pick, enter when done):" \
+mapfile -t daws < <(gum choose --no-limit --header "DAWs (tab to pick, enter when done):" \
     ${sel:+--selected="$sel"} "$BITWIG" "$REAPER" "$RENOISE" "$ARDOUR" "$LMMS")
 picked() { printf '%s\n' "${daws[@]+"${daws[@]}"}" | grep -qxF "$1"; }
 
