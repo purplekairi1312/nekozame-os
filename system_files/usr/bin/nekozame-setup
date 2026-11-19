@@ -54,14 +54,33 @@ else
     nekozame-fonts || true
 fi
 
-# the dock: dms's own, off unless you want it (dms remembers the choice)
+# the dock: dms's own, off unless you want it (dms remembers the choice). with one, its
+# icons grow under the mouse (magnification: dms's commands can't set it; dms reads its
+# settings file again when it changes)
+dock_magnify() {
+    python3 - "${XDG_CONFIG_HOME:-$HOME/.config}/dms/settings.json" <<'PY'
+import json, sys
+p = sys.argv[1]
+try:
+    s = json.load(open(p))
+except (OSError, ValueError):
+    sys.exit(0)
+docks = s.get("dockConfigs") or []
+for d in docks:
+    d["magnification"] = True
+if docks:
+    json.dump(s, open(p, "w"), indent=2)
+PY
+}
 if [ -n "${NIRI_SOCKET:-}" ] || ls "${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"/niri.wayland-*.sock >/dev/null 2>&1; then
     step "The dock"
     NODOCK="No dock (recommended)"; DOCK="A dock at the bottom"; HIDING="A dock that hides until the mouse reaches it"
     case "$(dms ipc call dock status 2>/dev/null)" in visible) now="$DOCK" ;; *) now="$NODOCK" ;; esac
     case "$(gum choose --header "A dock for your apps?" --selected="$now" "$NODOCK" "$DOCK" "$HIDING")" in
-        "$DOCK") dms ipc call dock reveal >/dev/null && dms ipc call dock manualHide >/dev/null && ok "a dock at the bottom" ;;
-        "$HIDING") dms ipc call dock reveal >/dev/null && dms ipc call dock autoHide >/dev/null && ok "a dock that hides" ;;
+        "$DOCK") dms ipc call dock reveal >/dev/null && dms ipc call dock manualHide >/dev/null && sleep 1 && dock_magnify &&
+            ok "a dock at the bottom, its icons growing under the mouse" ;;
+        "$HIDING") dms ipc call dock reveal >/dev/null && dms ipc call dock autoHide >/dev/null && sleep 1 && dock_magnify &&
+            ok "a dock that hides, its icons growing under the mouse" ;;
         "$NODOCK") dms ipc call dock hide >/dev/null; ok "no dock (change it: DMS's settings, Super+,)" ;;
     esac
 fi
