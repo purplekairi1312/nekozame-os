@@ -940,7 +940,7 @@ def show_picture(path, cols=60):
             sys.stdout.write(open(rows).read() + "\n")
             sys.stdout.flush()
             return
-    say(f"  (how each one looks: {path})")
+    say(f"  a picture of each look (this terminal can't show it here): {path}")
 
 
 def video_menu(v, m):
@@ -964,15 +964,18 @@ def video_menu(v, m):
     elif pick:
         v["resolution"] = pick.split(":")[0]
     # the look: like back then, clean, per system, or none
-    REAL = "Like back then (recommended): each game as it looked where it was sold"
-    CLEAN = "Clean: crisp pixels, no CRT (handhelds keep their screens)"
-    MANUAL = "Per system: pick the shaders yourself"
-    NONE = "None: as the emulators draw them"
+    REAL = "Like back then (recommended): a TV or screen of its time, picked for each game"
+    CLEAN = "Clean: sharp square pixels, no TV effects (handhelds: their LCD's grid)"
+    MANUAL = "Per system: you pick a look for each system"
+    NONE = "None: the emulators' plain picture"
     sel = {"real": REAL, "clean": CLEAN, "manual": MANUAL}.get(v.get("look"), REAL)
     show_picture(os.path.join(USR, "share/nekozame-os/emulation/looks.png"))
-    say("  like back then: Europe on RGB SCART TVs (PAL for the early ones), Japan over S-Video")
-    say("  (the Mega Drive on RGB), America over composite; arcade monitors, computer monitors,")
-    say("  handheld screens. by each game's region, and lighter on handhelds")
+    say("  like back then picks, for each game:")
+    say("  - by region: Europe on RGB SCART (sharp), Japan over S-Video, the USA over")
+    say("    composite (softer, colours bleed)")
+    say("  - by era: 80s consoles on a TV of the time, PAL in Europe")
+    say("  - arcade games on an arcade monitor, computers on their monitors, handhelds")
+    say("    on their own screen")
     pick = gum("choose", "--header", "How games look", "--selected", sel, REAL, CLEAN, MANUAL, NONE)
     if pick == REAL:
         v["look"] = "real"
