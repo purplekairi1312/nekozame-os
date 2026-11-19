@@ -47,6 +47,13 @@ if [ -n "${NIRI_SOCKET:-}" ] || ls "${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"/niri
     fi
 fi
 
+step "Fonts: the interface's and code's"
+if [ -s "${XDG_CONFIG_HOME:-$HOME/.config}/nekozame/fonts" ]; then
+    ok "set (change them: ujust nekozame-fonts)"
+else
+    nekozame-fonts || true
+fi
+
 step "Zen browser"
 if flatpak info app.zen_browser.zen >/dev/null 2>&1; then
     ok "installed"

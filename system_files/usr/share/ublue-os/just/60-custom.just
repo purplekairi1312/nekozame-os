@@ -35,6 +35,11 @@ nekozame-music-production:
 nekozame-display:
     /usr/bin/nekozame-display
 
+# Fonts: the interface's and code's (all Nerd Fonts), with a picture of each
+[group('nekozame')]
+nekozame-fonts:
+    /usr/bin/nekozame-fonts
+
 # Your editor: doom (default), neovim, helix, micro, nano or any command
 [group('nekozame')]
 nekozame-editor EDITOR="":

@@ -6,6 +6,7 @@ Opinionated immutable distro.
 
 - [niri](https://github.com/niri-wm/niri) with [DankMaterialShell](https://github.com/AvengeMedia/DankMaterialShell), login screen included
 - Mac-style keys: Super works like Cmd (Super+C/V/X to copy and paste, Super+Q to close), and Super moves windows too (Super+F to maximize, Super+arrows to move between them), Alt+1-9 switches workspaces. The same on a Mac with [nekozame-mac](https://git.sr.ht/~purplekairi1312/nekozame-mac), with Cmd. Super+Shift+/ shows them all
+- Fonts to pick, all Nerd Fonts: the interface in the system's own or OpenDyslexic, code in JetBrains Mono, FiraCode, Hack or OpenDyslexic Mono (`ujust nekozame-fonts`, with a picture of each)
 - Gaming, and emulation for a local library or one on a network share, saves synced between machines ([how it works](docs/emulation.md)) (and NVIDIA drivers on the NVIDIA image)
 - Doom Emacs as `$EDITOR`, always running as a daemon, emacs keys (evil mode or another editor if you want)
 - Low-latency audio with realtime priority for everyone, and music production on request: Bitwig, Reaper or Renoise (proprietary, paid), Ardour or LMMS (free software), a checklist of about 700 plugins from Audinux that every DAW finds, and yabridge for Microsoft Windows plugins

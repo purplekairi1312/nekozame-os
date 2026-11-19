@@ -46,6 +46,7 @@ check "tela icons (pink)" 'test -s /usr/share/icons/Tela-pink-dark/index.theme &
 [ "${VARIANT:-amd}" != deck ] || check "first-boot setup before game mode" 'grep -q nekozame-firstboot /usr/share/gamescope-session-plus/sessions.d/steam && python3 -c "import pygame, qrcode" && test -x /usr/libexec/nekozame-firstboot'
 [ "${VARIANT:-amd}" != deck ] || check "nekozame updater: nekozame's images only, updates the booted one" '! grep -q "ublue-os" /etc/bazzite-updater/rebase-targets.json && grep -q nekozame-os-deck /etc/bazzite-updater/rebase-targets.json && grep -q "^systemUpdateCommand=/usr/libexec/uupd-update" /etc/bazzite-updater/config.ini && grep -q "^Name=nekozame Updater" /usr/share/applications/io.github.rfrench3.bazzite-updater.desktop && rpm -q bazzite-updater | grep -q nekozame && grep -aq "nekozame Updater" /usr/bin/bazzite-updater'
 check "screens setup (niri)" 'test -x /usr/bin/nekozame-display'
+check "fonts setup, with its pictures" 'test -x /usr/bin/nekozame-fonts && test -s /usr/share/nekozame-os/fonts/code.png'
 check "first-login setup" 'test -x /usr/bin/nekozame-setup && test -f /etc/xdg/autostart/nekozame-setup.desktop && command -v gum'
 check "emacs and cava themes" 'test -s /usr/share/nekozame-os/emacs/nekozame-theme.el && test -s /usr/share/nekozame-os/cava/config'
 check "browser policies" 'jq -e ".policies.ExtensionSettings[\"uBlock0@raymondhill.net\"]" /usr/share/nekozame-os/zen/policies/policies.json && jq -e .WebRtcIPHandling /etc/chromium/policies/managed/nekozame.json'
