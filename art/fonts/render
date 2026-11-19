@@ -16,7 +16,8 @@ RELEASE = "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.5.1"
 BG, TEXT, ACCENT, DIM = (90, 79, 110), (255, 217, 239), (255, 192, 229), (217, 184, 214)
 # (label, zip, file to take from it); None: this machine's own sans
 INTERFACE = [("System's own", None, None),
-             ("OpenDyslexic", "OpenDyslexic", "OpenDyslexicNerdFont-Regular.otf")]
+             ("OpenDyslexic", "OpenDyslexic", "OpenDyslexicNerdFont-Regular.otf"),
+             ("OpenDyslexic Alt", "OpenDyslexic", "OpenDyslexicAltNerdFont-Regular.otf")]
 CODE = [("JetBrains Mono", "JetBrainsMono", "JetBrainsMonoNerdFontMono-Regular.ttf"),
         ("FiraCode", "FiraCode", "FiraCodeNerdFontMono-Regular.ttf"),
         ("Hack", "Hack", "HackNerdFontMono-Regular.ttf"),

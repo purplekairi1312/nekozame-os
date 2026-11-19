@@ -5,7 +5,7 @@
 # again any time (ujust nekozame-fonts). your own settings files are only changed where the
 # font goes, after a backup.
 #   nekozame-fonts                       the questions, with a picture of each font
-#   nekozame-fonts INTERFACE CODE        without them: system|opendyslexic and
+#   nekozame-fonts INTERFACE CODE        without them: system|opendyslexic|opendyslexicalt and
 #                                        jetbrains|firacode|hack|opendyslexic
 set -euo pipefail
 [ -r /usr/share/nekozame-os/colors.sh ] && . /usr/share/nekozame-os/colors.sh  # gum in nekozame's colours
@@ -19,8 +19,8 @@ pink() { gum style --foreground "#ffc0e5" --bold "$*"; }
 ok() { echo "  ✓ $*"; }
 
 # name: the release's archive, the family the interface uses, the one code uses
-declare -A ARCHIVE=([opendyslexic]=OpenDyslexic [jetbrains]=JetBrainsMono [firacode]=FiraCode [hack]=Hack)
-declare -A UI_FAMILY=([opendyslexic]="OpenDyslexic Nerd Font")
+declare -A ARCHIVE=([opendyslexic]=OpenDyslexic [opendyslexicalt]=OpenDyslexic [jetbrains]=JetBrainsMono [firacode]=FiraCode [hack]=Hack)
+declare -A UI_FAMILY=([opendyslexic]="OpenDyslexic Nerd Font" [opendyslexicalt]="OpenDyslexicAlt Nerd Font")
 declare -A CODE_FAMILY=([jetbrains]="JetBrainsMono Nerd Font Mono" [firacode]="FiraCode Nerd Font Mono"
                         [hack]="Hack Nerd Font Mono" [opendyslexic]="OpenDyslexicM Nerd Font Mono")
 
@@ -123,7 +123,7 @@ apply() {  # apply INTERFACE CODE
 }
 
 if [ $# -eq 2 ]; then
-    [ "$1" = system ] || [ -n "${UI_FAMILY[$1]:-}" ] || { echo "the interface font: system or opendyslexic" >&2; exit 1; }
+    [ "$1" = system ] || [ -n "${UI_FAMILY[$1]:-}" ] || { echo "the interface font: system, opendyslexic or opendyslexicalt" >&2; exit 1; }
     [ -n "${CODE_FAMILY[$2]:-}" ] || { echo "the code font: jetbrains, firacode, hack or opendyslexic" >&2; exit 1; }
     apply "$1" "$2"
     exit
@@ -134,10 +134,11 @@ now_ui=system now_code=jetbrains
 
 echo; pink "▸ The interface font: apps and the bar"
 picture "$PICTURES/interface.png"
-declare -A UI_LABEL=([system]="System's own (recommended)" [opendyslexic]="OpenDyslexic")
+declare -A UI_LABEL=([system]="System's own (recommended)" [opendyslexic]="OpenDyslexic" [opendyslexicalt]="OpenDyslexic Alt")
 pick=$(gum choose --header "Which font for the interface?" --selected="${UI_LABEL[$now_ui]}" \
-    "${UI_LABEL[system]}" "${UI_LABEL[opendyslexic]}") || exit 0
-ui=system; [ "$pick" = "${UI_LABEL[opendyslexic]}" ] && ui=opendyslexic
+    "${UI_LABEL[system]}" "${UI_LABEL[opendyslexic]}" "${UI_LABEL[opendyslexicalt]}") || exit 0
+ui=system
+for k in opendyslexic opendyslexicalt; do [ "$pick" = "${UI_LABEL[$k]}" ] && ui=$k; done
 
 echo; pink "▸ The code font: the terminal and editors"
 picture "$PICTURES/code.png"
